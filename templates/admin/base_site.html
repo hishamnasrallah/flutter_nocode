@@ -1,0 +1,70 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Flutter App Builder') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        🚀 Flutter App Builder
+    </a>
+</h1>
+<p style="color: #666; font-size: 12px; margin: 0;">
+    Create Flutter apps without coding
+</p>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    #header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    #site-name a {
+        color: white !important;
+        text-decoration: none;
+    }
+    
+    .module h2, .module caption, .inline-group h2 {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+    }
+    
+    .button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover, a.button:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    
+    .breadcrumbs {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .help {
+        font-size: 11px;
+        color: #666;
+        margin-top: 2px;
+    }
+    
+    .form-row .help {
+        margin-left: 0;
+    }
+    
+    .inline-group .tabular tr.has_original td {
+        padding-top: 2em;
+    }
+    
+    .inline-group .tabular tr td.original {
+        padding: 2px 0 0 0;
+        width: 0;
+        _position: relative;
+    }
+</style>
+{% endblock %}
