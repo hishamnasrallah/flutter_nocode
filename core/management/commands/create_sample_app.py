@@ -863,15 +863,133 @@ def create_news_app(custom_name=None):
         theme=theme
     )
     
-    # Create data sources
+    # Create data sources with mock data
     news_ds = DataSource.objects.create(
         application=app,
         name="News Articles",
-        data_source_type="REST_API",
-        base_url="https://newsapi.org/v2",
-        endpoint="/top-headlines",
-        method="GET",
-        headers="Authorization: Bearer YOUR_NEWS_API_KEY"
+        data_source_type="STATIC_JSON",
+        static_data='''[
+    {
+        "id": "1",
+        "title": "Breaking: Major Technology Breakthrough Announced",
+        "description": "Scientists reveal groundbreaking discovery that could revolutionize computing",
+        "content": "In a stunning announcement today, researchers at leading universities have unveiled a new quantum computing breakthrough that promises to accelerate processing speeds by 1000x. The technology uses novel quantum entanglement techniques...",
+        "author": "John Smith",
+        "source": "Tech Daily",
+        "publishedAt": "2024-01-15T10:30:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=1",
+        "url": "https://example.com/article1",
+        "category": "technology"
+    },
+    {
+        "id": "2",
+        "title": "Global Climate Summit Reaches Historic Agreement",
+        "description": "World leaders commit to ambitious new targets for carbon reduction",
+        "content": "Representatives from 195 nations have signed a landmark agreement committing to net-zero emissions by 2040. The agreement includes specific milestones and funding mechanisms...",
+        "author": "Sarah Johnson",
+        "source": "World News Network",
+        "publishedAt": "2024-01-15T08:45:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=2",
+        "url": "https://example.com/article2",
+        "category": "general"
+    },
+    {
+        "id": "3",
+        "title": "Stock Markets Hit Record Highs Amid Economic Recovery",
+        "description": "Major indices surge as investors show renewed confidence",
+        "content": "The S&P 500 and NASDAQ both reached all-time highs today, driven by strong earnings reports and positive economic indicators. Analysts predict continued growth...",
+        "author": "Michael Chen",
+        "source": "Financial Times",
+        "publishedAt": "2024-01-15T14:20:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=3",
+        "url": "https://example.com/article3",
+        "category": "business"
+    },
+    {
+        "id": "4",
+        "title": "New Medical Treatment Shows Promise for Rare Disease",
+        "description": "Clinical trials demonstrate 90% success rate in early testing",
+        "content": "A revolutionary gene therapy treatment has shown remarkable results in treating a previously incurable genetic disorder. Patients in the trial showed significant improvement...",
+        "author": "Dr. Emily Wilson",
+        "source": "Medical Journal",
+        "publishedAt": "2024-01-15T11:00:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=4",
+        "url": "https://example.com/article4",
+        "category": "health"
+    },
+    {
+        "id": "5",
+        "title": "Championship Finals: Underdog Team Stuns Champions",
+        "description": "Historic upset as rookie team claims victory in thrilling finale",
+        "content": "In one of the greatest upsets in sports history, the underdog team defeated the three-time champions in a nail-biting finish. The game went into overtime...",
+        "author": "Robert Martinez",
+        "source": "Sports Weekly",
+        "publishedAt": "2024-01-14T22:30:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=5",
+        "url": "https://example.com/article5",
+        "category": "sports"
+    },
+    {
+        "id": "6",
+        "title": "Breakthrough in Artificial Intelligence Research",
+        "description": "New AI model demonstrates human-level reasoning capabilities",
+        "content": "Researchers have developed an AI system that can solve complex problems with unprecedented accuracy. The model uses a novel architecture that mimics human cognitive processes...",
+        "author": "Alex Kumar",
+        "source": "AI Research Lab",
+        "publishedAt": "2024-01-15T09:15:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=6",
+        "url": "https://example.com/article6",
+        "category": "science"
+    },
+    {
+        "id": "7",
+        "title": "Entertainment Industry Announces Major Merger",
+        "description": "Two media giants join forces in billion-dollar deal",
+        "content": "In a move that will reshape the entertainment landscape, two of the industry's biggest players have announced a merger valued at $50 billion. The combined company will...",
+        "author": "Lisa Anderson",
+        "source": "Entertainment Today",
+        "publishedAt": "2024-01-15T13:45:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=7",
+        "url": "https://example.com/article7",
+        "category": "entertainment"
+    },
+    {
+        "id": "8",
+        "title": "Space Mission Successfully Launches to Mars",
+        "description": "Historic mission aims to establish first permanent base on Mars",
+        "content": "The long-awaited Mars colonization mission successfully launched today, carrying supplies and equipment for establishing humanity's first permanent base on another planet...",
+        "author": "Captain James Webb",
+        "source": "Space News",
+        "publishedAt": "2024-01-15T06:00:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=8",
+        "url": "https://example.com/article8",
+        "category": "science"
+    },
+    {
+        "id": "9",
+        "title": "Local Community Rallies to Support Food Bank",
+        "description": "Record donations help feed thousands of families in need",
+        "content": "The community response has been overwhelming, with donations exceeding expectations by 300%. The food bank can now serve meals to over 10,000 families this month...",
+        "author": "Maria Garcia",
+        "source": "Local News",
+        "publishedAt": "2024-01-15T16:30:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=9",
+        "url": "https://example.com/article9",
+        "category": "general"
+    },
+    {
+        "id": "10",
+        "title": "Tech Giant Unveils Revolutionary Smartphone",
+        "description": "Next-generation device features holographic display technology",
+        "content": "The latest smartphone release features breakthrough holographic projection technology, allowing users to interact with 3D images in mid-air. Pre-orders have already exceeded...",
+        "author": "David Park",
+        "source": "Tech Review",
+        "publishedAt": "2024-01-15T12:00:00Z",
+        "urlToImage": "https://picsum.photos/400/200?random=10",
+        "url": "https://example.com/article10",
+        "category": "technology"
+    }
+]'''
     )
     
     # Create data source fields for news
@@ -928,15 +1046,85 @@ def create_news_app(custom_name=None):
             is_required=True
         )
     
-    # Create sources data source
+    # Create sources data source with mock data
     sources_ds = DataSource.objects.create(
         application=app,
         name="News Sources",
-        data_source_type="REST_API",
-        base_url="https://newsapi.org/v2",
-        endpoint="/sources",
-        method="GET",
-        headers="Authorization: Bearer YOUR_NEWS_API_KEY"
+        data_source_type="STATIC_JSON",
+        static_data='''[
+    {
+        "id": "tech-daily",
+        "name": "Tech Daily",
+        "description": "Your source for the latest technology news and reviews",
+        "url": "https://techdaily.example.com",
+        "category": "technology",
+        "language": "en",
+        "country": "US"
+    },
+    {
+        "id": "world-news-network",
+        "name": "World News Network",
+        "description": "Breaking news from around the globe",
+        "url": "https://wnn.example.com",
+        "category": "general",
+        "language": "en",
+        "country": "US"
+    },
+    {
+        "id": "financial-times",
+        "name": "Financial Times",
+        "description": "Business and financial news",
+        "url": "https://ft.example.com",
+        "category": "business",
+        "language": "en",
+        "country": "UK"
+    },
+    {
+        "id": "sports-weekly",
+        "name": "Sports Weekly",
+        "description": "Complete sports coverage and analysis",
+        "url": "https://sportsweekly.example.com",
+        "category": "sports",
+        "language": "en",
+        "country": "US"
+    },
+    {
+        "id": "medical-journal",
+        "name": "Medical Journal",
+        "description": "Latest medical research and health news",
+        "url": "https://medjournal.example.com",
+        "category": "health",
+        "language": "en",
+        "country": "US"
+    },
+    {
+        "id": "entertainment-today",
+        "name": "Entertainment Today",
+        "description": "Movies, music, and celebrity news",
+        "url": "https://entertainment.example.com",
+        "category": "entertainment",
+        "language": "en",
+        "country": "US"
+    },
+    {
+        "id": "science-magazine",
+        "name": "Science Magazine",
+        "description": "Scientific discoveries and research",
+        "url": "https://sciencemag.example.com",
+        "category": "science",
+        "language": "en",
+        "country": "US"
+    },
+    {
+        "id": "local-news",
+        "name": "Local News",
+        "description": "News from your community",
+        "url": "https://localnews.example.com",
+        "category": "general",
+        "language": "en",
+        "country": "US"
+    }
+]'''
     )
     
     source_fields = [
