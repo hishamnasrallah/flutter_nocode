@@ -1184,8 +1184,67 @@ def create_forgot_password_ui(screen, actions):
 
 def create_reset_password_ui(screen, actions):
     """Create reset password screen"""
-    # Similar structure to forgot password
-    pass
+    main_column = Widget.objects.create(
+        screen=screen, widget_type="Column", order=0, widget_id="reset_column"
+    )
+
+    # Icon
+    icon = Widget.objects.create(
+        screen=screen, widget_type="Icon", parent_widget=main_column,
+        order=0, widget_id="lock_icon"
+    )
+    add_widget_property(icon, "icon", "string", string_value="lock_open")
+    add_widget_property(icon, "size", "decimal", decimal_value=64)
+
+    # Title
+    title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=main_column,
+        order=1, widget_id="reset_title"
+    )
+    add_widget_property(title, "text", "string", string_value="Create New Password")
+    add_widget_property(title, "fontSize", "decimal", decimal_value=24)
+
+    # Instructions
+    instructions = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=main_column,
+        order=2, widget_id="reset_instructions"
+    )
+    add_widget_property(instructions, "text", "string",
+                        string_value="Your new password must be different from previous passwords")
+
+    # New password field
+    new_password = Widget.objects.create(
+        screen=screen, widget_type="TextField", parent_widget=main_column,
+        order=3, widget_id="new_password_field"
+    )
+    add_widget_property(new_password, "hintText", "string", string_value="New Password")
+    add_widget_property(new_password, "obscureText", "boolean", boolean_value=True)
+
+    # Confirm password field
+    confirm_password = Widget.objects.create(
+        screen=screen, widget_type="TextField", parent_widget=main_column,
+        order=4, widget_id="confirm_password_field"
+    )
+    add_widget_property(confirm_password, "hintText", "string", string_value="Confirm Password")
+    add_widget_property(confirm_password, "obscureText", "boolean", boolean_value=True)
+
+    # Password requirements
+    requirements = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=main_column,
+        order=5, widget_id="password_requirements"
+    )
+    add_widget_property(requirements, "text", "string",
+                        string_value="• At least 8 characters\n• One uppercase letter\n• One number\n• One special character")
+    add_widget_property(requirements, "fontSize", "decimal", decimal_value=12)
+
+    # Reset button
+    reset_btn = Widget.objects.create(
+        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
+        order=6, widget_id="reset_password_button"
+    )
+    add_widget_property(reset_btn, "text", "string", string_value="Reset Password")
+    add_widget_property(reset_btn, "onPressed", "action_reference",
+                        action_reference=actions["Navigate to Login"])
 
 
 def create_otp_verification_ui(screen, actions):
@@ -2778,3 +2837,238 @@ def get_field(data_source, field_name):
     except DataSourceField.DoesNotExist:
         # Return first field if specific field not found
         return data_source.fields.first()
+
+
+# Add any additional helper functions needed
+def create_seller_dashboard_ui(screen, data_sources, actions):
+    """Create seller dashboard screen"""
+    scroll_view = Widget.objects.create(
+        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="seller_scroll"
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen, widget_type="Column", parent_widget=scroll_view,
+        order=0, widget_id="seller_column"
+    )
+
+    # Stats Cards Row
+    stats_row = Widget.objects.create(
+        screen=screen, widget_type="Row", parent_widget=main_column,
+        order=0, widget_id="stats_row"
+    )
+
+    # Today's Sales Card
+    sales_card = Widget.objects.create(
+        screen=screen, widget_type="Card", parent_widget=stats_row,
+        order=0, widget_id="sales_card"
+    )
+    add_widget_property(sales_card, "elevation", "decimal", decimal_value=4)
+
+    sales_column = Widget.objects.create(
+        screen=screen, widget_type="Column", parent_widget=sales_card,
+        order=0, widget_id="sales_column"
+    )
+
+    sales_title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=sales_column,
+        order=0, widget_id="sales_title"
+    )
+    add_widget_property(sales_title, "text", "string", string_value="Today's Sales")
+
+    sales_value = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=sales_column,
+        order=1, widget_id="sales_value"
+    )
+    add_widget_property(sales_value, "text", "string", string_value="$2,456")
+    add_widget_property(sales_value, "fontSize", "decimal", decimal_value=28)
+
+    # Orders Card
+    orders_card = Widget.objects.create(
+        screen=screen, widget_type="Card", parent_widget=stats_row,
+        order=1, widget_id="orders_card"
+    )
+    add_widget_property(orders_card, "elevation", "decimal", decimal_value=4)
+
+    # Products Card
+    products_card = Widget.objects.create(
+        screen=screen, widget_type="Card", parent_widget=stats_row,
+        order=2, widget_id="products_card"
+    )
+    add_widget_property(products_card, "elevation", "decimal", decimal_value=4)
+
+    # Recent Orders Section
+    orders_title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=main_column,
+        order=1, widget_id="recent_orders_title"
+    )
+    add_widget_property(orders_title, "text", "string", string_value="Recent Orders")
+    add_widget_property(orders_title, "fontSize", "decimal", decimal_value=20)
+
+    orders_list = Widget.objects.create(
+        screen=screen, widget_type="ListView", parent_widget=main_column,
+        order=2, widget_id="recent_orders_list"
+    )
+    add_widget_property(orders_list, "dataSource", "data_source_field_reference",
+                        data_source_field_reference=get_field(data_sources["Seller Dashboard"], "orders"))
+
+
+def create_settings_ui(screen, actions):
+    """Create settings screen"""
+    scroll_view = Widget.objects.create(
+        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="settings_scroll"
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen, widget_type="Column", parent_widget=scroll_view,
+        order=0, widget_id="settings_column"
+    )
+
+    # Settings sections
+    settings_sections = [
+        ("Account Settings", [
+            ("Edit Profile", "person", actions["Navigate to Edit Profile"]),
+            ("Change Password", "lock", None),
+            ("Two-Factor Authentication", "security", None),
+            ("Email Preferences", "email", None),
+        ]),
+        ("App Settings", [
+            ("Notifications", "notifications", actions["Navigate to Notifications Settings"]),
+            ("Language", "language", actions["Navigate to Language"]),
+            ("Country/Region", "public", actions["Navigate to Country"]),
+            ("Dark Mode", "dark_mode", None),
+        ]),
+        ("Privacy & Security", [
+            ("Privacy Policy", "privacy_tip", actions["Navigate to Privacy"]),
+            ("Terms of Service", "description", None),
+            ("Data & Storage", "storage", None),
+            ("Blocked Users", "block", None),
+        ]),
+        ("Support", [
+            ("Help Center", "help", actions["Navigate to Help"]),
+            ("Contact Us", "contact_support", actions["Navigate to Contact Support"]),
+            ("Report a Problem", "report_problem", None),
+            ("Rate App", "star_rate", None),
+        ]),
+    ]
+
+    for section_title, items in settings_sections:
+        # Section header
+        section_header = Widget.objects.create(
+            screen=screen, widget_type="Text", parent_widget=main_column,
+            order=len(main_column.child_widgets.all()), widget_id=f"section_{section_title.lower().replace(' ', '_')}"
+        )
+        add_widget_property(section_header, "text", "string", string_value=section_title)
+        add_widget_property(section_header, "fontSize", "decimal", decimal_value=18)
+
+        # Section items
+        for item_text, icon, action in items:
+            tile = Widget.objects.create(
+                screen=screen, widget_type="ListTile", parent_widget=main_column,
+                order=len(main_column.child_widgets.all()),
+                widget_id=f"setting_{item_text.lower().replace(' ', '_')}"
+            )
+            add_widget_property(tile, "title", "string", string_value=item_text)
+            add_widget_property(tile, "leading", "string", string_value=icon)
+            add_widget_property(tile, "trailing", "string", string_value="arrow_forward_ios")
+            if action:
+                add_widget_property(tile, "onTap", "action_reference", action_reference=action)
+
+    # Logout button
+    logout_btn = Widget.objects.create(
+        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
+        order=99, widget_id="logout_button"
+    )
+    add_widget_property(logout_btn, "text", "string", string_value="Logout")
+    add_widget_property(logout_btn, "onPressed", "action_reference",
+                        action_reference=actions["Navigate to Login"])
+
+    # App version
+    version_text = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=main_column,
+        order=100, widget_id="app_version"
+    )
+    add_widget_property(version_text, "text", "string", string_value="Version 1.0.0")
+    add_widget_property(version_text, "fontSize", "decimal", decimal_value=12)
+
+
+def create_help_ui(screen, data_sources, actions):
+    """Create help center screen"""
+    main_column = Widget.objects.create(
+        screen=screen, widget_type="Column", order=0, widget_id="help_column"
+    )
+
+    # Search bar
+    search_container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=main_column,
+        order=0, widget_id="help_search_container"
+    )
+    add_widget_property(search_container, "padding", "decimal", decimal_value=16)
+
+    search_field = Widget.objects.create(
+        screen=screen, widget_type="TextField", parent_widget=search_container,
+        order=0, widget_id="help_search"
+    )
+    add_widget_property(search_field, "hintText", "string", string_value="Search for help...")
+
+    # Quick Links
+    quick_links_title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=main_column,
+        order=1, widget_id="quick_links_title"
+    )
+    add_widget_property(quick_links_title, "text", "string", string_value="Quick Links")
+    add_widget_property(quick_links_title, "fontSize", "decimal", decimal_value=18)
+
+    # Quick link buttons grid
+    links_grid = Widget.objects.create(
+        screen=screen, widget_type="GridView", parent_widget=main_column,
+        order=2, widget_id="quick_links_grid"
+    )
+    add_widget_property(links_grid, "crossAxisCount", "integer", integer_value=2)
+
+    quick_links = [
+        ("FAQs", "help_outline", actions["Navigate to FAQs"]),
+        ("Contact Support", "support_agent", actions["Navigate to Contact Support"]),
+        ("Live Chat", "chat", actions["Navigate to Live Chat"]),
+        ("Call Us", "phone", actions["Call Support"]),
+        ("Email Us", "email", actions["Send Email"]),
+        ("Tickets", "confirmation_number", actions["Navigate to Tickets"]),
+    ]
+
+    for i, (text, icon, action) in enumerate(quick_links):
+        link_card = Widget.objects.create(
+            screen=screen, widget_type="Card", parent_widget=links_grid,
+            order=i, widget_id=f"link_{text.lower().replace(' ', '_')}"
+        )
+
+        link_column = Widget.objects.create(
+            screen=screen, widget_type="Column", parent_widget=link_card,
+            order=0, widget_id=f"link_column_{i}"
+        )
+
+        link_icon = Widget.objects.create(
+            screen=screen, widget_type="Icon", parent_widget=link_column,
+            order=0, widget_id=f"link_icon_{i}"
+        )
+        add_widget_property(link_icon, "icon", "string", string_value=icon)
+        add_widget_property(link_icon, "size", "decimal", decimal_value=40)
+
+        link_text = Widget.objects.create(
+            screen=screen, widget_type="Text", parent_widget=link_column,
+            order=1, widget_id=f"link_text_{i}"
+        )
+        add_widget_property(link_text, "text", "string", string_value=text)
+
+    # Help Articles
+    articles_title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=main_column,
+        order=3, widget_id="articles_title"
+    )
+    add_widget_property(articles_title, "text", "string", string_value="Popular Articles")
+    add_widget_property(articles_title, "fontSize", "decimal", decimal_value=18)
+
+    articles_list = Widget.objects.create(
+        screen=screen, widget_type="ListView", parent_widget=main_column,
+        order=4, widget_id="help_articles"
+    )
+    add_widget_property(articles_list, "dataSource", "data_source_field_reference",
+                        data_source_field_reference=get_field(data_sources["Help Articles"], "title"))

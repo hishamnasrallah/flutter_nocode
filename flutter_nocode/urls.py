@@ -5,6 +5,14 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from core import views
+from core.marketplace_api_views import marketplace_products, marketplace_product_detail, marketplace_search, \
+    marketplace_trending, marketplace_deals, marketplace_new_arrivals, marketplace_flash_sales, \
+    marketplace_best_sellers, marketplace_categories, marketplace_category_products, marketplace_user_profile, \
+    marketplace_user_addresses, marketplace_user_cards, marketplace_wishlist, marketplace_recently_viewed, \
+    marketplace_loyalty_points, marketplace_wallet, marketplace_referrals, marketplace_cart, marketplace_add_to_cart, \
+    marketplace_orders, marketplace_order_detail, marketplace_order_tracking, marketplace_sellers, \
+    marketplace_seller_detail, marketplace_seller_dashboard, marketplace_reviews, marketplace_product_reviews, \
+    marketplace_add_review, marketplace_faqs, marketplace_notifications, marketplace_coupons
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -81,6 +89,61 @@ urlpatterns = [
     path('api/mock/restaurant/offers', views.restaurant_offers, name='mock_restaurant_offers'),
     path('api/mock/restaurant/reviews', views.restaurant_reviews, name='mock_restaurant_reviews'),
     path('api/mock/restaurant/reservations', views.restaurant_reservations, name='mock_restaurant_reservations'),
+]
+
+urlpatterns += [
+    # Products & Catalog
+    path('api/marketplace/products', marketplace_products, name='marketplace_products'),
+    path('api/marketplace/products/<str:product_id>/', marketplace_product_detail, name='marketplace_product_detail'),
+    path('api/marketplace/products/search', marketplace_search, name='marketplace_search'),
+    path('api/marketplace/products/trending', marketplace_trending, name='marketplace_trending'),
+    path('api/marketplace/products/deals', marketplace_deals, name='marketplace_deals'),
+    path('api/marketplace/products/new-arrivals', marketplace_new_arrivals, name='marketplace_new_arrivals'),
+    path('api/marketplace/flash-sales', marketplace_flash_sales, name='marketplace_flash_sales'),
+    path('api/marketplace/best-sellers', marketplace_best_sellers, name='marketplace_best_sellers'),
+
+    # Categories
+    path('api/marketplace/categories', marketplace_categories, name='marketplace_categories'),
+    path('api/marketplace/categories/<str:category_id>/products', marketplace_category_products,
+         name='marketplace_category_products'),
+
+    # User & Account
+    path('api/marketplace/user/profile', marketplace_user_profile, name='marketplace_user_profile'),
+    path('api/marketplace/user/addresses', marketplace_user_addresses, name='marketplace_user_addresses'),
+    path('api/marketplace/user/cards', marketplace_user_cards, name='marketplace_user_cards'),
+    path('api/marketplace/user/wishlist', marketplace_wishlist, name='marketplace_wishlist'),
+    path('api/marketplace/user/recently-viewed', marketplace_recently_viewed, name='marketplace_recently_viewed'),
+    path('api/marketplace/user/loyalty-points', marketplace_loyalty_points, name='marketplace_loyalty_points'),
+    path('api/marketplace/user/wallet', marketplace_wallet, name='marketplace_wallet'),
+    path('api/marketplace/user/referrals', marketplace_referrals, name='marketplace_referrals'),
+
+    # Cart & Checkout
+    path('api/marketplace/cart', marketplace_cart, name='marketplace_cart'),
+    path('api/marketplace/cart/add', marketplace_add_to_cart, name='marketplace_add_to_cart'),
+
+    # Orders
+    path('api/marketplace/orders', marketplace_orders, name='marketplace_orders'),
+    path('api/marketplace/orders/<str:order_id>/', marketplace_order_detail, name='marketplace_order_detail'),
+    path('api/marketplace/orders/<str:order_id>/tracking', marketplace_order_tracking,
+         name='marketplace_order_tracking'),
+
+    # Sellers
+    path('api/marketplace/sellers', marketplace_sellers, name='marketplace_sellers'),
+    path('api/marketplace/sellers/<str:seller_id>/', marketplace_seller_detail, name='marketplace_seller_detail'),
+    path('api/marketplace/seller/dashboard', marketplace_seller_dashboard, name='marketplace_seller_dashboard'),
+
+    # Reviews & Ratings
+    path('api/marketplace/reviews', marketplace_reviews, name='marketplace_reviews'),
+    path('api/marketplace/reviews/product/<str:product_id>/', marketplace_product_reviews,
+         name='marketplace_product_reviews'),
+    path('api/marketplace/reviews/add', marketplace_add_review, name='marketplace_add_review'),
+
+    # Support & Help
+    path('api/marketplace/faqs', marketplace_faqs, name='marketplace_faqs'),
+    path('api/marketplace/notifications', marketplace_notifications, name='marketplace_notifications'),
+
+    # Offers & Promotions
+    path('api/marketplace/coupons', marketplace_coupons, name='marketplace_coupons'),
 ]
 
 # Serve media files in development
