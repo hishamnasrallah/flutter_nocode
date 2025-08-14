@@ -1,3 +1,11 @@
+"""
+Complete Dynamic Flutter Code Generator
+File: core/services/code_generator.py
+
+This is a completely generic code generator that works for ANY Flutter app
+based purely on database configuration. No app-specific code.
+"""
+
 import os
 import shutil
 import json
@@ -5,17 +13,18 @@ import zipfile
 from pathlib import Path
 from django.conf import settings
 from django.template.loader import render_to_string
-from ..models import Application, Screen, Widget, WidgetProperty, Action, DataSource, DataSourceField, CustomPubDevWidget
+from ..models import Application, Screen, Widget, WidgetProperty, Action, DataSource, DataSourceField, \
+    CustomPubDevWidget
 
 
 class FlutterCodeGenerator:
     """Generates Flutter source code from database configuration"""
-    
+
     def __init__(self, application):
         self.application = application
         self.project_path = settings.GENERATED_CODE_PATH / f"{application.package_name.replace('.', '_')}"
         self.lib_path = self.project_path / 'lib'
-        
+
     def generate_project(self):
         """Generate complete Flutter project"""
         try:
@@ -33,16 +42,16 @@ class FlutterCodeGenerator:
                                 import subprocess
                                 # Force close any Java/Gradle processes that might be locking files
                                 subprocess.run(['taskkill', '/F', '/IM', 'java.exe'],
-                                             capture_output=True, shell=True)
+                                               capture_output=True, shell=True)
                                 subprocess.run(['taskkill', '/F', '/IM', 'gradle.exe'],
-                                             capture_output=True, shell=True)
+                                               capture_output=True, shell=True)
                                 # Small delay to let processes release files
                                 import time
                                 time.sleep(1)
 
                                 # Try to remove read-only attributes
                                 subprocess.run(['attrib', '-R', f'{build_path}\\*', '/S'],
-                                             capture_output=True, shell=True)
+                                               capture_output=True, shell=True)
 
                         # Now try to remove the directory
                         shutil.rmtree(self.project_path, ignore_errors=False)
@@ -70,10 +79,10 @@ class FlutterCodeGenerator:
 
             # Create project directory
             self.project_path.mkdir(parents=True, exist_ok=True)
-            
+
             # Generate project structure
             self._create_project_structure()
-            self._update_android_manifest()  # Add this line
+            self._update_android_manifest()
             self._generate_pubspec_yaml()
             self._generate_main_dart()
             self._generate_theme()
@@ -82,17 +91,16 @@ class FlutterCodeGenerator:
             self._generate_services()
             self._generate_models()
             self._generate_widgets()
-            # Note: Android gradle is updated in _create_project_structure
-            
+
             # Create source code ZIP
             zip_path = self._create_source_zip()
-            
+
             # Update application with generated files
             self.application.source_code_zip.name = f"source_zips/{self.application.package_name}_source.zip"
             self.application.save()
-            
+
             return True, f"Flutter project generated successfully at {self.project_path}"
-            
+
         except Exception as e:
             return False, f"Error generating Flutter project: {str(e)}"
 
@@ -116,7 +124,7 @@ class FlutterCodeGenerator:
 
         # Extract package name and org from full package identifier
         package_parts = self.application.package_name.split('.')
-        project_name = package_parts[-1]  # e.g., 'ecommerce_store'
+        project_name = package_parts[-1]  # e.g., 'myapp'
         org = '.'.join(package_parts[:-1]) if len(package_parts) > 1 else 'com.example'  # e.g., 'com.example'
 
         # Run flutter create with proper parameters
@@ -165,65 +173,58 @@ class FlutterCodeGenerator:
         # Update android/app/build.gradle to add NDK version
         self._update_android_gradle()
 
-    def _create_manual_structure(self):
-        """Manually create Flutter project structure if Flutter CLI is not available"""
-        directories = [
-            'lib',
-            'lib/screens',
-            'lib/widgets',
-            'lib/services',
-            'lib/models',
-            'lib/theme',
-            'lib/routes',
-            'lib/utils',
-            'android/app/src/main/kotlin/com/example/app',
-            'android/app/src/main/res/drawable',
-            'android/app/src/main/res/values',
-            'android/gradle/wrapper',
-            'ios/Runner',
-            'test',
-            'assets/images',
-            'assets/fonts',
-        ]
-        
-        for directory in directories:
-            (self.project_path / directory).mkdir(parents=True, exist_ok=True)
+    def _update_android_gradle(self):
+        """Update Android build.gradle with proper NDK version"""
+        build_gradle_path = self.project_path / 'android' / 'app' / 'build.gradle'
 
-    def _create_android_gradle_files(self):
-        """Create Android Gradle configuration files with proper NDK version"""
-        android_app_path = self.project_path / 'android' / 'app'
-        android_app_path.mkdir(parents=True, exist_ok=True)
+        if not build_gradle_path.exists():
+            print(f"Warning: build.gradle not found at {build_gradle_path}")
+            return
 
-        # Create build.gradle for app module
-        build_gradle_content = '''
-android {
-    compileSdkVersion 34
-    ndkVersion "27.0.12077973"
+        # Read the existing build.gradle
+        with open(build_gradle_path, 'r') as f:
+            content = f.read()
 
-    defaultConfig {
-        applicationId "''' + self.application.package_name + '''"
-        minSdkVersion 21
-        targetSdkVersion 34
-        versionCode 1
-        versionName "1.0"
-    }
+        # Add ndkVersion after compileSdkVersion
+        if 'ndkVersion' not in content:
+            # Find the android block and add ndkVersion
+            android_block_start = content.find('android {')
+            if android_block_start != -1:
+                # Find the next line after android {
+                next_line_start = content.find('\n', android_block_start) + 1
+                # Insert ndkVersion
+                content = (
+                        content[:next_line_start] +
+                        '    ndkVersion "27.0.12077973"\n' +
+                        content[next_line_start:]
+                )
 
-    buildTypes {
-        release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
-}
-
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-}
-'''
-
-        build_gradle_path = android_app_path / 'build.gradle'
+        # Write the updated content back
         with open(build_gradle_path, 'w', encoding='utf-8') as f:
-            f.write(build_gradle_content)
+            f.write(content)
+
+        print(f"Updated Android build.gradle with NDK version")
+
+    def _update_android_manifest(self):
+        """Add internet permission to Android manifest"""
+        manifest_path = self.project_path / 'android' / 'app' / 'src' / 'main' / 'AndroidManifest.xml'
+
+        if manifest_path.exists():
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Check if internet permission already exists
+            if 'android.permission.INTERNET' not in content:
+                # Add internet permission after <manifest> tag
+                content = content.replace(
+                    '<application',
+                    '<uses-permission android:name="android.permission.INTERNET"/>\n    <application'
+                )
+
+                with open(manifest_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+
+                print("Added Internet permission to AndroidManifest.xml")
 
     def _generate_pubspec_yaml(self):
         """Generate pubspec.yaml with dependencies"""
@@ -232,7 +233,7 @@ dependencies {
             application=self.application,
             is_active=True
         )
-        
+
         # Base dependencies
         dependencies = {
             'flutter': {'sdk': 'flutter'},
@@ -242,20 +243,20 @@ dependencies {
             'image_picker': '^1.0.4',
             'path_provider': '^2.1.1',
         }
-        
+
         # Add custom widget dependencies
         for widget in custom_widgets:
             if widget.package_version:
                 dependencies[widget.package_name] = f"^{widget.package_version}"
             else:
                 dependencies[widget.package_name] = 'any'
-        
+
         pubspec_content = {
             'name': self.application.package_name.split('.')[-1],
             'description': self.application.description or 'A Flutter application generated by Flutter App Builder',
             'version': f"{self.application.version}+1",
             'environment': {
-                'sdk': '>=3.0.0 <4.0.0'  # This will be properly quoted by _write_yaml
+                'sdk': '>=3.0.0 <4.0.0'
             },
             'dependencies': dependencies,
             'dev_dependencies': {
@@ -269,11 +270,11 @@ dependencies {
                 ]
             }
         }
-        
+
         # Write pubspec.yaml
         with open(self.project_path / 'pubspec.yaml', 'w', encoding='utf-8') as f:
             self._write_yaml(f, pubspec_content)
-    
+
     def _write_yaml(self, file, data, indent=0):
         """Write YAML content manually with proper formatting"""
         for key, value in data.items():
@@ -286,7 +287,8 @@ dependencies {
                     file.write('  ' * (indent + 1) + f"- {item}\n")
             elif isinstance(value, str):
                 # Check if string needs quoting (contains special characters)
-                if any(char in value for char in ['>', '<', ':', '{', '}', '[', ']', ',', '&', '*', '#', '?', '|', '-', '=', '!', '%', '@', '`']):
+                if any(char in value for char in
+                       ['>', '<', ':', '{', '}', '[', ']', ',', '&', '*', '#', '?', '|', '-', '=', '!', '%', '@', '`']):
                     file.write('  ' * indent + f"{key}: '{value}'\n")
                 else:
                     file.write('  ' * indent + f"{key}: {value}\n")
@@ -296,15 +298,15 @@ dependencies {
                 file.write('  ' * indent + f"{key}: null\n")
             else:
                 file.write('  ' * indent + f"{key}: {value}\n")
-    
+
     def _generate_main_dart(self):
         """Generate main.dart file"""
         screens = Screen.objects.filter(application=self.application)
         home_screen = screens.filter(is_home_screen=True).first()
-        
+
         if not home_screen:
             home_screen = screens.first()
-        
+
         main_content = f'''import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'routes/app_routes.dart';
@@ -329,25 +331,25 @@ class MyApp extends StatelessWidget {{
   }}
 }}
 '''
-        
+
         with open(self.lib_path / 'main.dart', 'w', encoding='utf-8') as f:
             f.write(main_content)
-    
+
     def _generate_screen_imports(self):
         """Generate import statements for all screens"""
         screens = Screen.objects.filter(application=self.application)
         imports = []
-        
+
         for screen in screens:
             screen_file_name = self._to_snake_case(screen.name) + '_screen.dart'
             imports.append(f"import 'screens/{screen_file_name}';")
-        
+
         return '\n'.join(imports)
-    
+
     def _generate_theme(self):
         """Generate theme configuration"""
         theme = self.application.theme
-        
+
         theme_content = f'''import 'package:flutter/material.dart';
 
 class AppTheme {{
@@ -355,7 +357,7 @@ class AppTheme {{
   static const Color accentColor = Color(0xFF{theme.accent_color.lstrip('#')});
   static const Color backgroundColor = Color(0xFF{theme.background_color.lstrip('#')});
   static const Color textColor = Color(0xFF{theme.text_color.lstrip('#')});
-  
+
   static ThemeData get lightTheme {{
     return ThemeData(
       primarySwatch: _createMaterialColor(primaryColor),
@@ -387,7 +389,7 @@ class AppTheme {{
       ),
     );
   }}
-  
+
   static ThemeData get darkTheme {{
     return ThemeData(
       primarySwatch: _createMaterialColor(primaryColor),
@@ -419,7 +421,7 @@ class AppTheme {{
       ),
     );
   }}
-  
+
   static MaterialColor _createMaterialColor(Color color) {{
     List strengths = <double>[.05];
     Map<int, Color> swatch = {{}};
@@ -428,7 +430,7 @@ class AppTheme {{
     for (int i = 1; i < 10; i++) {{
       strengths.add(0.1 * i);
     }}
-    
+
     for (var strength in strengths) {{
       final double ds = 0.5 - strength;
       swatch[(strength * 1000).round()] = Color.fromRGBO(
@@ -438,65 +440,65 @@ class AppTheme {{
         1,
       );
     }}
-    
+
     return MaterialColor(color.value, swatch);
   }}
 }}
 '''
-        
+
         with open(self.lib_path / 'theme' / 'app_theme.dart', 'w', encoding='utf-8') as f:
             f.write(theme_content)
-    
+
     def _generate_routes(self):
         """Generate route configuration"""
         screens = Screen.objects.filter(application=self.application)
-        
+
         routes_content = '''import 'package:flutter/material.dart';
 '''
-        
+
         # Add screen imports
         for screen in screens:
             screen_file_name = self._to_snake_case(screen.name) + '_screen.dart'
             screen_class_name = self._to_pascal_case(screen.name) + 'Screen'
             routes_content += f"import '../screens/{screen_file_name}';\n"
-        
+
         routes_content += '''
 class AppRoutes {
   static Map<String, WidgetBuilder> get routes {
     return {
 '''
-        
+
         # Add route mappings
         for screen in screens:
             screen_class_name = self._to_pascal_case(screen.name) + 'Screen'
             routes_content += f"      '{screen.route_name}': (context) => {screen_class_name}(),\n"
-        
+
         routes_content += '''    };
   }
 }
 '''
-        
+
         with open(self.lib_path / 'routes' / 'app_routes.dart', 'w', encoding='utf-8') as f:
             f.write(routes_content)
-    
+
     def _generate_screens(self):
         """Generate screen files"""
         screens = Screen.objects.filter(application=self.application)
-        
+
         for screen in screens:
             self._generate_single_screen(screen)
-    
+
     def _generate_single_screen(self, screen):
         """Generate a single screen file"""
         screen_file_name = self._to_snake_case(screen.name) + '_screen.dart'
         screen_class_name = self._to_pascal_case(screen.name) + 'Screen'
-        
+
         # Get root widgets for this screen
         root_widgets = Widget.objects.filter(
             screen=screen,
             parent_widget=None
         ).order_by('order')
-        
+
         screen_content = f'''import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/app_models.dart';
@@ -508,12 +510,12 @@ class {screen_class_name} extends StatefulWidget {{
 
 class _{screen_class_name}State extends State<{screen_class_name}> {{
   final ApiService _apiService = ApiService();
-  
+
   @override
   Widget build(BuildContext context) {{
     return Scaffold(
 '''
-        
+
         # Add AppBar if needed
         if screen.show_app_bar:
             screen_content += f'''      appBar: AppBar(
@@ -521,10 +523,10 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         automaticallyImplyLeading: {str(screen.show_back_button).lower()},
       ),
 '''
-        
+
         # Add body
         screen_content += '''      body: '''
-        
+
         if root_widgets.count() == 1:
             screen_content += self._generate_widget_code(root_widgets.first(), 0)
         elif root_widgets.count() > 1:
@@ -539,13 +541,13 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
             screen_content += '''Center(
         child: Text('No content configured for this screen'),
       )'''
-        
+
         screen_content += ''',
     );
   }
 }
 '''
-        
+
         with open(self.lib_path / 'screens' / screen_file_name, 'w', encoding='utf-8') as f:
             f.write(screen_content)
 
@@ -566,14 +568,13 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         # Build widget based on type and properties from database
         if widget.widget_type == 'Text':
             text_value = self._get_property_value(prop_dict, 'text', 'Text')
-            # Escape special characters and remove problematic Unicode
             text_value = self._escape_dart_string(text_value)
             style_code = self._generate_text_style(prop_dict)
             widget_code = f"Text('{text_value}'{style_code})"
 
         elif widget.widget_type in ['ElevatedButton', 'TextButton', 'OutlinedButton']:
             text = self._get_property_value(prop_dict, 'text', 'Button')
-            text = self._escape_dart_string(text)  # Escape the text
+            text = self._escape_dart_string(text)
             action_code = self._generate_action_from_property(prop_dict.get('onPressed'))
             widget_code = f'''{widget.widget_type}(
 {indent}  onPressed: {action_code},
@@ -583,8 +584,16 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         elif widget.widget_type == 'IconButton':
             icon = self._get_property_value(prop_dict, 'icon', 'add')
             action_code = self._generate_action_from_property(prop_dict.get('onPressed'))
+            color = self._get_property_value(prop_dict, 'color', None)
+            size = self._get_property_value(prop_dict, 'size', None)
+
             widget_code = f'''IconButton(
-{indent}  icon: Icon(Icons.{icon}),
+{indent}  icon: Icon(Icons.{icon}'''
+            if color:
+                widget_code += f", color: Color(0xFF{color.lstrip('#')})"
+            if size:
+                widget_code += f", size: {size}"
+            widget_code += f'''),
 {indent}  onPressed: {action_code},
 {indent})'''
 
@@ -599,8 +608,10 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         elif widget.widget_type in ['Column', 'Row']:
             axis = 'mainAxisAlignment'
             alignment = self._get_property_value(prop_dict, axis, 'start')
+            cross_alignment = self._get_property_value(prop_dict, 'crossAxisAlignment', 'center')
             widget_code = f'''{widget.widget_type}(
 {indent}  mainAxisAlignment: MainAxisAlignment.{alignment},
+{indent}  crossAxisAlignment: CrossAxisAlignment.{cross_alignment},
 {indent}  children: [
 '''
             for child in child_widgets:
@@ -613,6 +624,7 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         elif widget.widget_type == 'TextField':
             hint = self._escape_dart_string(self._get_property_value(prop_dict, 'hintText', 'Enter text...'))
             label = self._escape_dart_string(self._get_property_value(prop_dict, 'labelText', ''))
+            obscure = self._get_property_value(prop_dict, 'obscureText', False)
             widget_code = f'''TextField(
 {indent}  decoration: InputDecoration(
 {indent}    hintText: '{hint}','''
@@ -620,16 +632,54 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
                 widget_code += f"\n{indent}    labelText: '{label}',"
             widget_code += f'''
 {indent}    border: OutlineInputBorder(),
-{indent}  ),
-{indent})'''
+{indent}  ),'''
+            if obscure:
+                widget_code += f"\n{indent}  obscureText: true,"
+            widget_code += f"\n{indent})"
 
         elif widget.widget_type == 'Image':
             widget_code = self._generate_image(prop_dict)
 
+        elif widget.widget_type == 'Icon':
+            icon_name = self._get_property_value(prop_dict, 'icon', 'info')
+            icon_size = self._get_property_value(prop_dict, 'size', None)
+            icon_color = self._get_property_value(prop_dict, 'color', None)
+
+            widget_code = f"Icon(Icons.{icon_name}"
+            if icon_size:
+                widget_code += f", size: {icon_size}"
+            if icon_color:
+                widget_code += f", color: Color(0xFF{icon_color.lstrip('#')})"
+            widget_code += ")"
+
+        elif widget.widget_type == 'Divider':
+            height = self._get_property_value(prop_dict, 'height', None)
+            thickness = self._get_property_value(prop_dict, 'thickness', None)
+            color = self._get_property_value(prop_dict, 'color', None)
+
+            widget_code = "Divider("
+            params = []
+            if height:
+                params.append(f"height: {height}")
+            if thickness:
+                params.append(f"thickness: {thickness}")
+            if color:
+                params.append(f"color: Color(0xFF{color.lstrip('#')})")
+            widget_code += ", ".join(params)
+            widget_code += ")"
+
         elif widget.widget_type == 'Card':
             elevation = self._get_property_value(prop_dict, 'elevation', '4')
+            margin = self._get_property_value(prop_dict, 'margin', None)
+            color = self._get_property_value(prop_dict, 'color', None)
+
             widget_code = f'''Card(
-{indent}  elevation: {elevation},
+{indent}  elevation: {elevation},'''
+            if margin:
+                widget_code += f"\n{indent}  margin: EdgeInsets.all({margin}),"
+            if color:
+                widget_code += f"\n{indent}  color: Color(0xFF{color.lstrip('#')}),"
+            widget_code += f'''
 {indent}  child: '''
             if child_widgets.exists():
                 if child_widgets.count() == 1:
@@ -639,62 +689,6 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
             else:
                 widget_code += "Container()"
             widget_code += f",\n{indent})"
-
-        elif widget.widget_type == 'ListView':
-            widget_code = self._generate_list_view(widget, prop_dict, child_widgets, indent_level)
-
-        elif widget.widget_type == 'GridView':
-            widget_code = self._generate_grid_view(widget, prop_dict, child_widgets, indent_level)
-
-        elif widget.widget_type == 'Stack':
-            widget_code = f'''Stack(
-{indent}  children: [
-'''
-            for child in child_widgets:
-                widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
-            widget_code += f"{indent}  ],\n{indent})"
-
-        elif widget.widget_type == 'Expanded':
-            flex = self._get_property_value(prop_dict, 'flex', '1')
-            widget_code = f'''Expanded(
-{indent}  flex: {flex},
-{indent}  child: '''
-            if child_widgets.exists():
-                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
-            else:
-                widget_code += "Container()"
-            widget_code += f",\n{indent})"
-
-        elif widget.widget_type == 'SizedBox':
-            width = self._get_property_value(prop_dict, 'width', None)
-            height = self._get_property_value(prop_dict, 'height', None)
-            widget_code = f"SizedBox("
-            if width:
-                widget_code += f"width: {width}, "
-            if height:
-                widget_code += f"height: {height}, "
-            if child_widgets.exists():
-                widget_code += f"child: {self._generate_widget_code(child_widgets.first(), indent_level)}"
-            widget_code += ")"
-
-        elif widget.widget_type == 'Padding':
-            padding = self._get_property_value(prop_dict, 'padding', '8.0')
-            widget_code = f'''Padding(
-{indent}  padding: EdgeInsets.all({padding}),
-{indent}  child: '''
-            if child_widgets.exists():
-                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
-            else:
-                widget_code += "Container()"
-            widget_code += f",\n{indent})"
-
-        elif widget.widget_type == 'Center':
-            widget_code = f"Center(child: "
-            if child_widgets.exists():
-                widget_code += self._generate_widget_code(child_widgets.first(), indent_level)
-            else:
-                widget_code += "Container()"
-            widget_code += ")"
 
         elif widget.widget_type == 'ListTile':
             title = self._escape_dart_string(self._get_property_value(prop_dict, 'title', 'Title'))
@@ -712,12 +706,232 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
                 widget_code += f"\n{indent}  onTap: {action_code},"
             widget_code += f"\n{indent})"
 
+        elif widget.widget_type == 'ListView':
+            widget_code = self._generate_list_view(widget, prop_dict, child_widgets, indent_level)
+
+        elif widget.widget_type == 'GridView':
+            widget_code = self._generate_grid_view(widget, prop_dict, child_widgets, indent_level)
+
+        elif widget.widget_type == 'SingleChildScrollView':
+            physics = self._get_property_value(prop_dict, 'physics', 'AlwaysScrollableScrollPhysics')
+            widget_code = f'''SingleChildScrollView(
+{indent}  physics: {physics}(),
+{indent}  child: '''
+            if child_widgets.exists():
+                if child_widgets.count() == 1:
+                    widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+                else:
+                    # If multiple children, wrap in Column
+                    widget_code += f'''Column(
+{indent}    children: [
+'''
+                    for child in child_widgets:
+                        widget_code += f"{indent}      {self._generate_widget_code(child, indent_level + 3)},\n"
+                    widget_code += f"{indent}    ],\n{indent}  )"
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'PageView':
+            widget_code = f'''PageView(
+{indent}  children: [
+'''
+            for child in child_widgets:
+                widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
+            widget_code += f"{indent}  ],\n{indent})"
+
+        elif widget.widget_type == 'Stack':
+            widget_code = f'''Stack(
+{indent}  children: [
+'''
+            for child in child_widgets:
+                widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
+            widget_code += f"{indent}  ],\n{indent})"
+
+        elif widget.widget_type == 'Positioned':
+            top = self._get_property_value(prop_dict, 'top', None)
+            bottom = self._get_property_value(prop_dict, 'bottom', None)
+            left = self._get_property_value(prop_dict, 'left', None)
+            right = self._get_property_value(prop_dict, 'right', None)
+
+            widget_code = f"Positioned("
+            params = []
+            if top:
+                params.append(f"top: {top}")
+            if bottom:
+                params.append(f"bottom: {bottom}")
+            if left:
+                params.append(f"left: {left}")
+            if right:
+                params.append(f"right: {right}")
+            if params:
+                widget_code += ", ".join(params) + ", "
+            widget_code += "child: "
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level)
+            else:
+                widget_code += "Container()"
+            widget_code += ")"
+
+        elif widget.widget_type == 'Expanded':
+            flex = self._get_property_value(prop_dict, 'flex', '1')
+            widget_code = f'''Expanded(
+{indent}  flex: {flex},
+{indent}  child: '''
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'Flexible':
+            flex = self._get_property_value(prop_dict, 'flex', '1')
+            fit = self._get_property_value(prop_dict, 'fit', 'loose')
+            widget_code = f'''Flexible(
+{indent}  flex: {flex},
+{indent}  fit: FlexFit.{fit},
+{indent}  child: '''
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'Wrap':
+            spacing = self._get_property_value(prop_dict, 'spacing', '8.0')
+            runSpacing = self._get_property_value(prop_dict, 'runSpacing', '8.0')
+            widget_code = f'''Wrap(
+{indent}  spacing: {spacing},
+{indent}  runSpacing: {runSpacing},
+{indent}  children: [
+'''
+            for child in child_widgets:
+                widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
+            widget_code += f"{indent}  ],\n{indent})"
+
+        elif widget.widget_type == 'Center':
+            widget_code = f"Center(child: "
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level)
+            else:
+                widget_code += "Container()"
+            widget_code += ")"
+
+        elif widget.widget_type == 'Padding':
+            padding = self._get_property_value(prop_dict, 'padding', '8.0')
+            widget_code = f'''Padding(
+{indent}  padding: EdgeInsets.all({padding}),
+{indent}  child: '''
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'SizedBox':
+            width = self._get_property_value(prop_dict, 'width', None)
+            height = self._get_property_value(prop_dict, 'height', None)
+            widget_code = f"SizedBox("
+            params = []
+            if width:
+                params.append(f"width: {width}")
+            if height:
+                params.append(f"height: {height}")
+            if params:
+                widget_code += ", ".join(params)
+                if child_widgets.exists():
+                    widget_code += ", "
+            if child_widgets.exists():
+                widget_code += f"child: {self._generate_widget_code(child_widgets.first(), indent_level)}"
+            widget_code += ")"
+
+        elif widget.widget_type == 'AspectRatio':
+            ratio = self._get_property_value(prop_dict, 'aspectRatio', '1.0')
+            widget_code = f'''AspectRatio(
+{indent}  aspectRatio: {ratio},
+{indent}  child: '''
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'SafeArea':
+            widget_code = f'''SafeArea(
+{indent}  child: '''
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'Scaffold':
+            widget_code = f'''Scaffold(
+{indent}  body: '''
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'AppBar':
+            title = self._escape_dart_string(self._get_property_value(prop_dict, 'title', 'App'))
+            widget_code = f"AppBar(title: Text('{title}'))"
+
+        elif widget.widget_type == 'BottomNavigationBar':
+            widget_code = self._generate_bottom_nav(child_widgets, indent_level)
+
+        elif widget.widget_type == 'TabBar':
+            widget_code = self._generate_tab_bar(child_widgets, indent_level)
+
+        elif widget.widget_type == 'Drawer':
+            widget_code = f'''Drawer(
+{indent}  child: '''
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'Switch':
+            value = self._get_property_value(prop_dict, 'value', False)
+            action_code = self._generate_action_from_property(prop_dict.get('onChanged'))
+            widget_code = f"Switch(value: {str(value).lower()}, onChanged: {action_code if action_code != 'null' else '(v) {}'})"
+
+        elif widget.widget_type == 'Checkbox':
+            value = self._get_property_value(prop_dict, 'value', False)
+            action_code = self._generate_action_from_property(prop_dict.get('onChanged'))
+            widget_code = f"Checkbox(value: {str(value).lower()}, onChanged: {action_code if action_code != 'null' else '(v) {}'})"
+
+        elif widget.widget_type == 'Radio':
+            value = self._get_property_value(prop_dict, 'value', '1')
+            groupValue = self._get_property_value(prop_dict, 'groupValue', '1')
+            action_code = self._generate_action_from_property(prop_dict.get('onChanged'))
+            widget_code = f"Radio(value: '{value}', groupValue: '{groupValue}', onChanged: {action_code if action_code != 'null' else '(v) {}'})"
+
+        elif widget.widget_type == 'Slider':
+            value = self._get_property_value(prop_dict, 'value', '0.5')
+            min_val = self._get_property_value(prop_dict, 'min', '0.0')
+            max_val = self._get_property_value(prop_dict, 'max', '1.0')
+            action_code = self._generate_action_from_property(prop_dict.get('onChanged'))
+            widget_code = f"Slider(value: {value}, min: {min_val}, max: {max_val}, onChanged: {action_code if action_code != 'null' else '(v) {}'})"
+
+        elif widget.widget_type == 'DropdownButton':
+            widget_code = self._generate_dropdown(prop_dict, indent_level)
+
+        elif widget.widget_type == 'FutureBuilder':
+            widget_code = self._generate_future_builder(prop_dict, child_widgets, indent_level)
+
+        elif widget.widget_type == 'StreamBuilder':
+            widget_code = self._generate_stream_builder(prop_dict, child_widgets, indent_level)
+
         else:
-            # For any other widget type, generate a placeholder
-            widget_code = f"Container(child: Text('{widget.widget_type}'))"
+            # For any other widget type not explicitly handled
+            widget_code = f"Container(child: Text('Widget type: {widget.widget_type}'))"
 
         return widget_code
 
+    # Rest of the helper methods remain the same...
     def _get_property_value(self, prop_dict, property_name, default_value=''):
         """Get property value from database or return default"""
         if property_name in prop_dict:
@@ -733,7 +947,6 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
             return ''
 
         # Remove or replace problematic Unicode characters
-        # Replace emoji with text equivalents
         replacements = {
             '🔴': '[RED]',
             '🟢': '[GREEN]',
@@ -768,6 +981,7 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         )
 
         return text
+
     def _generate_text_style(self, prop_dict):
         """Generate TextStyle code from properties"""
         style_parts = []
@@ -883,61 +1097,35 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
                 wrapper_end = ")"
 
             return f'''{wrapper_start}FutureBuilder<List<dynamic>>(
-    {indent}  future: _apiService.fetchData('{data_source.name}'),
-    {indent}  builder: (context, snapshot) {{
-    {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
-    {indent}      return Center(child: CircularProgressIndicator());
-    {indent}    }}
-    {indent}    if (snapshot.hasError) {{
-    {indent}      print('Error loading {data_source.name}: ${{snapshot.error}}');
-    {indent}      return Center(
-    {indent}        child: Column(
-    {indent}          mainAxisAlignment: MainAxisAlignment.center,
-    {indent}          children: [
-    {indent}            Icon(Icons.error_outline, size: 48, color: Colors.red),
-    {indent}            SizedBox(height: 16),
-    {indent}            Text('Error loading data', style: TextStyle(fontSize: 16)),
-    {indent}            SizedBox(height: 8),
-    {indent}            Padding(
-    {indent}              padding: EdgeInsets.symmetric(horizontal: 32),
-    {indent}              child: Text(
-    {indent}                '${{snapshot.error}}'.replaceAll('Exception: ', ''),
-    {indent}                style: TextStyle(fontSize: 12, color: Colors.grey),
-    {indent}                textAlign: TextAlign.center,
-    {indent}              ),
-    {indent}            ),
-    {indent}            SizedBox(height: 16),
-    {indent}            ElevatedButton(
-    {indent}              onPressed: () {{
-    {indent}                setState(() {{}});
-    {indent}              }},
-    {indent}              child: Text('Retry'),
-    {indent}            ),
-    {indent}          ],
-    {indent}        ),
-    {indent}      );
-    {indent}    }}
-    {indent}    final items = snapshot.data ?? [];
-    {indent}    if (items.isEmpty) {{
-    {indent}      return Center(child: Text('No items available'));
-    {indent}    }}
-    {indent}    return ListView.builder(
-    {indent}      shrinkWrap: true,
-    {indent}      physics: NeverScrollableScrollPhysics(),
-    {indent}      itemCount: items.length > 10 ? 10 : items.length,
-    {indent}      itemBuilder: (context, index) {{
-    {indent}        final item = items[index];
-    {indent}        return Card(
-    {indent}          margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    {indent}          child: ListTile(
-    {indent}            title: Text(item['{field.field_name}']?.toString() ?? 'Item'),
-    {indent}            onTap: () {{}},
-    {indent}          ),
-    {indent}        );
-    {indent}      }},
-    {indent}    );
-    {indent}  }},
-    {indent}){wrapper_end}'''
+{indent}  future: _apiService.fetchData('{data_source.name}'),
+{indent}  builder: (context, snapshot) {{
+{indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
+{indent}      return Center(child: CircularProgressIndicator());
+{indent}    }}
+{indent}    if (snapshot.hasError) {{
+{indent}      return Center(child: Text('Error loading data'));
+{indent}    }}
+{indent}    final items = snapshot.data ?? [];
+{indent}    if (items.isEmpty) {{
+{indent}      return Center(child: Text('No items available'));
+{indent}    }}
+{indent}    return ListView.builder(
+{indent}      shrinkWrap: true,
+{indent}      physics: NeverScrollableScrollPhysics(),
+{indent}      itemCount: items.length > 10 ? 10 : items.length,
+{indent}      itemBuilder: (context, index) {{
+{indent}        final item = items[index];
+{indent}        return Card(
+{indent}          margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+{indent}          child: ListTile(
+{indent}            title: Text(item['{field.field_name}']?.toString() ?? 'Item'),
+{indent}            onTap: () {{}},
+{indent}          ),
+{indent}        );
+{indent}      }},
+{indent}    );
+{indent}  }},
+{indent}){wrapper_end}'''
         else:
             # Static ListView with child widgets
             if child_widgets.exists():
@@ -1005,14 +1193,63 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
 {indent})'''
 
     def _generate_children_column(self, child_widgets, indent_level):
-            """Generate a Column for multiple children"""
-            indent = '  ' * indent_level
-            code = f"Column(\n{indent}  children: [\n"
-            for child in child_widgets:
-                code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
-            code += f"{indent}  ],\n{indent})"
-            return code
-    
+        """Generate a Column for multiple children"""
+        indent = '  ' * indent_level
+        code = f"Column(\n{indent}  children: [\n"
+        for child in child_widgets:
+            code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
+        code += f"{indent}  ],\n{indent})"
+        return code
+
+    def _generate_bottom_nav(self, child_widgets, indent_level):
+        """Generate BottomNavigationBar"""
+        indent = '  ' * indent_level
+        # Simplified bottom nav generation
+        return "BottomNavigationBar(items: [BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home')])"
+
+    def _generate_tab_bar(self, child_widgets, indent_level):
+        """Generate TabBar"""
+        indent = '  ' * indent_level
+        # Simplified tab bar generation
+        return "TabBar(tabs: [Tab(text: 'Tab 1'), Tab(text: 'Tab 2')])"
+
+    def _generate_dropdown(self, prop_dict, indent_level):
+        """Generate DropdownButton"""
+        indent = '  ' * indent_level
+        items = self._get_property_value(prop_dict, 'items', 'Option 1,Option 2,Option 3')
+        value = self._get_property_value(prop_dict, 'value', None)
+
+        items_list = items.split(',')
+        dropdown_items = ', '.join(
+            [f"DropdownMenuItem(value: '{item.strip()}', child: Text('{item.strip()}'))" for item in items_list])
+
+        return f"DropdownButton(items: [{dropdown_items}], onChanged: (v) {{}})"
+
+    def _generate_future_builder(self, prop_dict, child_widgets, indent_level):
+        """Generate FutureBuilder"""
+        indent = '  ' * indent_level
+        # Simplified FutureBuilder
+        return f'''FutureBuilder(
+{indent}  future: Future.value(true),
+{indent}  builder: (context, snapshot) {{
+{indent}    if (snapshot.hasData) {{
+{indent}      return Container();
+{indent}    }}
+{indent}    return CircularProgressIndicator();
+{indent}  }},
+{indent})'''
+
+    def _generate_stream_builder(self, prop_dict, child_widgets, indent_level):
+        """Generate StreamBuilder"""
+        indent = '  ' * indent_level
+        # Simplified StreamBuilder
+        return f'''StreamBuilder(
+{indent}  stream: Stream.empty(),
+{indent}  builder: (context, snapshot) {{
+{indent}    return Container();
+{indent}  }},
+{indent})'''
+
     def _generate_action_code(self, action):
         """Generate Dart code for actions"""
         if action.action_type == 'navigate':
@@ -1036,42 +1273,49 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
                 ),
               );
             }}'''
+        elif action.action_type == 'show_snackbar':
+            return f'''() {{
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('{action.dialog_message or 'Message'}'))
+              );
+            }}'''
         elif action.action_type == 'api_call':
             if action.api_data_source:
                 return f"() {{ _apiService.fetchData('{action.api_data_source.name}'); }}"
-        
+        elif action.action_type == 'open_url':
+            return f"() {{ /* Open URL: {action.url} */ }}"
+        elif action.action_type == 'share_content':
+            return "() { /* Share content */ }"
+
         return "null"
 
     def _generate_services(self):
-        """Generate API service - all data sources are now dynamic APIs"""
+        """Generate API service - all data sources are dynamic APIs"""
         data_sources = DataSource.objects.filter(application=self.application)
 
         service_content = '''import 'dart:convert';
-    import 'package:http/http.dart' as http;
+import 'package:http/http.dart' as http;
 
-    class ApiService {
-      static final ApiService _instance = ApiService._internal();
-      factory ApiService() => _instance;
-      ApiService._internal();
+class ApiService {
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  ApiService._internal();
 
-    '''
+'''
 
-        # Generate methods for each data source - all treated as REST APIs
+        # Generate methods for each data source
         for data_source in data_sources:
             method_name = self._to_camel_case(data_source.name)
 
-            # All data sources are now treated as REST APIs
             service_content += f'''
-      Future<List<dynamic>> fetch{self._to_pascal_case(data_source.name)}() async {{
-        try {{
-          final url = '{data_source.base_url}{data_source.endpoint}';
-          final response = await http.{data_source.method.lower()}(
-            Uri.parse(url),
-            headers: {{
-              'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': 'true',
-              'User-Agent': 'Flutter-App/1.0',
-    '''
+  Future<List<dynamic>> fetch{self._to_pascal_case(data_source.name)}() async {{
+    try {{
+      final url = '{data_source.base_url}{data_source.endpoint}';
+      final response = await http.{data_source.method.lower()}(
+        Uri.parse(url),
+        headers: {{
+          'Content-Type': 'application/json',
+'''
 
             # Add custom headers
             if data_source.headers:
@@ -1081,63 +1325,63 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
                         service_content += f"          '{key.strip()}': '{value.strip()}',\n"
 
             service_content += '''        },
-          );
+      );
 
-          if (response.statusCode == 200) {
-            final data = json.decode(response.body);
-            return data is List ? data : [data];
-          } else {
-            throw Exception('Failed to load data: ${response.statusCode}');
-          }
-        } catch (e) {
-          throw Exception('Network error: $e');
-        }
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data is List ? data : [data];
+      } else {
+        throw Exception('Failed to load data: ${response.statusCode}');
       }
-    '''
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+'''
 
         # Add generic fetchData method
         service_content += '''
-      Future<List<dynamic>> fetchData(String dataSourceName) async {
-        switch (dataSourceName) {
-    '''
+  Future<List<dynamic>> fetchData(String dataSourceName) async {
+    switch (dataSourceName) {
+'''
 
         for data_source in data_sources:
             service_content += f"      case '{data_source.name}': return fetch{self._to_pascal_case(data_source.name)}();\n"
 
         service_content += '''      default: throw Exception('Unknown data source: $dataSourceName');
-        }
-      }
     }
-    '''
+  }
+}
+'''
 
         with open(self.lib_path / 'services' / 'api_service.dart', 'w', encoding='utf-8') as f:
             f.write(service_content)
-    
+
     def _generate_models(self):
         """Generate data models"""
         models_content = '''// Data models for the application
 
 class AppData {
   final Map<String, dynamic> data;
-  
+
   AppData(this.data);
-  
+
   factory AppData.fromJson(Map<String, dynamic> json) {
     return AppData(json);
   }
-  
+
   Map<String, dynamic> toJson() {
     return data;
   }
-  
+
   dynamic operator [](String key) => data[key];
   void operator []=(String key, dynamic value) => data[key] = value;
 }
 '''
-        
+
         with open(self.lib_path / 'models' / 'app_models.dart', 'w', encoding='utf-8') as f:
             f.write(models_content)
-    
+
     def _generate_widgets(self):
         """Generate custom widget components"""
         widgets_content = '''import 'package:flutter/material.dart';
@@ -1148,14 +1392,14 @@ class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets? padding;
   final Color? backgroundColor;
-  
+
   const AppCard({
     Key? key,
     required this.child,
     this.padding,
     this.backgroundColor,
   }) : super(key: key);
-  
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -1170,9 +1414,9 @@ class AppCard extends StatelessWidget {
 
 class LoadingWidget extends StatelessWidget {
   final String? message;
-  
+
   const LoadingWidget({Key? key, this.message}) : super(key: key);
-  
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -1193,13 +1437,13 @@ class LoadingWidget extends StatelessWidget {
 class ErrorWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
-  
+
   const ErrorWidget({
     Key? key,
     required this.message,
     this.onRetry,
   }) : super(key: key);
-  
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -1222,88 +1466,35 @@ class ErrorWidget extends StatelessWidget {
   }
 }
 '''
-        
+
         with open(self.lib_path / 'widgets' / 'custom_widgets.dart', 'w', encoding='utf-8') as f:
             f.write(widgets_content)
-    
+
     def _create_source_zip(self):
         """Create ZIP file of the generated source code"""
         zip_path = settings.SOURCE_ZIP_STORAGE_PATH / f"{self.application.package_name}_source.zip"
-        
+
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(self.project_path):
                 for file in files:
                     file_path = Path(root) / file
                     arcname = file_path.relative_to(self.project_path)
                     zipf.write(file_path, arcname)
-        
+
         return zip_path
-    
+
     def _to_snake_case(self, text):
         """Convert text to snake_case"""
         import re
         text = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', text)
         text = re.sub(r'([a-z\d])([A-Z])', r'\1_\2', text)
         return text.lower().replace(' ', '_').replace('-', '_')
-    
+
     def _to_pascal_case(self, text):
         """Convert text to PascalCase"""
         return ''.join(word.capitalize() for word in text.replace('_', ' ').replace('-', ' ').split())
-    
+
     def _to_camel_case(self, text):
         """Convert text to camelCase"""
         pascal = self._to_pascal_case(text)
         return pascal[0].lower() + pascal[1:] if pascal else ''
-
-    def _update_android_gradle(self):
-        """Update Android build.gradle with proper NDK version"""
-        build_gradle_path = self.project_path / 'android' / 'app' / 'build.gradle'
-
-        if not build_gradle_path.exists():
-            print(f"Warning: build.gradle not found at {build_gradle_path}")
-            return
-
-        # Read the existing build.gradle
-        with open(build_gradle_path, 'r') as f:
-            content = f.read()
-
-        # Add ndkVersion after compileSdkVersion
-        if 'ndkVersion' not in content:
-            # Find the android block and add ndkVersion
-            android_block_start = content.find('android {')
-            if android_block_start != -1:
-                # Find the next line after android {
-                next_line_start = content.find('\n', android_block_start) + 1
-                # Insert ndkVersion
-                content = (
-                        content[:next_line_start] +
-                        '    ndkVersion "27.0.12077973"\n' +
-                        content[next_line_start:]
-                )
-
-        # Write the updated content back
-        with open(build_gradle_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-
-        print(f"Updated Android build.gradle with NDK version")
-
-    def _update_android_manifest(self):
-        """Add internet permission to Android manifest"""
-        manifest_path = self.project_path / 'android' / 'app' / 'src' / 'main' / 'AndroidManifest.xml'
-
-        if manifest_path.exists():
-            with open(manifest_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-
-            # Check if internet permission already exists
-            if 'android.permission.INTERNET' not in content:
-                # Add internet permission after <manifest> tag
-                content = content.replace(
-                    '<application',
-                    '<uses-permission android:name="android.permission.INTERNET"/>\n    <application'
-                )
-
-                with open(manifest_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-
-                print("Added Internet permission to AndroidManifest.xml")
