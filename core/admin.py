@@ -289,15 +289,11 @@ class DataSourceAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('application', 'name', 'data_source_type')
+            'fields': ('application', 'name')
         }),
         ('API Configuration', {
             'fields': ('base_url', 'endpoint', 'method', 'headers'),
             'description': 'Configuration for REST API data sources'
-        }),
-        ('Static Data', {
-            'fields': ('static_data',),
-            'description': 'For static JSON data sources'
         }),
     )
     

@@ -8,6 +8,25 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 
 DEBUG = config('DEBUG', default=True, cast=bool)
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.app',
+    'http://*.ngrok-free.app',
+    'http://localhost:3001',
+    "https://*.trycloudflare.com"
+
+]
+# Allow specific domains for CORS
+CORS_ALLOWED_ORIGINS = [
+    "https://jury-approaches-extensions-mats.trycloudflare.com",
+    "http://6c75545e1be2.ngrok-free.app",
+    "https://6032713a89bd.ngrok-free.app",
+    "http://6032713a89bd.ngrok-free.app"
+]
+
+# Alternatively, for dev only (NOT for production):
+CORS_ALLOW_ALL_ORIGINS = True
+
+
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
@@ -18,10 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'colorfield',
+    'corsheaders',
     'core',
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

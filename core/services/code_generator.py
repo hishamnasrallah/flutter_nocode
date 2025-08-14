@@ -73,6 +73,7 @@ class FlutterCodeGenerator:
             
             # Generate project structure
             self._create_project_structure()
+            self._update_android_manifest()  # Add this line
             self._generate_pubspec_yaml()
             self._generate_main_dart()
             self._generate_theme()
@@ -870,7 +871,7 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         data_source_prop = prop_dict.get('dataSource')
 
         if data_source_prop and data_source_prop.data_source_field_reference:
-            # Dynamic ListView with data source - need to wrap in widget that can expand
+            # Dynamic ListView with data source
             data_source = data_source_prop.data_source_field_reference.data_source
             field = data_source_prop.data_source_field_reference
 
@@ -882,35 +883,61 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
                 wrapper_end = ")"
 
             return f'''{wrapper_start}FutureBuilder<List<dynamic>>(
-{indent}  future: _apiService.fetchData('{data_source.name}'),
-{indent}  builder: (context, snapshot) {{
-{indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
-{indent}      return Center(child: CircularProgressIndicator());
-{indent}    }}
-{indent}    if (snapshot.hasError) {{
-{indent}      return Center(child: Text('Error loading data'));
-{indent}    }}
-{indent}    final items = snapshot.data ?? [];
-{indent}    if (items.isEmpty) {{
-{indent}      return Center(child: Text('No items available'));
-{indent}    }}
-{indent}    return ListView.builder(
-{indent}      shrinkWrap: true,
-{indent}      physics: NeverScrollableScrollPhysics(),
-{indent}      itemCount: items.length > 10 ? 10 : items.length,
-{indent}      itemBuilder: (context, index) {{
-{indent}        final item = items[index];
-{indent}        return Card(
-{indent}          margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-{indent}          child: ListTile(
-{indent}            title: Text(item['{field.field_name}']?.toString() ?? 'Item'),
-{indent}            onTap: () {{}},
-{indent}          ),
-{indent}        );
-{indent}      }},
-{indent}    );
-{indent}  }},
-{indent}){wrapper_end}'''
+    {indent}  future: _apiService.fetchData('{data_source.name}'),
+    {indent}  builder: (context, snapshot) {{
+    {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
+    {indent}      return Center(child: CircularProgressIndicator());
+    {indent}    }}
+    {indent}    if (snapshot.hasError) {{
+    {indent}      print('Error loading {data_source.name}: ${{snapshot.error}}');
+    {indent}      return Center(
+    {indent}        child: Column(
+    {indent}          mainAxisAlignment: MainAxisAlignment.center,
+    {indent}          children: [
+    {indent}            Icon(Icons.error_outline, size: 48, color: Colors.red),
+    {indent}            SizedBox(height: 16),
+    {indent}            Text('Error loading data', style: TextStyle(fontSize: 16)),
+    {indent}            SizedBox(height: 8),
+    {indent}            Padding(
+    {indent}              padding: EdgeInsets.symmetric(horizontal: 32),
+    {indent}              child: Text(
+    {indent}                '${{snapshot.error}}'.replaceAll('Exception: ', ''),
+    {indent}                style: TextStyle(fontSize: 12, color: Colors.grey),
+    {indent}                textAlign: TextAlign.center,
+    {indent}              ),
+    {indent}            ),
+    {indent}            SizedBox(height: 16),
+    {indent}            ElevatedButton(
+    {indent}              onPressed: () {{
+    {indent}                setState(() {{}});
+    {indent}              }},
+    {indent}              child: Text('Retry'),
+    {indent}            ),
+    {indent}          ],
+    {indent}        ),
+    {indent}      );
+    {indent}    }}
+    {indent}    final items = snapshot.data ?? [];
+    {indent}    if (items.isEmpty) {{
+    {indent}      return Center(child: Text('No items available'));
+    {indent}    }}
+    {indent}    return ListView.builder(
+    {indent}      shrinkWrap: true,
+    {indent}      physics: NeverScrollableScrollPhysics(),
+    {indent}      itemCount: items.length > 10 ? 10 : items.length,
+    {indent}      itemBuilder: (context, index) {{
+    {indent}        final item = items[index];
+    {indent}        return Card(
+    {indent}          margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    {indent}          child: ListTile(
+    {indent}            title: Text(item['{field.field_name}']?.toString() ?? 'Item'),
+    {indent}            onTap: () {{}},
+    {indent}          ),
+    {indent}        );
+    {indent}      }},
+    {indent}    );
+    {indent}  }},
+    {indent}){wrapper_end}'''
         else:
             # Static ListView with child widgets
             if child_widgets.exists():
@@ -1014,91 +1041,75 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
                 return f"() {{ _apiService.fetchData('{action.api_data_source.name}'); }}"
         
         return "null"
-    
-    def _generate_services(self):
-        """Generate API service"""
-        data_sources = DataSource.objects.filter(application=self.application)
-        
-        service_content = '''import 'dart:convert';
-import 'package:http/http.dart' as http;
 
-class ApiService {
-  static final ApiService _instance = ApiService._internal();
-  factory ApiService() => _instance;
-  ApiService._internal();
-  
-'''
-        
-        # Generate methods for each data source
+    def _generate_services(self):
+        """Generate API service - all data sources are now dynamic APIs"""
+        data_sources = DataSource.objects.filter(application=self.application)
+
+        service_content = '''import 'dart:convert';
+    import 'package:http/http.dart' as http;
+
+    class ApiService {
+      static final ApiService _instance = ApiService._internal();
+      factory ApiService() => _instance;
+      ApiService._internal();
+
+    '''
+
+        # Generate methods for each data source - all treated as REST APIs
         for data_source in data_sources:
             method_name = self._to_camel_case(data_source.name)
-            
-            if data_source.data_source_type == 'REST_API':
-                service_content += f'''
-  Future<List<dynamic>> fetch{self._to_pascal_case(data_source.name)}() async {{
-    try {{
-      final url = '{data_source.base_url}{data_source.endpoint}';
-      final response = await http.{data_source.method.lower()}(
-        Uri.parse(url),
-        headers: {{
-          'Content-Type': 'application/json',
-'''
-                
-                # Add custom headers
-                if data_source.headers:
-                    for line in data_source.headers.split('\n'):
-                        if ':' in line:
-                            key, value = line.split(':', 1)
-                            service_content += f"          '{key.strip()}': '{value.strip()}',\n"
-                
-                service_content += '''        },
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data is List ? data : [data];
-      } else {
-        throw Exception('Failed to load data: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
-  }
-'''
 
-            elif data_source.data_source_type == 'STATIC_JSON':
-                # Generate method that loads from mock data file
-                service_content += f'''
-  Future<List<dynamic>> fetch{self._to_pascal_case(data_source.name)}() async {{
-    try {{
-      // Load from mock data file
-      await Future.delayed(Duration(milliseconds: 300)); // Simulate network delay
-      
-      final data = MockData.get{self._to_pascal_case(data_source.name)}();
-      print('Loaded {data_source.name}: ${{data.length}} items from mock data');
-      return data;
-    }} catch (e) {{
-      print('Error loading {data_source.name}: $e');
-      return [];
-    }}
-  }}
-'''
-        
+            # All data sources are now treated as REST APIs
+            service_content += f'''
+      Future<List<dynamic>> fetch{self._to_pascal_case(data_source.name)}() async {{
+        try {{
+          final url = '{data_source.base_url}{data_source.endpoint}';
+          final response = await http.{data_source.method.lower()}(
+            Uri.parse(url),
+            headers: {{
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true',
+              'User-Agent': 'Flutter-App/1.0',
+    '''
+
+            # Add custom headers
+            if data_source.headers:
+                for line in data_source.headers.split('\n'):
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        service_content += f"          '{key.strip()}': '{value.strip()}',\n"
+
+            service_content += '''        },
+          );
+
+          if (response.statusCode == 200) {
+            final data = json.decode(response.body);
+            return data is List ? data : [data];
+          } else {
+            throw Exception('Failed to load data: ${response.statusCode}');
+          }
+        } catch (e) {
+          throw Exception('Network error: $e');
+        }
+      }
+    '''
+
         # Add generic fetchData method
         service_content += '''
-  Future<List<dynamic>> fetchData(String dataSourceName) async {
-    switch (dataSourceName) {
-'''
-        
+      Future<List<dynamic>> fetchData(String dataSourceName) async {
+        switch (dataSourceName) {
+    '''
+
         for data_source in data_sources:
             service_content += f"      case '{data_source.name}': return fetch{self._to_pascal_case(data_source.name)}();\n"
-        
+
         service_content += '''      default: throw Exception('Unknown data source: $dataSourceName');
+        }
+      }
     }
-  }
-}
-'''
-        
+    '''
+
         with open(self.lib_path / 'services' / 'api_service.dart', 'w', encoding='utf-8') as f:
             f.write(service_content)
     
@@ -1275,3 +1286,24 @@ class ErrorWidget extends StatelessWidget {
             f.write(content)
 
         print(f"Updated Android build.gradle with NDK version")
+
+    def _update_android_manifest(self):
+        """Add internet permission to Android manifest"""
+        manifest_path = self.project_path / 'android' / 'app' / 'src' / 'main' / 'AndroidManifest.xml'
+
+        if manifest_path.exists():
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Check if internet permission already exists
+            if 'android.permission.INTERNET' not in content:
+                # Add internet permission after <manifest> tag
+                content = content.replace(
+                    '<application',
+                    '<uses-permission android:name="android.permission.INTERNET"/>\n    <application'
+                )
+
+                with open(manifest_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+
+                print("Added Internet permission to AndroidManifest.xml")

@@ -133,7 +133,6 @@ class DataSource(models.Model):
     
     DATA_SOURCE_TYPES = [
         ('REST_API', 'REST API (Web Service)'),
-        ('STATIC_JSON', 'Static JSON Data'),
     ]
     
     HTTP_METHODS = [
@@ -183,11 +182,6 @@ class DataSource(models.Model):
         blank=True,
         verbose_name="Request Headers",
         help_text="Additional information to send with requests (one per line, format: 'Key: Value')"
-    )
-    static_data = models.TextField(
-        blank=True,
-        verbose_name="Static JSON Data",
-        help_text="For static data sources, paste your JSON data here"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

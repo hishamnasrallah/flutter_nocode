@@ -1,14 +1,14 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from core.models import (
-    Application, Theme, Screen, Widget, WidgetProperty, 
+    Application, Theme, Screen, Widget, WidgetProperty,
     Action, DataSource, DataSourceField
 )
 
 
 class Command(BaseCommand):
     help = 'Create sample applications to demonstrate the platform capabilities'
-    
+
     def add_arguments(self, parser):
         parser.add_argument(
             'app_type',
@@ -20,11 +20,11 @@ class Command(BaseCommand):
             type=str,
             help='Custom name for the application'
         )
-    
+
     def handle(self, *args, **options):
         app_type = options['app_type']
         custom_name = options.get('name')
-        
+
         try:
             with transaction.atomic():
                 if app_type == 'ecommerce':
@@ -33,7 +33,7 @@ class Command(BaseCommand):
                     app = create_social_media_app(custom_name)
                 elif app_type == 'news':
                     app = create_news_app(custom_name)
-                
+
                 self.stdout.write(
                     self.style.SUCCESS(
                         f'Successfully created {app_type} sample application: {app.name}'
@@ -47,7 +47,7 @@ class Command(BaseCommand):
 
 def create_ecommerce_app(custom_name=None):
     """Create a comprehensive e-commerce application"""
-    
+
     # Create theme
     theme = Theme.objects.create(
         name="E-commerce Theme",
@@ -58,7 +58,7 @@ def create_ecommerce_app(custom_name=None):
         font_family="Roboto",
         is_dark_mode=False
     )
-    
+
     # Create application
     app = Application.objects.create(
         name=custom_name or "Sample E-commerce Store",
@@ -67,17 +67,20 @@ def create_ecommerce_app(custom_name=None):
         version="1.0.0",
         theme=theme
     )
-    
-    # Create data sources
+
+    # Determine base URL - use localhost:8000 for development
+    base_url = "http://localhost:8000"
+
+    # Create data sources pointing to mock API endpoints
     products_ds = DataSource.objects.create(
         application=app,
         name="Products",
         data_source_type="REST_API",
-        base_url="https://fakestoreapi.com",
-        endpoint="/products",
+        base_url=base_url,
+        endpoint="/api/mock/ecommerce/products",
         method="GET"
     )
-    
+
     # Create data source fields for products
     product_fields = [
         ("id", "integer", "Product ID"),
@@ -88,7 +91,7 @@ def create_ecommerce_app(custom_name=None):
         ("image", "image_url", "Product Image"),
         ("rating", "string", "Rating")
     ]
-    
+
     for field_name, field_type, display_name in product_fields:
         DataSourceField.objects.create(
             data_source=products_ds,
@@ -97,53 +100,109 @@ def create_ecommerce_app(custom_name=None):
             display_name=display_name,
             is_required=field_name in ['id', 'title', 'price']
         )
-    
+
     # Create categories data source
     categories_ds = DataSource.objects.create(
         application=app,
         name="Categories",
         data_source_type="REST_API",
-        base_url="https://fakestoreapi.com",
-        endpoint="/products/categories",
+        base_url=base_url,
+        endpoint="/api/mock/ecommerce/categories",
         method="GET"
     )
-    
+
     DataSourceField.objects.create(
         data_source=categories_ds,
-        field_name="category",
+        field_name="name",
         field_type="string",
         display_name="Category Name",
         is_required=True
     )
-    
-    # Create user data source
-    users_ds = DataSource.objects.create(
+
+    # Create cart data source
+    cart_ds = DataSource.objects.create(
         application=app,
-        name="Users",
+        name="Cart",
         data_source_type="REST_API",
-        base_url="https://fakestoreapi.com",
-        endpoint="/users",
+        base_url=base_url,
+        endpoint="/api/mock/ecommerce/cart",
         method="GET"
     )
-    
-    user_fields = [
-        ("id", "integer", "User ID"),
-        ("email", "email", "Email"),
-        ("username", "string", "Username"),
-        ("name", "string", "Full Name"),
-        ("phone", "string", "Phone Number"),
-        ("address", "string", "Address")
+
+    cart_fields = [
+        ("id", "string", "Cart Item ID"),
+        ("productId", "string", "Product ID"),
+        ("productName", "string", "Product Name"),
+        ("price", "decimal", "Price"),
+        ("quantity", "integer", "Quantity"),
+        ("image", "image_url", "Product Image")
     ]
-    
-    for field_name, field_type, display_name in user_fields:
+
+    for field_name, field_type, display_name in cart_fields:
         DataSourceField.objects.create(
-            data_source=users_ds,
+            data_source=cart_ds,
             field_name=field_name,
             field_type=field_type,
             display_name=display_name,
-            is_required=field_name in ['id', 'email', 'username']
+            is_required=True
         )
-    
+
+    # Create orders data source
+    orders_ds = DataSource.objects.create(
+        application=app,
+        name="Orders",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/mock/ecommerce/orders",
+        method="GET"
+    )
+
+    order_fields = [
+        ("id", "string", "Order ID"),
+        ("orderNumber", "string", "Order Number"),
+        ("date", "date", "Order Date"),
+        ("status", "string", "Status"),
+        ("total", "decimal", "Total Amount"),
+        ("items", "integer", "Item Count")
+    ]
+
+    for field_name, field_type, display_name in order_fields:
+        DataSourceField.objects.create(
+            data_source=orders_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=True
+        )
+
+    # Create reviews data source
+    reviews_ds = DataSource.objects.create(
+        application=app,
+        name="Reviews",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/mock/ecommerce/reviews",
+        method="GET"
+    )
+
+    review_fields = [
+        ("id", "string", "Review ID"),
+        ("productId", "string", "Product ID"),
+        ("user", "string", "User Name"),
+        ("rating", "integer", "Rating"),
+        ("comment", "string", "Comment"),
+        ("date", "date", "Review Date")
+    ]
+
+    for field_name, field_type, display_name in review_fields:
+        DataSourceField.objects.create(
+            data_source=reviews_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=True
+        )
+
     # Create actions
     actions = [
         ("Navigate to Product Details", "navigate", None, None),
@@ -157,7 +216,7 @@ def create_ecommerce_app(custom_name=None):
         ("View Profile", "navigate", None, None),
         ("View Orders", "navigate", None, None),
     ]
-    
+
     action_objects = {}
     for name, action_type, api_ds, target in actions:
         action = Action.objects.create(
@@ -167,7 +226,7 @@ def create_ecommerce_app(custom_name=None):
             api_data_source=api_ds
         )
         action_objects[name] = action
-    
+
     # Create screens
     screens_data = [
         ("Home", "/", True, "Store Home", True, True),
@@ -181,7 +240,7 @@ def create_ecommerce_app(custom_name=None):
         ("Order History", "/orders", False, "My Orders", True, True),
         ("Search Results", "/search", False, "Search Results", True, True),
     ]
-    
+
     screen_objects = {}
     for name, route, is_home, title, show_bar, show_back in screens_data:
         screen = Screen.objects.create(
@@ -194,32 +253,32 @@ def create_ecommerce_app(custom_name=None):
             show_back_button=show_back
         )
         screen_objects[name] = screen
-    
+
     # Update actions with target screens
     action_objects["Navigate to Product Details"].target_screen = screen_objects["Product Details"]
     action_objects["Navigate to Product Details"].save()
-    
+
     action_objects["View Cart"].target_screen = screen_objects["Shopping Cart"]
     action_objects["View Cart"].save()
-    
+
     action_objects["Checkout"].target_screen = screen_objects["Checkout"]
     action_objects["Checkout"].save()
-    
+
     action_objects["User Login"].target_screen = screen_objects["User Login"]
     action_objects["User Login"].save()
-    
+
     action_objects["User Register"].target_screen = screen_objects["User Register"]
     action_objects["User Register"].save()
-    
+
     action_objects["View Profile"].target_screen = screen_objects["User Profile"]
     action_objects["View Profile"].save()
-    
+
     action_objects["View Orders"].target_screen = screen_objects["Order History"]
     action_objects["View Orders"].save()
-    
+
     # Create widgets for Home screen
     home_screen = screen_objects["Home"]
-    
+
     # Main container
     main_container = Widget.objects.create(
         screen=home_screen,
@@ -227,7 +286,7 @@ def create_ecommerce_app(custom_name=None):
         order=0,
         widget_id="home_main_column"
     )
-    
+
     # Welcome text
     welcome_text = Widget.objects.create(
         screen=home_screen,
@@ -236,14 +295,14 @@ def create_ecommerce_app(custom_name=None):
         order=0,
         widget_id="welcome_text"
     )
-    
+
     WidgetProperty.objects.create(
         widget=welcome_text,
         property_name="text",
         property_type="string",
         string_value="Welcome to Our Store!"
     )
-    
+
     # Categories section
     categories_title = Widget.objects.create(
         screen=home_screen,
@@ -252,14 +311,14 @@ def create_ecommerce_app(custom_name=None):
         order=1,
         widget_id="categories_title"
     )
-    
+
     WidgetProperty.objects.create(
         widget=categories_title,
         property_name="text",
         property_type="string",
         string_value="Shop by Category"
     )
-    
+
     # Featured products section
     featured_title = Widget.objects.create(
         screen=home_screen,
@@ -268,14 +327,14 @@ def create_ecommerce_app(custom_name=None):
         order=2,
         widget_id="featured_title"
     )
-    
+
     WidgetProperty.objects.create(
         widget=featured_title,
         property_name="text",
         property_type="string",
         string_value="Featured Products"
     )
-    
+
     # Products list
     products_list = Widget.objects.create(
         screen=home_screen,
@@ -284,7 +343,7 @@ def create_ecommerce_app(custom_name=None):
         order=3,
         widget_id="featured_products_list"
     )
-    
+
     # Navigation buttons
     buttons_row = Widget.objects.create(
         screen=home_screen,
@@ -293,7 +352,7 @@ def create_ecommerce_app(custom_name=None):
         order=4,
         widget_id="navigation_buttons"
     )
-    
+
     # View All Products button
     all_products_btn = Widget.objects.create(
         screen=home_screen,
@@ -302,21 +361,21 @@ def create_ecommerce_app(custom_name=None):
         order=0,
         widget_id="all_products_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=all_products_btn,
         property_name="text",
         property_type="string",
         string_value="View All Products"
     )
-    
+
     WidgetProperty.objects.create(
         widget=all_products_btn,
         property_name="onPressed",
         property_type="screen_reference",
         screen_reference=screen_objects["Product List"]
     )
-    
+
     # Cart button
     cart_btn = Widget.objects.create(
         screen=home_screen,
@@ -325,24 +384,24 @@ def create_ecommerce_app(custom_name=None):
         order=1,
         widget_id="cart_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=cart_btn,
         property_name="text",
         property_type="string",
         string_value="View Cart"
     )
-    
+
     WidgetProperty.objects.create(
         widget=cart_btn,
         property_name="onPressed",
         property_type="screen_reference",
         screen_reference=screen_objects["Shopping Cart"]
     )
-    
+
     # Create widgets for Product List screen
     product_list_screen = screen_objects["Product List"]
-    
+
     # Search bar
     search_container = Widget.objects.create(
         screen=product_list_screen,
@@ -350,7 +409,7 @@ def create_ecommerce_app(custom_name=None):
         order=0,
         widget_id="search_container"
     )
-    
+
     search_field = Widget.objects.create(
         screen=product_list_screen,
         widget_type="TextField",
@@ -358,14 +417,14 @@ def create_ecommerce_app(custom_name=None):
         order=0,
         widget_id="search_field"
     )
-    
+
     WidgetProperty.objects.create(
         widget=search_field,
         property_name="hintText",
         property_type="string",
         string_value="Search products..."
     )
-    
+
     # Products grid
     products_grid = Widget.objects.create(
         screen=product_list_screen,
@@ -373,7 +432,7 @@ def create_ecommerce_app(custom_name=None):
         order=1,
         widget_id="products_grid"
     )
-    
+
     WidgetProperty.objects.create(
         widget=products_grid,
         property_name="dataSource",
@@ -383,17 +442,17 @@ def create_ecommerce_app(custom_name=None):
             field_name="title"
         )
     )
-    
+
     # Create widgets for Product Details screen
     product_details_screen = screen_objects["Product Details"]
-    
+
     details_column = Widget.objects.create(
         screen=product_details_screen,
         widget_type="Column",
         order=0,
         widget_id="product_details_column"
     )
-    
+
     # Product image
     product_image = Widget.objects.create(
         screen=product_details_screen,
@@ -402,7 +461,7 @@ def create_ecommerce_app(custom_name=None):
         order=0,
         widget_id="product_image"
     )
-    
+
     # Product title
     product_title = Widget.objects.create(
         screen=product_details_screen,
@@ -411,7 +470,7 @@ def create_ecommerce_app(custom_name=None):
         order=1,
         widget_id="product_title"
     )
-    
+
     # Product price
     product_price = Widget.objects.create(
         screen=product_details_screen,
@@ -420,7 +479,7 @@ def create_ecommerce_app(custom_name=None):
         order=2,
         widget_id="product_price"
     )
-    
+
     # Product description
     product_description = Widget.objects.create(
         screen=product_details_screen,
@@ -429,7 +488,7 @@ def create_ecommerce_app(custom_name=None):
         order=3,
         widget_id="product_description"
     )
-    
+
     # Add to cart button
     add_to_cart_btn = Widget.objects.create(
         screen=product_details_screen,
@@ -438,27 +497,27 @@ def create_ecommerce_app(custom_name=None):
         order=4,
         widget_id="add_to_cart_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=add_to_cart_btn,
         property_name="text",
         property_type="string",
         string_value="Add to Cart"
     )
-    
+
     WidgetProperty.objects.create(
         widget=add_to_cart_btn,
         property_name="onPressed",
         property_type="action_reference",
         action_reference=action_objects["Add to Cart"]
     )
-    
+
     return app
 
 
 def create_social_media_app(custom_name=None):
     """Create a comprehensive social media application"""
-    
+
     # Create theme
     theme = Theme.objects.create(
         name="Social Media Theme",
@@ -469,7 +528,7 @@ def create_social_media_app(custom_name=None):
         font_family="Roboto",
         is_dark_mode=False
     )
-    
+
     # Create application
     app = Application.objects.create(
         name=custom_name or "Sample Social Media App",
@@ -478,7 +537,10 @@ def create_social_media_app(custom_name=None):
         version="1.0.0",
         theme=theme
     )
-    
+
+    # For now, using external APIs for social media data
+    # In production, you would create mock endpoints for these too
+
     # Create data sources
     posts_ds = DataSource.objects.create(
         application=app,
@@ -488,27 +550,24 @@ def create_social_media_app(custom_name=None):
         endpoint="/posts",
         method="GET"
     )
-    
+
     # Create data source fields for posts
     post_fields = [
         ("id", "integer", "Post ID"),
         ("userId", "integer", "User ID"),
         ("title", "string", "Post Title"),
-        ("body", "string", "Post Content"),
-        ("likes", "integer", "Likes Count"),
-        ("comments", "integer", "Comments Count"),
-        ("timestamp", "datetime", "Posted At")
+        ("body", "string", "Post Content")
     ]
-    
+
     for field_name, field_type, display_name in post_fields:
         DataSourceField.objects.create(
             data_source=posts_ds,
             field_name=field_name,
             field_type=field_type,
             display_name=display_name,
-            is_required=field_name in ['id', 'userId', 'title', 'body']
+            is_required=True
         )
-    
+
     # Create users data source
     users_ds = DataSource.objects.create(
         application=app,
@@ -518,20 +577,16 @@ def create_social_media_app(custom_name=None):
         endpoint="/users",
         method="GET"
     )
-    
+
     user_fields = [
         ("id", "integer", "User ID"),
         ("name", "string", "Full Name"),
         ("username", "string", "Username"),
         ("email", "email", "Email"),
         ("phone", "string", "Phone"),
-        ("website", "url", "Website"),
-        ("bio", "string", "Bio"),
-        ("avatar", "image_url", "Profile Picture"),
-        ("followers", "integer", "Followers Count"),
-        ("following", "integer", "Following Count")
+        ("website", "url", "Website")
     ]
-    
+
     for field_name, field_type, display_name in user_fields:
         DataSourceField.objects.create(
             data_source=users_ds,
@@ -540,7 +595,7 @@ def create_social_media_app(custom_name=None):
             display_name=display_name,
             is_required=field_name in ['id', 'name', 'username']
         )
-    
+
     # Create comments data source
     comments_ds = DataSource.objects.create(
         application=app,
@@ -550,7 +605,7 @@ def create_social_media_app(custom_name=None):
         endpoint="/comments",
         method="GET"
     )
-    
+
     comment_fields = [
         ("id", "integer", "Comment ID"),
         ("postId", "integer", "Post ID"),
@@ -558,7 +613,7 @@ def create_social_media_app(custom_name=None):
         ("email", "email", "Commenter Email"),
         ("body", "string", "Comment Text")
     ]
-    
+
     for field_name, field_type, display_name in comment_fields:
         DataSourceField.objects.create(
             data_source=comments_ds,
@@ -567,7 +622,7 @@ def create_social_media_app(custom_name=None):
             display_name=display_name,
             is_required=True
         )
-    
+
     # Create actions
     actions = [
         ("Like Post", "api_call", posts_ds, None),
@@ -583,7 +638,7 @@ def create_social_media_app(custom_name=None):
         ("Search Users", "api_call", users_ds, None),
         ("Refresh Feed", "refresh_data", None, None),
     ]
-    
+
     action_objects = {}
     for name, action_type, api_ds, target in actions:
         action = Action.objects.create(
@@ -593,7 +648,7 @@ def create_social_media_app(custom_name=None):
             api_data_source=api_ds
         )
         action_objects[name] = action
-    
+
     # Create screens
     screens_data = [
         ("Feed", "/", True, "Social Feed", True, False),
@@ -610,7 +665,7 @@ def create_social_media_app(custom_name=None):
         ("Followers", "/followers", False, "Followers", True, True),
         ("Following", "/following", False, "Following", True, True),
     ]
-    
+
     screen_objects = {}
     for name, route, is_home, title, show_bar, show_back in screens_data:
         screen = Screen.objects.create(
@@ -623,29 +678,29 @@ def create_social_media_app(custom_name=None):
             show_back_button=show_back
         )
         screen_objects[name] = screen
-    
+
     # Update actions with target screens
     action_objects["Comment on Post"].target_screen = screen_objects["Post Details"]
     action_objects["Comment on Post"].save()
-    
+
     action_objects["View Profile"].target_screen = screen_objects["User Profile"]
     action_objects["View Profile"].save()
-    
+
     action_objects["Create Post"].target_screen = screen_objects["Create Post"]
     action_objects["Create Post"].save()
-    
+
     action_objects["Edit Profile"].target_screen = screen_objects["Edit Profile"]
     action_objects["Edit Profile"].save()
-    
+
     action_objects["Send Message"].target_screen = screen_objects["Chat"]
     action_objects["Send Message"].save()
-    
+
     action_objects["View Messages"].target_screen = screen_objects["Messages"]
     action_objects["View Messages"].save()
-    
+
     # Create widgets for Feed screen
     feed_screen = screen_objects["Feed"]
-    
+
     # Main container
     feed_container = Widget.objects.create(
         screen=feed_screen,
@@ -653,7 +708,7 @@ def create_social_media_app(custom_name=None):
         order=0,
         widget_id="feed_main_column"
     )
-    
+
     # Stories section
     stories_container = Widget.objects.create(
         screen=feed_screen,
@@ -662,7 +717,7 @@ def create_social_media_app(custom_name=None):
         order=0,
         widget_id="stories_container"
     )
-    
+
     stories_list = Widget.objects.create(
         screen=feed_screen,
         widget_type="ListView",
@@ -670,7 +725,7 @@ def create_social_media_app(custom_name=None):
         order=0,
         widget_id="stories_list"
     )
-    
+
     # Posts feed
     posts_list = Widget.objects.create(
         screen=feed_screen,
@@ -679,7 +734,7 @@ def create_social_media_app(custom_name=None):
         order=1,
         widget_id="posts_feed"
     )
-    
+
     WidgetProperty.objects.create(
         widget=posts_list,
         property_name="dataSource",
@@ -689,7 +744,7 @@ def create_social_media_app(custom_name=None):
             field_name="title"
         )
     )
-    
+
     # Floating action button for creating posts
     create_post_fab = Widget.objects.create(
         screen=feed_screen,
@@ -697,24 +752,24 @@ def create_social_media_app(custom_name=None):
         order=2,
         widget_id="create_post_fab"
     )
-    
+
     WidgetProperty.objects.create(
         widget=create_post_fab,
         property_name="onPressed",
         property_type="action_reference",
         action_reference=action_objects["Create Post"]
     )
-    
+
     # Create widgets for Profile screen
     profile_screen = screen_objects["Profile"]
-    
+
     profile_column = Widget.objects.create(
         screen=profile_screen,
         widget_type="Column",
         order=0,
         widget_id="profile_main_column"
     )
-    
+
     # Profile header
     profile_header = Widget.objects.create(
         screen=profile_screen,
@@ -723,7 +778,7 @@ def create_social_media_app(custom_name=None):
         order=0,
         widget_id="profile_header"
     )
-    
+
     # Profile picture
     profile_avatar = Widget.objects.create(
         screen=profile_screen,
@@ -732,7 +787,7 @@ def create_social_media_app(custom_name=None):
         order=0,
         widget_id="profile_avatar"
     )
-    
+
     # Profile info
     profile_info = Widget.objects.create(
         screen=profile_screen,
@@ -741,7 +796,7 @@ def create_social_media_app(custom_name=None):
         order=1,
         widget_id="profile_info"
     )
-    
+
     # Username
     username_text = Widget.objects.create(
         screen=profile_screen,
@@ -750,7 +805,7 @@ def create_social_media_app(custom_name=None):
         order=0,
         widget_id="username_text"
     )
-    
+
     # Bio
     bio_text = Widget.objects.create(
         screen=profile_screen,
@@ -759,7 +814,7 @@ def create_social_media_app(custom_name=None):
         order=1,
         widget_id="bio_text"
     )
-    
+
     # Stats row (followers, following, posts)
     stats_row = Widget.objects.create(
         screen=profile_screen,
@@ -768,7 +823,7 @@ def create_social_media_app(custom_name=None):
         order=1,
         widget_id="stats_row"
     )
-    
+
     # Posts count
     posts_count = Widget.objects.create(
         screen=profile_screen,
@@ -777,7 +832,7 @@ def create_social_media_app(custom_name=None):
         order=0,
         widget_id="posts_count"
     )
-    
+
     # Followers count
     followers_count = Widget.objects.create(
         screen=profile_screen,
@@ -786,7 +841,7 @@ def create_social_media_app(custom_name=None):
         order=1,
         widget_id="followers_count"
     )
-    
+
     # Following count
     following_count = Widget.objects.create(
         screen=profile_screen,
@@ -795,7 +850,7 @@ def create_social_media_app(custom_name=None):
         order=2,
         widget_id="following_count"
     )
-    
+
     # Action buttons
     action_buttons = Widget.objects.create(
         screen=profile_screen,
@@ -804,7 +859,7 @@ def create_social_media_app(custom_name=None):
         order=2,
         widget_id="action_buttons"
     )
-    
+
     # Edit profile button
     edit_profile_btn = Widget.objects.create(
         screen=profile_screen,
@@ -813,21 +868,21 @@ def create_social_media_app(custom_name=None):
         order=0,
         widget_id="edit_profile_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=edit_profile_btn,
         property_name="text",
         property_type="string",
         string_value="Edit Profile"
     )
-    
+
     WidgetProperty.objects.create(
         widget=edit_profile_btn,
         property_name="onPressed",
         property_type="action_reference",
         action_reference=action_objects["Edit Profile"]
     )
-    
+
     # User posts grid
     user_posts_grid = Widget.objects.create(
         screen=profile_screen,
@@ -836,13 +891,13 @@ def create_social_media_app(custom_name=None):
         order=3,
         widget_id="user_posts_grid"
     )
-    
+
     return app
 
 
 def create_news_app(custom_name=None):
     """Create a comprehensive news application"""
-    
+
     # Create theme
     theme = Theme.objects.create(
         name="News Theme",
@@ -853,7 +908,7 @@ def create_news_app(custom_name=None):
         font_family="Roboto",
         is_dark_mode=False
     )
-    
+
     # Create application
     app = Application.objects.create(
         name=custom_name or "Sample News App",
@@ -862,136 +917,21 @@ def create_news_app(custom_name=None):
         version="1.0.0",
         theme=theme
     )
-    
-    # Create data sources with mock data
+
+    # Determine base URL - use localhost:8000 for development
+    base_url = "http://localhost:8000"
+
+    # Create data sources pointing to mock API endpoints
+    # Create news articles data source
     news_ds = DataSource.objects.create(
         application=app,
         name="News Articles",
-        data_source_type="STATIC_JSON",
-        static_data='''[
-    {
-        "id": "1",
-        "title": "Breaking: Major Technology Breakthrough Announced",
-        "description": "Scientists reveal groundbreaking discovery that could revolutionize computing",
-        "content": "In a stunning announcement today, researchers at leading universities have unveiled a new quantum computing breakthrough that promises to accelerate processing speeds by 1000x. The technology uses novel quantum entanglement techniques...",
-        "author": "John Smith",
-        "source": "Tech Daily",
-        "publishedAt": "2024-01-15T10:30:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=1",
-        "url": "https://example.com/article1",
-        "category": "technology"
-    },
-    {
-        "id": "2",
-        "title": "Global Climate Summit Reaches Historic Agreement",
-        "description": "World leaders commit to ambitious new targets for carbon reduction",
-        "content": "Representatives from 195 nations have signed a landmark agreement committing to net-zero emissions by 2040. The agreement includes specific milestones and funding mechanisms...",
-        "author": "Sarah Johnson",
-        "source": "World News Network",
-        "publishedAt": "2024-01-15T08:45:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=2",
-        "url": "https://example.com/article2",
-        "category": "general"
-    },
-    {
-        "id": "3",
-        "title": "Stock Markets Hit Record Highs Amid Economic Recovery",
-        "description": "Major indices surge as investors show renewed confidence",
-        "content": "The S&P 500 and NASDAQ both reached all-time highs today, driven by strong earnings reports and positive economic indicators. Analysts predict continued growth...",
-        "author": "Michael Chen",
-        "source": "Financial Times",
-        "publishedAt": "2024-01-15T14:20:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=3",
-        "url": "https://example.com/article3",
-        "category": "business"
-    },
-    {
-        "id": "4",
-        "title": "New Medical Treatment Shows Promise for Rare Disease",
-        "description": "Clinical trials demonstrate 90% success rate in early testing",
-        "content": "A revolutionary gene therapy treatment has shown remarkable results in treating a previously incurable genetic disorder. Patients in the trial showed significant improvement...",
-        "author": "Dr. Emily Wilson",
-        "source": "Medical Journal",
-        "publishedAt": "2024-01-15T11:00:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=4",
-        "url": "https://example.com/article4",
-        "category": "health"
-    },
-    {
-        "id": "5",
-        "title": "Championship Finals: Underdog Team Stuns Champions",
-        "description": "Historic upset as rookie team claims victory in thrilling finale",
-        "content": "In one of the greatest upsets in sports history, the underdog team defeated the three-time champions in a nail-biting finish. The game went into overtime...",
-        "author": "Robert Martinez",
-        "source": "Sports Weekly",
-        "publishedAt": "2024-01-14T22:30:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=5",
-        "url": "https://example.com/article5",
-        "category": "sports"
-    },
-    {
-        "id": "6",
-        "title": "Breakthrough in Artificial Intelligence Research",
-        "description": "New AI model demonstrates human-level reasoning capabilities",
-        "content": "Researchers have developed an AI system that can solve complex problems with unprecedented accuracy. The model uses a novel architecture that mimics human cognitive processes...",
-        "author": "Alex Kumar",
-        "source": "AI Research Lab",
-        "publishedAt": "2024-01-15T09:15:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=6",
-        "url": "https://example.com/article6",
-        "category": "science"
-    },
-    {
-        "id": "7",
-        "title": "Entertainment Industry Announces Major Merger",
-        "description": "Two media giants join forces in billion-dollar deal",
-        "content": "In a move that will reshape the entertainment landscape, two of the industry's biggest players have announced a merger valued at $50 billion. The combined company will...",
-        "author": "Lisa Anderson",
-        "source": "Entertainment Today",
-        "publishedAt": "2024-01-15T13:45:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=7",
-        "url": "https://example.com/article7",
-        "category": "entertainment"
-    },
-    {
-        "id": "8",
-        "title": "Space Mission Successfully Launches to Mars",
-        "description": "Historic mission aims to establish first permanent base on Mars",
-        "content": "The long-awaited Mars colonization mission successfully launched today, carrying supplies and equipment for establishing humanity's first permanent base on another planet...",
-        "author": "Captain James Webb",
-        "source": "Space News",
-        "publishedAt": "2024-01-15T06:00:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=8",
-        "url": "https://example.com/article8",
-        "category": "science"
-    },
-    {
-        "id": "9",
-        "title": "Local Community Rallies to Support Food Bank",
-        "description": "Record donations help feed thousands of families in need",
-        "content": "The community response has been overwhelming, with donations exceeding expectations by 300%. The food bank can now serve meals to over 10,000 families this month...",
-        "author": "Maria Garcia",
-        "source": "Local News",
-        "publishedAt": "2024-01-15T16:30:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=9",
-        "url": "https://example.com/article9",
-        "category": "general"
-    },
-    {
-        "id": "10",
-        "title": "Tech Giant Unveils Revolutionary Smartphone",
-        "description": "Next-generation device features holographic display technology",
-        "content": "The latest smartphone release features breakthrough holographic projection technology, allowing users to interact with 3D images in mid-air. Pre-orders have already exceeded...",
-        "author": "David Park",
-        "source": "Tech Review",
-        "publishedAt": "2024-01-15T12:00:00Z",
-        "urlToImage": "https://picsum.photos/400/200?random=10",
-        "url": "https://example.com/article10",
-        "category": "technology"
-    }
-]'''
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/mock/news/articles",
+        method="GET"
     )
-    
+
     # Create data source fields for news
     news_fields = [
         ("id", "string", "Article ID"),
@@ -1003,9 +943,12 @@ def create_news_app(custom_name=None):
         ("publishedAt", "datetime", "Published Date"),
         ("urlToImage", "image_url", "Article Image"),
         ("url", "url", "Original URL"),
-        ("category", "string", "Category")
+        ("category", "string", "Category"),
+        ("readTime", "string", "Read Time"),
+        ("likes", "integer", "Likes"),
+        ("comments", "integer", "Comments")
     ]
-    
+
     for field_name, field_type, display_name in news_fields:
         DataSourceField.objects.create(
             data_source=news_ds,
@@ -1014,29 +957,24 @@ def create_news_app(custom_name=None):
             display_name=display_name,
             is_required=field_name in ['id', 'title', 'publishedAt']
         )
-    
+
     # Create categories data source
     categories_ds = DataSource.objects.create(
         application=app,
         name="News Categories",
-        data_source_type="STATIC_JSON",
-        static_data='''[
-            {"id": "general", "name": "General", "icon": "public"},
-            {"id": "business", "name": "Business", "icon": "business"},
-            {"id": "entertainment", "name": "Entertainment", "icon": "movie"},
-            {"id": "health", "name": "Health", "icon": "local_hospital"},
-            {"id": "science", "name": "Science", "icon": "science"},
-            {"id": "sports", "name": "Sports", "icon": "sports"},
-            {"id": "technology", "name": "Technology", "icon": "computer"}
-        ]'''
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/mock/news/categories",
+        method="GET"
     )
-    
+
     category_fields = [
         ("id", "string", "Category ID"),
         ("name", "string", "Category Name"),
-        ("icon", "icon", "Category Icon")
+        ("icon", "string", "Category Icon"),
+        ("color", "color", "Category Color")
     ]
-    
+
     for field_name, field_type, display_name in category_fields:
         DataSourceField.objects.create(
             data_source=categories_ds,
@@ -1045,98 +983,27 @@ def create_news_app(custom_name=None):
             display_name=display_name,
             is_required=True
         )
-    
-    # Create sources data source with mock data
+
+    # Create news sources data source
     sources_ds = DataSource.objects.create(
         application=app,
         name="News Sources",
-        data_source_type="STATIC_JSON",
-        static_data='''[
-    {
-        "id": "tech-daily",
-        "name": "Tech Daily",
-        "description": "Your source for the latest technology news and reviews",
-        "url": "https://techdaily.example.com",
-        "category": "technology",
-        "language": "en",
-        "country": "US"
-    },
-    {
-        "id": "world-news-network",
-        "name": "World News Network",
-        "description": "Breaking news from around the globe",
-        "url": "https://wnn.example.com",
-        "category": "general",
-        "language": "en",
-        "country": "US"
-    },
-    {
-        "id": "financial-times",
-        "name": "Financial Times",
-        "description": "Business and financial news",
-        "url": "https://ft.example.com",
-        "category": "business",
-        "language": "en",
-        "country": "UK"
-    },
-    {
-        "id": "sports-weekly",
-        "name": "Sports Weekly",
-        "description": "Complete sports coverage and analysis",
-        "url": "https://sportsweekly.example.com",
-        "category": "sports",
-        "language": "en",
-        "country": "US"
-    },
-    {
-        "id": "medical-journal",
-        "name": "Medical Journal",
-        "description": "Latest medical research and health news",
-        "url": "https://medjournal.example.com",
-        "category": "health",
-        "language": "en",
-        "country": "US"
-    },
-    {
-        "id": "entertainment-today",
-        "name": "Entertainment Today",
-        "description": "Movies, music, and celebrity news",
-        "url": "https://entertainment.example.com",
-        "category": "entertainment",
-        "language": "en",
-        "country": "US"
-    },
-    {
-        "id": "science-magazine",
-        "name": "Science Magazine",
-        "description": "Scientific discoveries and research",
-        "url": "https://sciencemag.example.com",
-        "category": "science",
-        "language": "en",
-        "country": "US"
-    },
-    {
-        "id": "local-news",
-        "name": "Local News",
-        "description": "News from your community",
-        "url": "https://localnews.example.com",
-        "category": "general",
-        "language": "en",
-        "country": "US"
-    }
-]'''
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/mock/news/sources",
+        method="GET"
     )
-    
+
     source_fields = [
         ("id", "string", "Source ID"),
         ("name", "string", "Source Name"),
         ("description", "string", "Description"),
-        ("url", "url", "Website URL"),
         ("category", "string", "Category"),
         ("language", "string", "Language"),
-        ("country", "string", "Country")
+        ("country", "string", "Country"),
+        ("followers", "integer", "Followers")
     ]
-    
+
     for field_name, field_type, display_name in source_fields:
         DataSourceField.objects.create(
             data_source=sources_ds,
@@ -1145,7 +1012,60 @@ def create_news_app(custom_name=None):
             display_name=display_name,
             is_required=field_name in ['id', 'name']
         )
-    
+
+    # Create breaking news data source
+    breaking_ds = DataSource.objects.create(
+        application=app,
+        name="Breaking News",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/mock/news/breaking",
+        method="GET"
+    )
+
+    breaking_fields = [
+        ("id", "string", "News ID"),
+        ("title", "string", "Headline"),
+        ("timestamp", "string", "Time"),
+        ("priority", "string", "Priority"),
+        ("category", "string", "Category")
+    ]
+
+    for field_name, field_type, display_name in breaking_fields:
+        DataSourceField.objects.create(
+            data_source=breaking_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=True
+        )
+
+    # Create trending stories data source
+    trending_ds = DataSource.objects.create(
+        application=app,
+        name="Trending Stories",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/mock/news/trending",
+        method="GET"
+    )
+
+    trending_fields = [
+        ("id", "string", "Story ID"),
+        ("title", "string", "Title"),
+        ("views", "integer", "View Count"),
+        ("trending_rank", "integer", "Rank")
+    ]
+
+    for field_name, field_type, display_name in trending_fields:
+        DataSourceField.objects.create(
+            data_source=trending_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=True
+        )
+
     # Create actions
     actions = [
         ("Read Article", "navigate", None, None),
@@ -1161,7 +1081,7 @@ def create_news_app(custom_name=None):
         ("View Sources", "navigate", None, None),
         ("Settings", "navigate", None, None),
     ]
-    
+
     action_objects = {}
     for name, action_type, api_ds, target in actions:
         action = Action.objects.create(
@@ -1171,7 +1091,7 @@ def create_news_app(custom_name=None):
             api_data_source=api_ds
         )
         action_objects[name] = action
-    
+
     # Create screens
     screens_data = [
         ("Headlines", "/", True, "Breaking News", True, False),
@@ -1186,7 +1106,7 @@ def create_news_app(custom_name=None):
         ("Settings", "/settings", False, "Settings", True, True),
         ("About", "/about", False, "About", True, True),
     ]
-    
+
     screen_objects = {}
     for name, route, is_home, title, show_bar, show_back in screens_data:
         screen = Screen.objects.create(
@@ -1199,23 +1119,23 @@ def create_news_app(custom_name=None):
             show_back_button=show_back
         )
         screen_objects[name] = screen
-    
+
     # Update actions with target screens
     action_objects["Read Article"].target_screen = screen_objects["Article Details"]
     action_objects["Read Article"].save()
-    
+
     action_objects["View Bookmarks"].target_screen = screen_objects["Bookmarks"]
     action_objects["View Bookmarks"].save()
-    
+
     action_objects["View Sources"].target_screen = screen_objects["Sources"]
     action_objects["View Sources"].save()
-    
+
     action_objects["Settings"].target_screen = screen_objects["Settings"]
     action_objects["Settings"].save()
-    
+
     # Create widgets for Headlines screen
     headlines_screen = screen_objects["Headlines"]
-    
+
     # Main container
     main_container = Widget.objects.create(
         screen=headlines_screen,
@@ -1223,7 +1143,7 @@ def create_news_app(custom_name=None):
         order=0,
         widget_id="headlines_main_column"
     )
-    
+
     # Breaking news banner
     breaking_banner = Widget.objects.create(
         screen=headlines_screen,
@@ -1232,14 +1152,14 @@ def create_news_app(custom_name=None):
         order=0,
         widget_id="breaking_news_banner"
     )
-    
+
     WidgetProperty.objects.create(
         widget=breaking_banner,
         property_name="color",
         property_type="color",
         color_value="#D32F2F"
     )
-    
+
     breaking_text = Widget.objects.create(
         screen=headlines_screen,
         widget_type="Text",
@@ -1247,21 +1167,21 @@ def create_news_app(custom_name=None):
         order=0,
         widget_id="breaking_news_text"
     )
-    
+
     WidgetProperty.objects.create(
         widget=breaking_text,
         property_name="text",
         property_type="string",
-        string_value="🔴 BREAKING NEWS"
+        string_value="[RED] BREAKING NEWS"
     )
-    
+
     WidgetProperty.objects.create(
         widget=breaking_text,
         property_name="color",
         property_type="color",
         color_value="#FFFFFF"
     )
-    
+
     # Categories horizontal list
     categories_section = Widget.objects.create(
         screen=headlines_screen,
@@ -1270,7 +1190,7 @@ def create_news_app(custom_name=None):
         order=1,
         widget_id="categories_section"
     )
-    
+
     categories_title = Widget.objects.create(
         screen=headlines_screen,
         widget_type="Text",
@@ -1278,14 +1198,14 @@ def create_news_app(custom_name=None):
         order=0,
         widget_id="categories_title"
     )
-    
+
     WidgetProperty.objects.create(
         widget=categories_title,
         property_name="text",
         property_type="string",
         string_value="Categories"
     )
-    
+
     categories_list = Widget.objects.create(
         screen=headlines_screen,
         widget_type="ListView",
@@ -1293,7 +1213,7 @@ def create_news_app(custom_name=None):
         order=1,
         widget_id="categories_horizontal_list"
     )
-    
+
     WidgetProperty.objects.create(
         widget=categories_list,
         property_name="dataSource",
@@ -1303,7 +1223,7 @@ def create_news_app(custom_name=None):
             field_name="name"
         )
     )
-    
+
     # Top headlines list
     headlines_list = Widget.objects.create(
         screen=headlines_screen,
@@ -1312,7 +1232,7 @@ def create_news_app(custom_name=None):
         order=2,
         widget_id="headlines_list"
     )
-    
+
     WidgetProperty.objects.create(
         widget=headlines_list,
         property_name="dataSource",
@@ -1322,7 +1242,7 @@ def create_news_app(custom_name=None):
             field_name="title"
         )
     )
-    
+
     # Bottom navigation buttons
     bottom_nav = Widget.objects.create(
         screen=headlines_screen,
@@ -1331,7 +1251,7 @@ def create_news_app(custom_name=None):
         order=3,
         widget_id="bottom_navigation"
     )
-    
+
     # Search button
     search_btn = Widget.objects.create(
         screen=headlines_screen,
@@ -1340,14 +1260,14 @@ def create_news_app(custom_name=None):
         order=0,
         widget_id="search_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=search_btn,
         property_name="onPressed",
         property_type="screen_reference",
         screen_reference=screen_objects["Search"]
     )
-    
+
     # Bookmarks button
     bookmarks_btn = Widget.objects.create(
         screen=headlines_screen,
@@ -1356,14 +1276,14 @@ def create_news_app(custom_name=None):
         order=1,
         widget_id="bookmarks_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=bookmarks_btn,
         property_name="onPressed",
         property_type="action_reference",
         action_reference=action_objects["View Bookmarks"]
     )
-    
+
     # Sources button
     sources_btn = Widget.objects.create(
         screen=headlines_screen,
@@ -1372,24 +1292,24 @@ def create_news_app(custom_name=None):
         order=2,
         widget_id="sources_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=sources_btn,
         property_name="onPressed",
         property_type="action_reference",
         action_reference=action_objects["View Sources"]
     )
-    
+
     # Create widgets for Article Details screen
     article_screen = screen_objects["Article Details"]
-    
+
     article_column = Widget.objects.create(
         screen=article_screen,
         widget_type="Column",
         order=0,
         widget_id="article_main_column"
     )
-    
+
     # Article image
     article_image = Widget.objects.create(
         screen=article_screen,
@@ -1398,7 +1318,7 @@ def create_news_app(custom_name=None):
         order=0,
         widget_id="article_image"
     )
-    
+
     # Article title
     article_title = Widget.objects.create(
         screen=article_screen,
@@ -1407,7 +1327,7 @@ def create_news_app(custom_name=None):
         order=1,
         widget_id="article_title"
     )
-    
+
     # Article metadata (author, date, source)
     article_meta = Widget.objects.create(
         screen=article_screen,
@@ -1416,7 +1336,7 @@ def create_news_app(custom_name=None):
         order=2,
         widget_id="article_metadata"
     )
-    
+
     # Author
     article_author = Widget.objects.create(
         screen=article_screen,
@@ -1425,7 +1345,7 @@ def create_news_app(custom_name=None):
         order=0,
         widget_id="article_author"
     )
-    
+
     # Published date
     article_date = Widget.objects.create(
         screen=article_screen,
@@ -1434,7 +1354,7 @@ def create_news_app(custom_name=None):
         order=1,
         widget_id="article_date"
     )
-    
+
     # Article content
     article_content = Widget.objects.create(
         screen=article_screen,
@@ -1443,7 +1363,7 @@ def create_news_app(custom_name=None):
         order=3,
         widget_id="article_content"
     )
-    
+
     # Action buttons
     article_actions = Widget.objects.create(
         screen=article_screen,
@@ -1452,7 +1372,7 @@ def create_news_app(custom_name=None):
         order=4,
         widget_id="article_actions"
     )
-    
+
     # Share button
     share_btn = Widget.objects.create(
         screen=article_screen,
@@ -1461,14 +1381,14 @@ def create_news_app(custom_name=None):
         order=0,
         widget_id="share_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=share_btn,
         property_name="onPressed",
         property_type="action_reference",
         action_reference=action_objects["Share Article"]
     )
-    
+
     # Bookmark button
     bookmark_btn = Widget.objects.create(
         screen=article_screen,
@@ -1477,14 +1397,14 @@ def create_news_app(custom_name=None):
         order=1,
         widget_id="bookmark_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=bookmark_btn,
         property_name="onPressed",
         property_type="action_reference",
         action_reference=action_objects["Bookmark Article"]
     )
-    
+
     # Open original button
     open_original_btn = Widget.objects.create(
         screen=article_screen,
@@ -1493,19 +1413,19 @@ def create_news_app(custom_name=None):
         order=2,
         widget_id="open_original_button"
     )
-    
+
     WidgetProperty.objects.create(
         widget=open_original_btn,
         property_name="text",
         property_type="string",
         string_value="Read Full Article"
     )
-    
+
     WidgetProperty.objects.create(
         widget=open_original_btn,
         property_name="onPressed",
         property_type="action_reference",
         action_reference=action_objects["Open Original Article"]
     )
-    
+
     return app
