@@ -310,7 +310,9 @@ def create_all_actions(app):
         ("Clear Filter", "api_call"),
         ("Load More", "api_call"),
         ("Refresh", "refresh_data"),
+        ("Clear Form", "clear_form"),
         ("Save Address", "save_data"),
+        ("Save Data", "save_data"),
         ("Delete Address", "api_call"),
         ("Set Default", "api_call"),
         ("Add Card", "save_data"),
@@ -2829,6 +2831,9 @@ def add_widget_property(widget, property_name, property_type, **kwargs):
 
 def get_field(data_source, field_name):
     """Helper function to get data source field"""
+    if not data_source:
+        return None
+
     try:
         return DataSourceField.objects.get(
             data_source=data_source,
@@ -2836,7 +2841,17 @@ def get_field(data_source, field_name):
         )
     except DataSourceField.DoesNotExist:
         # Return first field if specific field not found
-        return data_source.fields.first()
+        field = data_source.fields.first()
+        if not field:
+            # Create a default field if none exist
+            field = DataSourceField.objects.create(
+                data_source=data_source,
+                field_name=field_name,
+                field_type='string',
+                display_name=field_name.replace('_', ' ').title(),
+                is_required=False
+            )
+        return field
 
 
 # Add any additional helper functions needed

@@ -1144,10 +1144,7 @@ class CompleteMarketplaceMockData(BaseMockData):
             notifications.append({
                 'id': str(uuid.uuid4()),
                 'title': template[0],
-                'message': template[1].format(
-                    random.randint(100000, 999999),
-                    random.choice(['shipped', 'delivered', 'processing'])
-                ) if 'Order' in template[0] else template[1].format(random.randint(10, 70)),
+                'message': self._format_notification_message(template[0], template[1]),
                 'type': template[2],
                 'date': (datetime.now() - timedelta(hours=random.randint(1, 168))).isoformat(),
                 'read': random.choice([True, False, False]),
@@ -1450,6 +1447,24 @@ class CompleteMarketplaceMockData(BaseMockData):
                 'topStates': ['CA', 'TX', 'NY', 'FL', 'IL']
             }
         }
+
+    def _format_notification_message(self, title, template):
+        """Format notification message based on type"""
+        if 'Order' in title:
+            return template.format(random.randint(100000, 999999),
+                                   random.choice(['shipped', 'delivered', 'processing']))
+        elif 'Price Drop' in title:
+            return template.format(f'Product {random.randint(1, 100)}', random.randint(10, 70))
+        elif 'Message' in title:
+            return template.format(random.choice(['Support Team', 'Seller', 'MegaMart']))
+        elif 'Wishlist' in title:
+            return template.format(f'Product {random.randint(1, 100)}')
+        elif 'Reward' in title:
+            return template.format(random.choice([50, 100, 150, 200]))
+        elif 'Flash' in title:
+            return template.format(random.choice([30, 40, 50, 60, 70]))
+        else:
+            return template  # Delivery Update has no placeholders
 
 
 # Create singleton instance
