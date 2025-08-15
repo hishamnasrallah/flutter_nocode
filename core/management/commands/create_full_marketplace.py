@@ -6,6 +6,7 @@ COMPLETE MARKETPLACE APPLICATION GENERATOR
 Creates a full-featured marketplace with 56+ screens and 160+ widgets
 All data fetched from mock APIs - Nothing hardcoded
 """
+import json
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -282,6 +283,107 @@ def create_all_actions(app):
             name=name,
             action_type=action_type
         )
+
+    # Add Helper Method Actions (NEW)
+    helper_actions = [
+        {
+            "name": "Perform Search",
+            "action_type": "submit_form",
+            "parameters": json.dumps({
+                "code": """
+                if (_searchController.text.isNotEmpty) {
+                  Navigator.pushNamed(context, '/search', arguments: _searchController.text);
+                }
+                """
+            })
+        },
+        {
+            "name": "Open Voice Search",
+            "action_type": "navigate",
+            "target_screen": None,  # Will be linked later
+            "parameters": json.dumps({
+                "route": "/voice-search"
+            })
+        },
+        {
+            "name": "Open Barcode Scanner",
+            "action_type": "navigate",
+            "target_screen": None,  # Will be linked later
+            "parameters": json.dumps({
+                "route": "/barcode"
+            })
+        },
+        {
+            "name": "Get Category Icon",
+            "action_type": "api_call",
+            "parameters": json.dumps({
+                "function": """
+                IconData _getCategoryIcon(String categoryName) {
+                  switch (categoryName.toLowerCase()) {
+                    case 'electronics': return Icons.devices;
+                    case 'fashion': return Icons.shopping_bag;
+                    case 'home & garden':
+                    case 'home garden': return Icons.home;
+                    case 'sports':
+                    case 'sports & outdoors': return Icons.sports_soccer;
+                    case 'books':
+                    case 'books & media': return Icons.menu_book;
+                    case 'beauty':
+                    case 'beauty & personal care': return Icons.face;
+                    case 'food':
+                    case 'food & groceries': return Icons.restaurant;
+                    case 'health':
+                    case 'health & wellness': return Icons.favorite;
+                    case 'automotive': return Icons.directions_car;
+                    case 'toys':
+                    case 'toys & games': return Icons.toys;
+                    case 'pets':
+                    case 'pet supplies': return Icons.pets;
+                    default: return Icons.category;
+                  }
+                }
+                """
+            })
+        },
+        {
+            "name": "Format Time Ago",
+            "action_type": "api_call",
+            "parameters": json.dumps({
+                "function": """
+                String _getTimeAgo(String? dateString) {
+                  if (dateString == null) return 'recently';
+                  try {
+                    final date = DateTime.parse(dateString);
+                    final now = DateTime.now();
+                    final difference = now.difference(date);
+                    
+                    if (difference.inDays > 0) {
+                      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+                    } else if (difference.inHours > 0) {
+                      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+                    } else if (difference.inMinutes > 0) {
+                      return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''} ago';
+                    } else {
+                      return 'just now';
+                    }
+                  } catch (e) {
+                    return 'recently';
+                  }
+                }
+                """
+            })
+        }
+    ]
+
+    for helper in helper_actions:
+        actions[helper["name"]] = Action.objects.create(
+            application=app,
+            name=helper["name"],
+            action_type=helper["action_type"],
+            parameters=helper.get("parameters", ""),
+            target_screen=helper.get("target_screen")
+        )
+
 
     # Data Actions
     data_actions = [
@@ -630,6 +732,22 @@ def create_home_screen_ui(screen, data_sources, actions):
     add_widget_property(main_scroll, "scrollDirection", "string", string_value="vertical")
     add_widget_property(main_scroll, "physics", "string", string_value="AlwaysScrollableScrollPhysics")
 
+    # Add special handling configuration for home scroll
+    add_widget_property(main_scroll, "customConfiguration", "json", json_value=json.dumps({
+        "wrapInColumn": True,
+        "columnProperties": {
+            "mainAxisSize": "min",
+            "crossAxisAlignment": "stretch"
+        },
+        "childWrapping": {
+            "wrapNonContainers": True,
+            "wrapperWidget": "Flexible",
+            "wrapperProperties": {
+                "fit": "FlexFit.loose"
+            }
+        }
+    }))
+
     main_column = Widget.objects.create(
         screen=screen, widget_type="Column", parent_widget=main_scroll, order=0, widget_id="home_column"
     )
@@ -637,6 +755,7 @@ def create_home_screen_ui(screen, data_sources, actions):
     # Add proper column alignment
     add_widget_property(main_column, "mainAxisAlignment", "string", string_value="start")
     add_widget_property(main_column, "crossAxisAlignment", "string", string_value="stretch")
+    add_widget_property(main_column, "mainAxisSize", "string", string_value="min")
 
     # Search Bar with Voice and Barcode
     search_container = create_search_bar(screen, main_column, 0, actions)
@@ -702,8 +821,36 @@ def create_search_bar(screen, parent, order, actions):
     )
     add_widget_property(search_field, "hintText", "string",
                         string_value="Search products, brands...")
+
+    # Add controller definition and action as properties
     add_widget_property(search_field, "controller", "string", string_value="_searchController")
-    add_widget_property(search_field, "onSubmitted", "string", string_value="_performSearch")
+    add_widget_property(search_field, "controllerDefinition", "json", json_value=json.dumps({
+        "type": "TextEditingController",
+        "name": "_searchController",
+        "initialization": "final TextEditingController _searchController = TextEditingController();"
+    }))
+    add_widget_property(search_field, "onSubmitted", "action_reference",
+                        action_reference=actions.get("Perform Search"))
+
+    # Voice button
+    voice_btn = Widget.objects.create(
+        screen=screen, widget_type="IconButton", parent_widget=row,
+        order=1, widget_id="voice_search_btn"
+    )
+    add_widget_property(voice_btn, "icon", "string", string_value="mic")
+    add_widget_property(voice_btn, "onPressed", "action_reference",
+                        action_reference=actions.get("Open Voice Search"))
+
+    # Barcode button
+    barcode_btn = Widget.objects.create(
+        screen=screen, widget_type="IconButton", parent_widget=row,
+        order=2, widget_id="barcode_btn"
+    )
+    add_widget_property(barcode_btn, "icon", "string", string_value="qr_code_scanner")
+    add_widget_property(barcode_btn, "onPressed", "action_reference",
+                        action_reference=actions.get("Open Barcode Scanner"))
+
+    return container
 
     # Voice button
     voice_btn = Widget.objects.create(
@@ -887,10 +1034,33 @@ def create_flash_sale_section(screen, parent, order, data_sources, actions):
         order=0, widget_id="flash_products_list"
     )
 
-    # Bind to Flash Sales data source - this will show ALL flash sale items
+    # Bind to Flash Sales data source with custom item layout
     add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
     add_widget_property(products_list, "dataSource", "data_source_field_reference",
                         data_source_field_reference=get_field(data_sources["Flash Sales"], "productId"))
+
+    # Add custom item layout configuration for flash sales
+    add_widget_property(products_list, "itemLayout", "json", json_value=json.dumps({
+        "type": "flash_sale_card",
+        "width": 160,
+        "height": 240,
+        "showDiscountBadge": True,
+        "showProgressBar": True,
+        "showSoldCount": True,
+        "priceDisplay": "sale_and_original",
+        "cardStyle": {
+            "elevation": 2,
+            "borderRadius": 12
+        },
+        "imageHeight": 140,
+        "badgePosition": {"top": 8, "right": 8},
+        "badgeStyle": {
+            "backgroundColor": "Colors.red",
+            "textColor": "Colors.white",
+            "borderRadius": 12,
+            "padding": {"horizontal": 8, "vertical": 4}
+        }
+    }))
 
 
 def create_categories_grid(screen, parent, order, data_sources, actions):
@@ -943,6 +1113,47 @@ def create_categories_grid(screen, parent, order, data_sources, actions):
     add_widget_property(grid, "dataSource", "data_source_field_reference",
                         data_source_field_reference=get_field(data_sources["Categories"], "id"))
 
+    # Add category icon mapping and layout configuration
+    add_widget_property(grid, "itemLayout", "json", json_value=json.dumps({
+        "type": "category_card",
+        "showIcon": True,
+        "showProductCount": True,
+        "iconMapping": {
+            "electronics": "devices",
+            "fashion": "shopping_bag",
+            "home & garden": "home",
+            "home garden": "home",
+            "sports": "sports_soccer",
+            "sports & outdoors": "sports_soccer",
+            "books": "menu_book",
+            "books & media": "menu_book",
+            "beauty": "face",
+            "beauty & personal care": "face",
+            "food": "restaurant",
+            "food & groceries": "restaurant",
+            "health": "favorite",
+            "health & wellness": "favorite",
+            "automotive": "directions_car",
+            "toys": "toys",
+            "toys & games": "toys",
+            "pets": "pets",
+            "pet supplies": "pets",
+            "default": "category"
+        },
+        "cardStyle": {
+            "backgroundColor": "Colors.white",
+            "borderRadius": 8,
+            "elevation": 1,
+            "padding": 8
+        },
+        "iconStyle": {
+            "size": 30,
+            "containerSize": 50,
+            "backgroundColor": "Theme.of(context).primaryColor.withOpacity(0.1)",
+            "borderRadius": 25
+        }
+    }))
+
 
 def create_trending_section(screen, parent, order, data_sources, actions):
     """Create trending products section"""
@@ -993,6 +1204,27 @@ def create_trending_section(screen, parent, order, data_sources, actions):
     add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
     add_widget_property(products_list, "dataSource", "data_source_field_reference",
                         data_source_field_reference=get_field(data_sources["Trending Products"], "id"))
+
+    # Add product card layout configuration
+    add_widget_property(products_list, "itemLayout", "json", json_value=json.dumps({
+        "type": "product_card",
+        "width": 150,
+        "height": 250,
+        "imageHeight": 120,
+        "showRating": True,
+        "showDiscount": True,
+        "cardStyle": {
+            "elevation": 1,
+            "borderRadius": 8
+        },
+        "contentPadding": 8,
+        "titleMaxLines": 2,
+        "priceStyle": {
+            "color": "#FF6B35",
+            "fontSize": 14,
+            "fontWeight": "bold"
+        }
+    }))
 
 
 def create_new_arrivals_section(screen, parent, order, data_sources, actions):
@@ -1198,6 +1430,42 @@ def create_recently_viewed_section(screen, parent, order, data_sources, actions)
     add_widget_property(products_list, "dataSource", "data_source_field_reference",
                         data_source_field_reference=get_field(data_sources["Recently Viewed"], "productId"))
 
+    # Add recently viewed item layout with time formatting
+    add_widget_property(products_list, "itemLayout", "json", json_value=json.dumps({
+        "type": "recently_viewed_card",
+        "width": 150,
+        "showTimeAgo": True,
+        "timeAgoField": "viewedAt",
+        "timeAgoFormatter": {
+            "type": "relative",
+            "formatFunction": """
+            String _getTimeAgo(String? dateString) {
+              if (dateString == null) return 'recently';
+              try {
+                final date = DateTime.parse(dateString);
+                final now = DateTime.now();
+                final difference = now.difference(date);
+
+                if (difference.inDays > 0) {
+                  return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+                } else if (difference.inHours > 0) {
+                  return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+                } else if (difference.inMinutes > 0) {
+                  return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''} ago';
+                } else {
+                  return 'just now';
+                }
+              } catch (e) {
+                return 'recently';
+              }
+            }
+            """
+        },
+        "cardStyle": {
+            "elevation": 1,
+            "borderRadius": 8
+        }
+    }))
 
 def create_product_section(screen, parent, order, title_text, data_source, actions, section_id):
     """Generic function to create a product section"""
@@ -1250,6 +1518,28 @@ def create_bottom_navigation(screen, actions):
     add_widget_property(bottom_nav, "selectedItemColor", "color", color_value="#FF6B35")
     add_widget_property(bottom_nav, "unselectedItemColor", "color", color_value="#757575")
     add_widget_property(bottom_nav, "currentIndex", "integer", integer_value=0)
+
+    # Add navigation items as child widgets
+    nav_items = [
+        ("Home", "home", "/", "Navigate to Home"),
+        ("Categories", "category", "/categories", "Navigate to Categories"),
+        ("Cart", "shopping_cart", "/cart", "Navigate to Cart"),
+        ("Profile", "person", "/profile", "Navigate to Profile"),
+    ]
+
+    for i, (label, icon, route, action_name) in enumerate(nav_items):
+        nav_item = Widget.objects.create(
+            screen=screen,
+            widget_type="BottomNavigationBarItem",
+            parent_widget=bottom_nav,
+            order=i,
+            widget_id=f"bottom_nav_item_{i}"
+        )
+        add_widget_property(nav_item, "label", "string", string_value=label)
+        add_widget_property(nav_item, "icon", "string", string_value=icon)
+        add_widget_property(nav_item, "route", "string", string_value=route)
+        add_widget_property(nav_item, "onTap", "action_reference",
+                           action_reference=actions.get(action_name))
 
 
 # Continue with all other screen UI creation functions...

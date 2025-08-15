@@ -271,8 +271,12 @@ class FlutterCodeGenerator:
         with open(build_gradle_path, 'r') as f:
             content = f.read()
 
-        # Add ndkVersion after compileSdkVersion
-        if 'ndkVersion' not in content:
+        # Update or add ndkVersion
+        if 'ndkVersion' in content:
+            # Replace existing ndkVersion
+            import re
+            content = re.sub(r'ndkVersion\s*["\'][\d.]+["\']', 'ndkVersion "27.0.12077973"', content)
+        else:
             # Find the android block and add ndkVersion
             android_block_start = content.find('android {')
             if android_block_start != -1:
@@ -289,7 +293,7 @@ class FlutterCodeGenerator:
         with open(build_gradle_path, 'w', encoding='utf-8') as f:
             f.write(content)
 
-        print(f"Updated Android build.gradle with NDK version")
+        print(f"Updated Android build.gradle with NDK version 27.0.12077973")
 
     def _update_android_manifest(self):
         """Add internet permission to Android manifest"""
@@ -579,15 +583,17 @@ class AppRoutes {
         screen_file_name = self._to_snake_case(screen.name) + '_screen.dart'
         screen_class_name = self._to_pascal_case(screen.name) + 'Screen'
 
-        # Check if this is home screen or needs helper methods
-        is_home_screen = screen.name.lower() == 'home' or screen.is_home_screen
-        needs_helpers = is_home_screen or 'categories' in screen.name.lower() or 'recently' in screen.name.lower()
-
         # Get root widgets for this screen
         root_widgets = Widget.objects.filter(
             screen=screen,
             parent_widget=None
         ).order_by('order')
+
+        # Check if screen uses GridView with categories
+        uses_category_grid = Widget.objects.filter(
+            screen=screen,
+            widget_type='GridView'
+        ).exists()
 
         screen_content = f'''import 'package:flutter/material.dart';
     import '../services/api_service.dart';
@@ -599,89 +605,86 @@ class AppRoutes {
     }}
 
     class _{screen_class_name}State extends State<{screen_class_name}> {{
-      final ApiService _apiService = ApiService();'''
+      final ApiService _apiService = ApiService();
+      final Map<String, TextEditingController> _controllers = {{}};
+      final Map<String, dynamic> _stateVariables = {{}};
 
-        # Add helper methods for screens that need them (ONLY ONCE)
-        if needs_helpers:
+      @override
+      void dispose() {{
+        _controllers.forEach((key, controller) => controller.dispose());
+        super.dispose();
+      }}'''
+
+        # Add helper method for category icons if needed
+        if uses_category_grid:
             screen_content += '''
-      final TextEditingController _searchController = TextEditingController();
 
-      void _performSearch() {
-        if (_searchController.text.isNotEmpty) {
-          Navigator.pushNamed(context, '/search', arguments: _searchController.text);
-        }
-      }
+      Widget _buildCategoryIcon(Map<String, dynamic> item) {{
+        if (item['image'] != null) {{
+          return Container(
+            width: 50,
+            height: 50,
+            child: Image.network(
+              item['image'],
+              fit: BoxFit.cover,
+              errorBuilder: (c, e, s) => const Icon(Icons.category, size: 30),
+            ),
+          );
+        }}
 
-      void _openVoiceSearch() {
-        Navigator.pushNamed(context, '/voice-search');
-      }
+        // Use icon name from data to select appropriate icon
+        IconData iconData;
+        final iconName = item['icon']?.toString().toLowerCase() ?? '';
 
-      void _openBarcodeScanner() {
-        Navigator.pushNamed(context, '/barcode');
-      }
-
-      IconData _getCategoryIcon(String categoryName) {
-        switch (categoryName.toLowerCase()) {
-          case 'electronics':
-            return Icons.devices;
-          case 'fashion':
-            return Icons.shopping_bag;
-          case 'home & garden':
-          case 'home garden':
-            return Icons.home;
-          case 'sports':
-          case 'sports & outdoors':
-            return Icons.sports_soccer;
-          case 'books':
-          case 'books & media':
-            return Icons.menu_book;
-          case 'beauty':
-          case 'beauty & personal care':
-            return Icons.face;
-          case 'food':
-          case 'food & groceries':
-            return Icons.restaurant;
-          case 'health':
-          case 'health & wellness':
-            return Icons.favorite;
-          case 'automotive':
-            return Icons.directions_car;
+        switch (iconName) {{
+          case 'devices':
+            iconData = Icons.devices;
+            break;
+          case 'shopping_bag':
+            iconData = Icons.shopping_bag;
+            break;
+          case 'home':
+            iconData = Icons.home;
+            break;
+          case 'sports_soccer':
+            iconData = Icons.sports_soccer;
+            break;
+          case 'menu_book':
+            iconData = Icons.menu_book;
+            break;
+          case 'face':
+            iconData = Icons.face;
+            break;
+          case 'restaurant':
+            iconData = Icons.restaurant;
+            break;
+          case 'favorite':
+            iconData = Icons.favorite;
+            break;
+          case 'directions_car':
+            iconData = Icons.directions_car;
+            break;
           case 'toys':
-          case 'toys & games':
-            return Icons.toys;
+            iconData = Icons.toys;
+            break;
           case 'pets':
-          case 'pet supplies':
-            return Icons.pets;
+            iconData = Icons.pets;
+            break;
           default:
-            return Icons.category;
-        }
-      }
+            iconData = Icons.category;
+        }}
 
-      String _getTimeAgo(String? dateString) {
-        if (dateString == null) return 'recently';
-        try {
-          final date = DateTime.parse(dateString);
-          final now = DateTime.now();
-          final difference = now.difference(date);
-
-          if (difference.inDays > 0) {
-            return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
-          } else if (difference.inHours > 0) {
-            return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
-          } else if (difference.inMinutes > 0) {
-            return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''} ago';
-          } else {
-            return 'just now';
-          }
-        } catch (e) {
-          return 'recently';
-        }
-      }'''
+        return Icon(
+          iconData,
+          size: 30,
+          color: Theme.of(context).primaryColor,
+        );
+      }}'''
 
         screen_content += '''
 
       @override
-      Widget build(BuildContext context) {
+      Widget build(BuildContext context) {{
         return Scaffold(
     '''
 
@@ -696,29 +699,7 @@ class AppRoutes {
         # Add body
         screen_content += '''      body: '''
 
-        if is_home_screen and root_widgets.exists():
-            # Special handling for home screen with SingleChildScrollView
-            has_scroll_view = root_widgets.filter(widget_type='SingleChildScrollView').exists()
-
-            if has_scroll_view:
-                # Home screen with scroll view - generate it directly without wrapper
-                scroll_widget = root_widgets.filter(widget_type='SingleChildScrollView').first()
-                screen_content += self._generate_widget_code(scroll_widget, 0)
-            else:
-                # Wrap in SingleChildScrollView if not present
-                screen_content += '''SingleChildScrollView(
-            physics: AlwaysScrollableScrollPhysics(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-    '''
-                for widget in root_widgets:
-                    screen_content += '            ' + self._generate_widget_code(widget, 3) + ',\n'
-                screen_content += '''          ],
-            ),
-          )'''
-        elif root_widgets.count() == 1:
+        if root_widgets.count() == 1:
             screen_content += self._generate_widget_code(root_widgets.first(), 0)
         elif root_widgets.count() > 1:
             screen_content += '''Column(
@@ -935,156 +916,112 @@ class AppRoutes {
             widget_code = self._generate_grid_view(widget, prop_dict, child_widgets, indent_level)
 
 
-
-
         elif widget.widget_type == 'SingleChildScrollView':
 
             scroll_direction = self._get_property_value(prop_dict, 'scrollDirection', 'vertical')
 
             physics = self._get_property_value(prop_dict, 'physics', 'AlwaysScrollableScrollPhysics')
 
-            # Special handling for home scroll
+            widget_code = f'''SingleChildScrollView(
 
-            is_home_scroll = widget.widget_id == 'home_scroll'
+                {indent}  scrollDirection: Axis.{scroll_direction},
 
-            if is_home_scroll:
+                {indent}  physics: {physics}(),
 
-                # For home screen, ensure proper scrolling setup
+                {indent}  child: '''
 
-                widget_code = f'''SingleChildScrollView(
+            if child_widgets.exists():
 
-        {indent}  scrollDirection: Axis.{scroll_direction},
+                if child_widgets.count() == 1:
 
-        {indent}  physics: {physics}(),
+                    widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
 
-        {indent}  child: '''
-
-                if child_widgets.exists():
-
-                    # Always wrap children in a Column with proper constraints
+                else:
 
                     widget_code += f'''Column(
 
-        {indent}    mainAxisSize: MainAxisSize.min,
+                {indent}    mainAxisSize: MainAxisSize.min,
 
-        {indent}    crossAxisAlignment: CrossAxisAlignment.stretch,
+                {indent}    children: [
 
-        {indent}    children: [
-
-        '''
-
-                    # Process all child widgets
+                '''
 
                     for child in child_widgets:
-
-                        # If child is a Column, get its children directly
-
-                        if child.widget_type == 'Column':
-
-                            column_children = Widget.objects.filter(parent_widget=child).order_by('order')
-
-                            for column_child in column_children:
-
-                                # Wrap each section in a flexible container if needed
-
-                                if column_child.widget_type == 'Container':
-
-                                    widget_code += f"{indent}      {self._generate_widget_code(column_child, indent_level + 3)},\n"
-
-                                else:
-
-                                    widget_code += f"{indent}      Flexible(fit: FlexFit.loose, child: {self._generate_widget_code(column_child, indent_level + 3)}),\n"
-
-                        else:
-
-                            widget_code += f"{indent}      {self._generate_widget_code(child, indent_level + 3)},\n"
+                        widget_code += f"{indent}      {self._generate_widget_code(child, indent_level + 3)},\n"
 
                     widget_code += f"{indent}    ],\n{indent}  )"
 
-                else:
-
-                    widget_code += "Container()"
-
-                widget_code += f",\n{indent})"
-
             else:
 
-                # Regular SingleChildScrollView
+                widget_code += "Container()"
 
-                widget_code = f'''SingleChildScrollView(
+            widget_code += f",\n{indent})"
 
-        {indent}  scrollDirection: Axis.{scroll_direction},
+        elif widget.widget_type == 'PageView':
 
-        {indent}  physics: {physics}(),
+            widget_code = f'''PageView(
 
-        {indent}  child: '''
-
-                if child_widgets.exists():
-
-                    if child_widgets.count() == 1:
-
-                        widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
-
-                    else:
-
-                        widget_code += f'''Column(
-
-        {indent}    mainAxisSize: MainAxisSize.min,
-
-        {indent}    children: [
+        {indent}  children: [
 
         '''
 
-                        for child in child_widgets:
-                            widget_code += f"{indent}      {self._generate_widget_code(child, indent_level + 3)},\n"
-
-                        widget_code += f"{indent}    ],\n{indent}  )"
-
-                else:
-
-                    widget_code += "Container()"
-
-                widget_code += f",\n{indent})"
-
-        elif widget.widget_type == 'PageView':
-            widget_code = f'''PageView(
-{indent}  children: [
-'''
             for child in child_widgets:
                 widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
+
             widget_code += f"{indent}  ],\n{indent})"
 
         elif widget.widget_type == 'Stack':
+
             widget_code = f'''Stack(
-{indent}  children: [
-'''
+
+        {indent}  children: [
+
+        '''
+
             for child in child_widgets:
                 widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
+
             widget_code += f"{indent}  ],\n{indent})"
 
         elif widget.widget_type == 'Positioned':
+
             top = self._get_property_value(prop_dict, 'top', None)
+
             bottom = self._get_property_value(prop_dict, 'bottom', None)
+
             left = self._get_property_value(prop_dict, 'left', None)
+
             right = self._get_property_value(prop_dict, 'right', None)
 
             widget_code = f"Positioned("
+
             params = []
+
             if top:
                 params.append(f"top: {top}")
+
             if bottom:
                 params.append(f"bottom: {bottom}")
+
             if left:
                 params.append(f"left: {left}")
+
             if right:
                 params.append(f"right: {right}")
+
             if params:
                 widget_code += ", ".join(params) + ", "
+
             widget_code += "child: "
+
             if child_widgets.exists():
+
                 widget_code += self._generate_widget_code(child_widgets.first(), indent_level)
+
             else:
+
                 widget_code += "Container()"
+
             widget_code += ")"
 
         elif widget.widget_type == 'Expanded':
@@ -1122,7 +1059,6 @@ class AppRoutes {
             for child in child_widgets:
                 widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
             widget_code += f"{indent}  ],\n{indent})"
-
         elif widget.widget_type == 'Center':
             widget_code = f"Center(child: "
             if child_widgets.exists():
@@ -1531,57 +1467,69 @@ class AppRoutes {
         return code
 
     def _generate_bottom_nav(self, child_widgets, indent_level):
-        """Generate BottomNavigationBar"""
+        """Generate BottomNavigationBar dynamically from child widgets"""
         indent = '  ' * indent_level
 
-        # Get properties from the widget
-        widget = None
-        for child in child_widgets:
-            if child.widget_type == 'BottomNavigationBar':
-                widget = child
-                break
+        # Generate navigation items from child widgets
+        nav_items = []
+        nav_actions = []
 
-        # Generate proper bottom navigation
-        return f'''BottomNavigationBar(
+        for i, child in enumerate(child_widgets):
+            # Get properties from child widget
+            properties = WidgetProperty.objects.filter(widget=child)
+            prop_dict = {prop.property_name: prop for prop in properties}
+
+            icon = self._get_property_value(prop_dict, 'icon', 'home')
+            label = self._get_property_value(prop_dict, 'label', f'Item {i + 1}')
+
+            nav_items.append({
+                'icon': icon,
+                'label': label
+            })
+
+            # Get navigation action if exists
+            if 'onTap' in prop_dict and prop_dict['onTap'].action_reference:
+                action = prop_dict['onTap'].action_reference
+                if action.target_screen:
+                    nav_actions.append(f"Navigator.pushNamed(context, '{action.target_screen.route_name}');")
+                else:
+                    nav_actions.append("// No action configured")
+            else:
+                nav_actions.append("// No action configured")
+
+        # Build the navigation bar
+        result = f'''BottomNavigationBar(
     {indent}  type: BottomNavigationBarType.fixed,
     {indent}  currentIndex: 0,
     {indent}  selectedItemColor: Theme.of(context).primaryColor,
     {indent}  unselectedItemColor: Colors.grey,
     {indent}  onTap: (index) {{
-    {indent}    switch (index) {{
-    {indent}      case 0:
-    {indent}        Navigator.pushReplacementNamed(context, '/');
-    {indent}        break;
-    {indent}      case 1:
-    {indent}        Navigator.pushNamed(context, '/categories');
-    {indent}        break;
-    {indent}      case 2:
-    {indent}        Navigator.pushNamed(context, '/cart');
-    {indent}        break;
-    {indent}      case 3:
-    {indent}        Navigator.pushNamed(context, '/profile');
-    {indent}        break;
+    {indent}    switch (index) {{'''
+
+        for i, action in enumerate(nav_actions):
+            result += f'''
+    {indent}      case {i}:
+    {indent}        {action}
+    {indent}        break;'''
+
+        result += f'''
     {indent}    }}
     {indent}  }},
-    {indent}  items: [
+    {indent}  items: ['''
+
+        # Generate items properly without string concatenation issues
+        for i, item in enumerate(nav_items):
+            result += f'''
     {indent}    BottomNavigationBarItem(
-    {indent}      icon: Icon(Icons.home),
-    {indent}      label: 'Home',
-    {indent}    ),
-    {indent}    BottomNavigationBarItem(
-    {indent}      icon: Icon(Icons.category),
-    {indent}      label: 'Categories',
-    {indent}    ),
-    {indent}    BottomNavigationBarItem(
-    {indent}      icon: Icon(Icons.shopping_cart),
-    {indent}      label: 'Cart',
-    {indent}    ),
-    {indent}    BottomNavigationBarItem(
-    {indent}      icon: Icon(Icons.person),
-    {indent}      label: 'Profile',
-    {indent}    ),
+    {indent}      icon: Icon(Icons.{item['icon']}),
+    {indent}      label: '{item['label']}',
+    {indent}    ),'''
+
+        result += f'''
     {indent}  ],
     {indent})'''
+
+        return result
 
     def _generate_tab_bar(self, child_widgets, indent_level):
         """Generate TabBar"""
@@ -1762,86 +1710,86 @@ class AppData {
         """Generate custom widget components"""
         widgets_content = '''import 'package:flutter/material.dart';
 
-// Custom widgets for the application
+    // Custom widgets for the application
 
-class AppCard extends StatelessWidget {
-  final Widget child;
-  final EdgeInsets? padding;
-  final Color? backgroundColor;
+    class AppCard extends StatelessWidget {
+      final Widget child;
+      final EdgeInsets? padding;
+      final Color? backgroundColor;
 
-  const AppCard({
-    Key? key,
-    required this.child,
-    this.padding,
-    this.backgroundColor,
-  }) : super(key: key);
+      const AppCard({
+        Key? key,
+        required this.child,
+        this.padding,
+        this.backgroundColor,
+      }) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: backgroundColor,
-      child: Padding(
-        padding: padding ?? EdgeInsets.all(16.0),
-        child: child,
-      ),
-    );
-  }
-}
+      @override
+      Widget build(BuildContext context) {
+        return Card(
+          color: backgroundColor,
+          child: Padding(
+            padding: padding ?? const EdgeInsets.all(16.0),
+            child: child,
+          ),
+        );
+      }
+    }
 
-class LoadingWidget extends StatelessWidget {
-  final String? message;
+    class LoadingWidget extends StatelessWidget {
+      final String? message;
 
-  const LoadingWidget({Key? key, this.message}) : super(key: key);
+      const LoadingWidget({Key? key, this.message}) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(),
-          if (message != null) ...[
-            SizedBox(height: 16),
-            Text(message!),
-          ],
-        ],
-      ),
-    );
-  }
-}
+      @override
+      Widget build(BuildContext context) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              if (message != null) ...[
+                const SizedBox(height: 16),
+                Text(message!),
+              ],
+            ],
+          ),
+        );
+      }
+    }
 
-class ErrorWidget extends StatelessWidget {
-  final String message;
-  final VoidCallback? onRetry;
+    class ErrorWidget extends StatelessWidget {
+      final String message;
+      final VoidCallback? onRetry;
 
-  const ErrorWidget({
-    Key? key,
-    required this.message,
-    this.onRetry,
-  }) : super(key: key);
+      const ErrorWidget({
+        Key? key,
+        required this.message,
+        this.onRetry,
+      }) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.red),
-          SizedBox(height: 16),
-          Text(message, textAlign: TextAlign.center),
-          if (onRetry != null) ...[
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: Text('Retry'),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-'''
+      @override
+      Widget build(BuildContext context) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(message, textAlign: TextAlign.center),
+              if (onRetry != null) ...[
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: onRetry,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ],
+          ),
+        );
+      }
+    }
+    '''
 
         with open(self.lib_path / 'widgets' / 'custom_widgets.dart', 'w', encoding='utf-8') as f:
             f.write(widgets_content)
@@ -1876,404 +1824,137 @@ class ErrorWidget extends StatelessWidget {
         return pascal[0].lower() + pascal[1:] if pascal else ''
 
     def _generate_list_item_widget(self, data_source_name, field_name, is_horizontal, is_product_list, indent_level):
-        """Generate appropriate list item widget based on data type"""
+        """Generate dynamic list item widget based on data source fields"""
         indent = '  ' * indent_level
 
-        # Check data source type
-        is_flash_sale = 'flash' in data_source_name.lower()
-        is_recently_viewed = 'recently' in data_source_name.lower() or 'viewed' in data_source_name.lower()
+        # Get the data source to understand available fields
+        try:
+            data_source = DataSource.objects.get(application=self.application, name=data_source_name)
+            fields = DataSourceField.objects.filter(data_source=data_source)
+            field_dict = {f.field_name: f for f in fields}
+        except:
+            field_dict = {}
 
-        if is_recently_viewed:
-            # Special handling for recently viewed items
-            return f'''Container(
-    {indent}  width: 150,
-    {indent}  margin: EdgeInsets.only(right: 12),
-    {indent}  child: Card(
-    {indent}    elevation: 1,
-    {indent}    shape: RoundedRectangleBorder(
-    {indent}      borderRadius: BorderRadius.circular(8),
-    {indent}    ),
-    {indent}    child: InkWell(
-    {indent}      onTap: () {{
-    {indent}        if (item['productId'] != null) {{
-    {indent}          Navigator.pushNamed(context, '/product/${{item['productId']}}');
-    {indent}        }}
-    {indent}      }},
-    {indent}      borderRadius: BorderRadius.circular(8),
-    {indent}      child: Column(
-    {indent}        crossAxisAlignment: CrossAxisAlignment.start,
-    {indent}        children: [
-    {indent}          Container(
-    {indent}            height: 120,
-    {indent}            width: double.infinity,
-    {indent}            child: ClipRRect(
-    {indent}              borderRadius: BorderRadius.only(
-    {indent}                topLeft: Radius.circular(8),
-    {indent}                topRight: Radius.circular(8),
-    {indent}              ),
-    {indent}              child: (item['productImage'] != null)
-    {indent}                ? Image.network(
-    {indent}                    item['productImage'],
-    {indent}                    fit: BoxFit.cover,
-    {indent}                    errorBuilder: (context, error, stackTrace) => Container(
-    {indent}                      color: Colors.grey[300],
-    {indent}                      child: Icon(Icons.image_not_supported, size: 40),
-    {indent}                    ),
-    {indent}                  )
-    {indent}                : Container(
-    {indent}                    color: Colors.grey[300],
-    {indent}                    child: Icon(Icons.shopping_bag, size: 40),
-    {indent}                  ),
-    {indent}            ),
-    {indent}          ),
-    {indent}          Padding(
-    {indent}            padding: EdgeInsets.all(8),
-    {indent}            child: Column(
-    {indent}              crossAxisAlignment: CrossAxisAlignment.start,
-    {indent}              children: [
-    {indent}                Text(
-    {indent}                  item['productName']?.toString() ?? 'Product',
-    {indent}                  style: TextStyle(
-    {indent}                    fontSize: 12,
-    {indent}                    fontWeight: FontWeight.w500,
-    {indent}                  ),
-    {indent}                  maxLines: 2,
-    {indent}                  overflow: TextOverflow.ellipsis,
-    {indent}                ),
-    {indent}                SizedBox(height: 4),
-    {indent}                Text(
-    {indent}                  '\\$${{item['price']?.toString() ?? '0.00'}}',
-    {indent}                  style: TextStyle(
-    {indent}                    color: Theme.of(context).primaryColor,
-    {indent}                    fontSize: 14,
-    {indent}                    fontWeight: FontWeight.bold,
-    {indent}                  ),
-    {indent}                ),
-    {indent}                SizedBox(height: 2),
-    {indent}                Text(
-    {indent}                  'Viewed ${{_getTimeAgo(item['viewedAt'])}}',
-    {indent}                  style: TextStyle(
-    {indent}                    fontSize: 10,
-    {indent}                    color: Colors.grey[600],
-    {indent}                  ),
-    {indent}                ),
-    {indent}              ],
-    {indent}            ),
-    {indent}          ),
-    {indent}        ],
-    {indent}      ),
-    {indent}    ),
-    {indent}  ),
-    {indent})'''
-        elif is_flash_sale:
-            # Special handling for flash sale items with proper image loading
-            return f'''Container(
-    {indent}  width: 160,
-    {indent}  margin: EdgeInsets.only(right: 12),
+        # Determine container width based on orientation
+        width_style = "width: 150," if is_horizontal else ""
+
+        # Build dynamic card based on available fields
+        return f'''Container(
+    {indent}  {width_style}
+    {indent}  margin: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
     {indent}  child: Card(
     {indent}    elevation: 2,
-    {indent}    shape: RoundedRectangleBorder(
-    {indent}      borderRadius: BorderRadius.circular(12),
-    {indent}    ),
-    {indent}    child: Column(
-    {indent}      crossAxisAlignment: CrossAxisAlignment.start,
-    {indent}      children: [
-    {indent}        Stack(
-    {indent}          children: [
-    {indent}            // Product Image
-    {indent}            Container(
-    {indent}              height: 140,
-    {indent}              width: double.infinity,
-    {indent}              child: ClipRRect(
-    {indent}                borderRadius: BorderRadius.only(
-    {indent}                  topLeft: Radius.circular(12),
-    {indent}                  topRight: Radius.circular(12),
-    {indent}                ),
-    {indent}                child: (item['product'] != null && item['product']['image'] != null)
-    {indent}                  ? Image.network(
-    {indent}                      item['product']['image'],
-    {indent}                      fit: BoxFit.cover,
-    {indent}                      errorBuilder: (context, error, stackTrace) => Container(
-    {indent}                        color: Colors.grey[300],
-    {indent}                        child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey[600]),
-    {indent}                      ),
-    {indent}                      loadingBuilder: (context, child, loadingProgress) {{
-    {indent}                        if (loadingProgress == null) return child;
-    {indent}                        return Container(
-    {indent}                          color: Colors.grey[200],
-    {indent}                          child: Center(
-    {indent}                            child: CircularProgressIndicator(
-    {indent}                              value: loadingProgress.expectedTotalBytes != null
-    {indent}                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-    {indent}                                : null,
-    {indent}                            ),
-    {indent}                          ),
-    {indent}                        );
-    {indent}                      }},
-    {indent}                    )
-    {indent}                  : Container(
-    {indent}                      color: Colors.grey[300],
-    {indent}                      child: Icon(Icons.shopping_bag, size: 40, color: Colors.grey[600]),
-    {indent}                    ),
-    {indent}              ),
-    {indent}            ),
-    {indent}            // Discount Badge
-    {indent}            Positioned(
-    {indent}              top: 8,
-    {indent}              right: 8,
-    {indent}              child: Container(
-    {indent}                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    {indent}                decoration: BoxDecoration(
-    {indent}                  color: Colors.red,
-    {indent}                  borderRadius: BorderRadius.circular(12),
-    {indent}                ),
-    {indent}                child: Text(
-    {indent}                  '${{item['discountPercent'] ?? 50}}% OFF',
-    {indent}                  style: TextStyle(
-    {indent}                    color: Colors.white,
-    {indent}                    fontSize: 10,
-    {indent}                    fontWeight: FontWeight.bold,
-    {indent}                  ),
-    {indent}                ),
-    {indent}              ),
-    {indent}            ),
-    {indent}          ],
-    {indent}        ),
-    {indent}        Padding(
-    {indent}          padding: EdgeInsets.all(8),
-    {indent}          child: Column(
-    {indent}            crossAxisAlignment: CrossAxisAlignment.start,
-    {indent}            children: [
-    {indent}              Text(
-    {indent}                item['product']?['name'] ?? 'Flash Sale Item',
-    {indent}                style: TextStyle(
-    {indent}                  fontSize: 12,
-    {indent}                  fontWeight: FontWeight.w500,
-    {indent}                ),
-    {indent}                maxLines: 2,
-    {indent}                overflow: TextOverflow.ellipsis,
-    {indent}              ),
-    {indent}              SizedBox(height: 4),
-    {indent}              Row(
-    {indent}                children: [
-    {indent}                  Text(
-    {indent}                    '\\$${{item['salePrice'] ?? '29.99'}}',
-    {indent}                    style: TextStyle(
-    {indent}                      color: Theme.of(context).primaryColor,
-    {indent}                      fontSize: 14,
-    {indent}                      fontWeight: FontWeight.bold,
-    {indent}                    ),
-    {indent}                  ),
-    {indent}                  SizedBox(width: 4),
-    {indent}                  Text(
-    {indent}                    '\\$${{item['originalPrice'] ?? '59.99'}}',
-    {indent}                    style: TextStyle(
-    {indent}                      color: Colors.grey,
-    {indent}                      fontSize: 11,
-    {indent}                      decoration: TextDecoration.lineThrough,
-    {indent}                    ),
-    {indent}                  ),
-    {indent}                ],
-    {indent}              ),
-    {indent}              SizedBox(height: 4),
-    {indent}              LinearProgressIndicator(
-    {indent}                value: (item['sold'] ?? 0) / ((item['sold'] ?? 0) + (item['stock'] ?? 50)),
-    {indent}                backgroundColor: Colors.grey[300],
-    {indent}                valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
-    {indent}                minHeight: 3,
-    {indent}              ),
-    {indent}              SizedBox(height: 2),
-    {indent}              Text(
-    {indent}                '${{item['sold'] ?? 0}} sold',
-    {indent}                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-    {indent}              ),
-    {indent}            ],
-    {indent}          ),
-    {indent}        ),
-    {indent}      ],
+    {indent}    child: InkWell(
+    {indent}      onTap: () {{
+    {indent}        if (item['id'] != null) {{
+    {indent}          // Navigate to detail if ID exists
+    {indent}          Navigator.pushNamed(context, '/detail/${{item['id']}}');
+    {indent}        }}
+    {indent}      }},
+    {indent}      child: {self._generate_dynamic_list_content(field_dict, indent_level + 3)},
     {indent}    ),
     {indent}  ),
     {indent})'''
 
-        elif is_product_list:
-            # Generate regular product card for other product lists
-            return f'''Container(
-    {indent}  width: 150,
-    {indent}  margin: EdgeInsets.only(right: 12),
-    {indent}  child: Card(
-    {indent}    elevation: 1,
-    {indent}    shape: RoundedRectangleBorder(
-    {indent}      borderRadius: BorderRadius.circular(8),
-    {indent}    ),
-    {indent}    child: InkWell(
-    {indent}      onTap: () {{
-    {indent}        // Navigate to product details
-    {indent}        if (item['id'] != null) {{
-    {indent}          Navigator.pushNamed(context, '/product/${{item['id']}}');
-    {indent}        }}
-    {indent}      }},
-    {indent}      borderRadius: BorderRadius.circular(8),
+    def _generate_dynamic_list_content(self, field_dict, indent_level):
+        """Generate list content based on available fields"""
+        indent = '  ' * indent_level
+
+        # Check what fields are available
+        has_image = any(f.field_type == 'image_url' for f in field_dict.values())
+        has_title = 'name' in field_dict or 'title' in field_dict
+        has_price = 'price' in field_dict
+        has_description = 'description' in field_dict
+
+        content = f'''Column(
+    {indent}  crossAxisAlignment: CrossAxisAlignment.start,
+    {indent}  children: ['''
+
+        # Add image if available
+        if has_image:
+            image_field = next((f for f in field_dict.keys() if 'image' in f.lower()), 'image')
+            content += f'''
+    {indent}    Container(
+    {indent}      height: 120,
+    {indent}      width: double.infinity,
+    {indent}      child: item['{image_field}'] != null
+    {indent}        ? Image.network(
+    {indent}            item['{image_field}'],
+    {indent}            fit: BoxFit.cover,
+    {indent}            errorBuilder: (c,e,s) => Icon(Icons.image),
+    {indent}          )
+    {indent}        : Icon(Icons.image, size: 50),
+    {indent}    ),'''
+
+        # Add text content
+        content += f'''
+    {indent}    Padding(
+    {indent}      padding: EdgeInsets.all(8),
     {indent}      child: Column(
     {indent}        crossAxisAlignment: CrossAxisAlignment.start,
-    {indent}        children: [
-    {indent}          // Product Image
-    {indent}          Container(
-    {indent}            height: 120,
-    {indent}            width: double.infinity,
-    {indent}            child: ClipRRect(
-    {indent}              borderRadius: BorderRadius.only(
-    {indent}                topLeft: Radius.circular(8),
-    {indent}                topRight: Radius.circular(8),
-    {indent}              ),
-    {indent}              child: (item['image'] != null)
-    {indent}                ? Image.network(
-    {indent}                    item['image'],
-    {indent}                    fit: BoxFit.cover,
-    {indent}                    errorBuilder: (context, error, stackTrace) => Container(
-    {indent}                      color: Colors.grey[300],
-    {indent}                      child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey[600]),
-    {indent}                    ),
-    {indent}                    loadingBuilder: (context, child, loadingProgress) {{
-    {indent}                      if (loadingProgress == null) return child;
-    {indent}                      return Container(
-    {indent}                        color: Colors.grey[200],
-    {indent}                        child: Center(
-    {indent}                          child: CircularProgressIndicator(),
-    {indent}                        ),
-    {indent}                      );
-    {indent}                    }},
-    {indent}                  )
-    {indent}                : Container(
-    {indent}                    color: Colors.grey[300],
-    {indent}                    child: Icon(Icons.shopping_bag, size: 40, color: Colors.grey[600]),
-    {indent}                  ),
-    {indent}            ),
-    {indent}          ),
-    {indent}          Padding(
-    {indent}            padding: EdgeInsets.all(8),
-    {indent}            child: Column(
-    {indent}              crossAxisAlignment: CrossAxisAlignment.start,
-    {indent}              children: [
-    {indent}                Text(
-    {indent}                  item['name']?.toString() ?? 'Product',
-    {indent}                  style: TextStyle(
-    {indent}                    fontSize: 12,
-    {indent}                    fontWeight: FontWeight.w500,
-    {indent}                  ),
-    {indent}                  maxLines: 2,
-    {indent}                  overflow: TextOverflow.ellipsis,
-    {indent}                ),
-    {indent}                SizedBox(height: 4),
-    {indent}                Text(
-    {indent}                  '\\$${{item['price']?.toString() ?? '0.00'}}',
-    {indent}                  style: TextStyle(
-    {indent}                    color: Theme.of(context).primaryColor,
-    {indent}                    fontSize: 14,
-    {indent}                    fontWeight: FontWeight.bold,
-    {indent}                  ),
-    {indent}                ),
-    {indent}                if (item['discount'] != null && item['discount'] > 0) ...[
-    {indent}                  SizedBox(height: 2),
-    {indent}                  Container(
-    {indent}                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-    {indent}                    decoration: BoxDecoration(
-    {indent}                      color: Colors.red,
-    {indent}                      borderRadius: BorderRadius.circular(4),
-    {indent}                    ),
-    {indent}                    child: Text(
-    {indent}                      '${{item['discount']}}% OFF',
-    {indent}                      style: TextStyle(color: Colors.white, fontSize: 10),
-    {indent}                    ),
-    {indent}                  ),
-    {indent}                ],
-    {indent}                if (item['rating'] != null) ...[
-    {indent}                  SizedBox(height: 4),
-    {indent}                  Row(
-    {indent}                    children: [
-    {indent}                      Icon(Icons.star, size: 12, color: Colors.amber),
-    {indent}                      SizedBox(width: 2),
-    {indent}                      Text(
-    {indent}                        item['rating'].toString(),
-    {indent}                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-    {indent}                      ),
-    {indent}                    ],
-    {indent}                  ),
-    {indent}                ],
-    {indent}              ],
-    {indent}            ),
-    {indent}          ),
+    {indent}        children: ['''
+
+        # Add title
+        if has_title:
+            title_field = 'title' if 'title' in field_dict else 'name'
+            content += f'''
+    {indent}          Text(
+    {indent}            item['{title_field}']?.toString() ?? '',
+    {indent}            style: TextStyle(fontWeight: FontWeight.bold),
+    {indent}            maxLines: 2,
+    {indent}            overflow: TextOverflow.ellipsis,
+    {indent}          ),'''
+
+        # Add price if available
+        if has_price:
+            content += f'''
+    {indent}          Text(
+    {indent}            '\\$${{item['price']?.toString() ?? ''}}',
+    {indent}            style: TextStyle(color: Theme.of(context).primaryColor),
+    {indent}          ),'''
+
+        # Add description if available
+        if has_description:
+            content += f'''
+    {indent}          Text(
+    {indent}            item['description']?.toString() ?? '',
+    {indent}            style: TextStyle(fontSize: 12),
+    {indent}            maxLines: 2,
+    {indent}            overflow: TextOverflow.ellipsis,
+    {indent}          ),'''
+
+        content += f'''
     {indent}        ],
     {indent}      ),
     {indent}    ),
-    {indent}  ),
-    {indent})'''
-        else:
-            # Default list tile for non-product lists
-            return f'''Card(
-    {indent}  margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    {indent}  child: ListTile(
-    {indent}    title: Text(item['{field_name}']?.toString() ?? 'Item'),
-    {indent}    onTap: () {{}},
-    {indent}  ),
+    {indent}  ],
     {indent})'''
 
+        return content
+
     def _generate_category_item(self, indent_level):
-        """Generate category grid item"""
+        """Generate generic grid item"""
         indent = '  ' * indent_level
         return f'''InkWell(
     {indent}  onTap: () {{
-    {indent}    // Navigate to category
-    {indent}    Navigator.pushNamed(context, '/category/${{item['id'] ?? ''}}');
+    {indent}    if (item['id'] != null) {{
+    {indent}      Navigator.pushNamed(context, '/detail/${{item['id']}}');
+    {indent}    }}
     {indent}  }},
     {indent}  borderRadius: BorderRadius.circular(8),
-    {indent}  child: Container(
-    {indent}    decoration: BoxDecoration(
-    {indent}      color: Colors.white,
-    {indent}      borderRadius: BorderRadius.circular(8),
-    {indent}      boxShadow: [
-    {indent}        BoxShadow(
-    {indent}          color: Colors.grey.withOpacity(0.1),
-    {indent}          spreadRadius: 1,
-    {indent}          blurRadius: 3,
-    {indent}          offset: Offset(0, 1),
-    {indent}        ),
-    {indent}      ],
-    {indent}    ),
+    {indent}  child: Card(
     {indent}    child: Column(
     {indent}      mainAxisAlignment: MainAxisAlignment.center,
     {indent}      children: [
-    {indent}        Container(
-    {indent}          width: 50,
-    {indent}          height: 50,
-    {indent}          decoration: BoxDecoration(
-    {indent}            color: Theme.of(context).primaryColor.withOpacity(0.1),
-    {indent}            borderRadius: BorderRadius.circular(25),
-    {indent}          ),
-    {indent}          child: Icon(
-    {indent}            _getCategoryIcon(item['name'] ?? 'Other'),
-    {indent}            size: 30,
-    {indent}            color: Theme.of(context).primaryColor,
-    {indent}          ),
-    {indent}        ),
-    {indent}        SizedBox(height: 8),
+    {indent}        _buildCategoryIcon(item),
+    {indent}        const SizedBox(height: 8),
     {indent}        Text(
-    {indent}          item['name'] ?? 'Category',
-    {indent}          style: TextStyle(
-    {indent}            fontSize: 11,
-    {indent}            fontWeight: FontWeight.w500,
-    {indent}          ),
+    {indent}          item['name']?.toString() ?? item['title']?.toString() ?? '',
+    {indent}          style: const TextStyle(fontSize: 12),
     {indent}          textAlign: TextAlign.center,
     {indent}          maxLines: 2,
     {indent}          overflow: TextOverflow.ellipsis,
     {indent}        ),
-    {indent}        if (item['productCount'] != null)
-    {indent}          Text(
-    {indent}            '${{item['productCount']}} items',
-    {indent}            style: TextStyle(
-    {indent}              fontSize: 9,
-    {indent}              color: Colors.grey[600],
-    {indent}            ),
-    {indent}          ),
     {indent}      ],
     {indent}    ),
     {indent}  ),
