@@ -512,10 +512,70 @@ class AppRoutes {
     }}
 
     class _{screen_class_name}State extends State<{screen_class_name}> {{
-      final ApiService _apiService = ApiService();'''
+      final ApiService _apiService = ApiService();
+      
+      IconData _getCategoryIcon(String categoryName) {{
+        switch (categoryName.toLowerCase()) {{
+          case 'electronics':
+            return Icons.devices;
+          case 'fashion':
+            return Icons.shopping_bag;
+          case 'home & garden':
+          case 'home garden':
+            return Icons.home;
+          case 'sports':
+          case 'sports & outdoors':
+            return Icons.sports_soccer;
+          case 'books':
+          case 'books & media':
+            return Icons.menu_book;
+          case 'beauty':
+          case 'beauty & personal care':
+            return Icons.face;
+          case 'food':
+          case 'food & groceries':
+            return Icons.restaurant;
+          case 'health':
+          case 'health & wellness':
+            return Icons.favorite;
+          case 'automotive':
+            return Icons.directions_car;
+          case 'toys':
+          case 'toys & games':
+            return Icons.toys;
+          case 'pets':
+          case 'pet supplies':
+            return Icons.pets;
+          default:
+            return Icons.category;
+        }}
+      }}
 
-        # Add search controller and helper methods for home screen
-        if is_home_screen:
+      String _getTimeAgo(String? dateString) {{
+        if (dateString == null) return 'recently';
+        try {{
+          final date = DateTime.parse(dateString);
+          final now = DateTime.now();
+          final difference = now.difference(date);
+
+          if (difference.inDays > 0) {{
+            return '${{difference.inDays}} day${{difference.inDays > 1 ? 's' : ''}} ago';
+          }} else if (difference.inHours > 0) {{
+            return '${{difference.inHours}} hour${{difference.inHours > 1 ? 's' : ''}} ago';
+          }} else if (difference.inMinutes > 0) {{
+            return '${{difference.inMinutes}} min${{difference.inMinutes > 1 ? 's' : ''}} ago';
+          }} else {{
+            return 'just now';
+          }}
+        }} catch (e) {{
+          return 'recently';
+        }}
+      }}'''
+
+        # Add helper methods for screens that need them
+        needs_helpers = is_home_screen or 'categories' in screen.name.lower() or 'recently' in screen.name.lower()
+
+        if needs_helpers:
             screen_content += '''
       final TextEditingController _searchController = TextEditingController();
 
