@@ -119,7 +119,7 @@ def create_marketplace_theme():
 def create_all_data_sources(app):
     """Create all 30+ data sources for the marketplace"""
     data_sources = {}
-    base_url = "https://jury-approaches-extensions-mats.trycloudflare.com/"  # Changed to remove /api/marketplace
+    base_url = "https://heard-war-lesson-buy.trycloudflare.com"  # Changed to remove /api/marketplace
 
     # Product Management Data Sources
     sources_config = [
@@ -621,14 +621,22 @@ def create_all_screen_uis(screens, data_sources, actions):
 def create_home_screen_ui(screen, data_sources, actions):
     """Create the main home screen with all sections"""
 
-    # Main ScrollView
+    # Main ScrollView with proper configuration
     main_scroll = Widget.objects.create(
         screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="home_scroll"
     )
 
+    # Add scroll properties for smooth scrolling
+    add_widget_property(main_scroll, "scrollDirection", "string", string_value="vertical")
+    add_widget_property(main_scroll, "physics", "string", string_value="AlwaysScrollableScrollPhysics")
+
     main_column = Widget.objects.create(
         screen=screen, widget_type="Column", parent_widget=main_scroll, order=0, widget_id="home_column"
     )
+
+    # Add proper column alignment
+    add_widget_property(main_column, "mainAxisAlignment", "string", string_value="start")
+    add_widget_property(main_column, "crossAxisAlignment", "string", string_value="stretch")
 
     # Search Bar with Voice and Barcode
     search_container = create_search_bar(screen, main_column, 0, actions)
@@ -679,22 +687,31 @@ def create_search_bar(screen, parent, order, actions):
         order=0, widget_id="search_row"
     )
 
+    add_widget_property(row, "mainAxisAlignment", "string", string_value="center")
+    add_widget_property(row, "crossAxisAlignment", "string", string_value="center")
+
+    # Search field container
+    search_container = Widget.objects.create(
+        screen=screen, widget_type="Expanded", parent_widget=row,
+        order=0, widget_id="search_field_container"
+    )
+
+    search_field = Widget.objects.create(
+        screen=screen, widget_type="TextField", parent_widget=search_container,
+        order=0, widget_id="search_field"
+    )
+    add_widget_property(search_field, "hintText", "string",
+                        string_value="Search products, brands...")
+    add_widget_property(search_field, "controller", "string", string_value="_searchController")
+    add_widget_property(search_field, "onSubmitted", "string", string_value="_performSearch")
+
     # Voice button
     voice_btn = Widget.objects.create(
         screen=screen, widget_type="IconButton", parent_widget=row,
-        order=0, widget_id="voice_search_btn"
+        order=1, widget_id="voice_search_btn"
     )
     add_widget_property(voice_btn, "icon", "string", string_value="mic")
-    add_widget_property(voice_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Voice Search"])
-
-    # Search field
-    search_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=row,
-        order=1, widget_id="search_field"
-    )
-    add_widget_property(search_field, "hintText", "string",
-                        string_value="Search products, brands, categories...")
+    add_widget_property(voice_btn, "onPressed", "string", string_value="_openVoiceSearch")
 
     # Barcode button
     barcode_btn = Widget.objects.create(
@@ -702,8 +719,7 @@ def create_search_bar(screen, parent, order, actions):
         order=2, widget_id="barcode_btn"
     )
     add_widget_property(barcode_btn, "icon", "string", string_value="qr_code_scanner")
-    add_widget_property(barcode_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Barcode Scanner"])
+    add_widget_property(barcode_btn, "onPressed", "string", string_value="_openBarcodeScanner")
 
     return container
 
@@ -826,7 +842,7 @@ def create_product_card(screen, parent, order, actions, name="Product", price="$
 
 
 def create_flash_sale_section(screen, parent, order, data_sources, actions):
-    """Create flash sale section with countdown"""
+    """Create flash sale section with proper data binding"""
     container = Widget.objects.create(
         screen=screen, widget_type="Container", parent_widget=parent,
         order=order, widget_id="flash_sale_section"
@@ -841,12 +857,15 @@ def create_flash_sale_section(screen, parent, order, data_sources, actions):
         order=0, widget_id="flash_header"
     )
 
+    add_widget_property(header_row, "mainAxisAlignment", "string", string_value="spaceBetween")
+
     title = Widget.objects.create(
         screen=screen, widget_type="Text", parent_widget=header_row,
         order=0, widget_id="flash_title"
     )
-    add_widget_property(title, "text", "string", string_value="Flash Sale")
+    add_widget_property(title, "text", "string", string_value="⚡ Flash Sale")
     add_widget_property(title, "fontSize", "decimal", decimal_value=20)
+    add_widget_property(title, "fontWeight", "string", string_value="bold")
 
     countdown = Widget.objects.create(
         screen=screen, widget_type="Text", parent_widget=header_row,
@@ -855,29 +874,23 @@ def create_flash_sale_section(screen, parent, order, data_sources, actions):
     add_widget_property(countdown, "text", "string", string_value="Ends in: 02:45:30")
     add_widget_property(countdown, "color", "color", color_value="#FF0000")
 
-    # Flash sale products - horizontal scroll
-    products_scroll = Widget.objects.create(
+    # Flash sale products - Use ListView with data source
+    products_container = Widget.objects.create(
         screen=screen, widget_type="Container", parent_widget=container,
         order=1, widget_id="flash_products_container"
     )
-    add_widget_property(products_scroll, "height", "decimal", decimal_value=250)
+    add_widget_property(products_container, "height", "decimal", decimal_value=280)
 
-    # Using a Row for horizontal layout of products
-    products_row = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", parent_widget=products_scroll,
-        order=0, widget_id="flash_products_scroll"
-    )
-    add_widget_property(products_row, "scrollDirection", "string", string_value="horizontal")
-
-    # Create sample product cards
-    products_inner_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=products_row,
-        order=0, widget_id="flash_products_row"
+    # Create horizontal ListView bound to Flash Sales data source
+    products_list = Widget.objects.create(
+        screen=screen, widget_type="ListView", parent_widget=products_container,
+        order=0, widget_id="flash_products_list"
     )
 
-    # Add 5 sample product cards
-    for i in range(5):
-        create_product_card(screen, products_inner_row, i, actions, f"Flash Product {i+1}", f"${29.99 + i*10}", f"${59.99 + i*10}")
+    # Bind to Flash Sales data source - this will show ALL flash sale items
+    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
+    add_widget_property(products_list, "dataSource", "data_source_field_reference",
+                        data_source_field_reference=get_field(data_sources["Flash Sales"], "productId"))
 
 
 def create_categories_grid(screen, parent, order, data_sources, actions):
@@ -895,60 +908,295 @@ def create_categories_grid(screen, parent, order, data_sources, actions):
         order=0, widget_id="cat_header"
     )
 
+    add_widget_property(header_row, "mainAxisAlignment", "string", string_value="spaceBetween")
+
     title = Widget.objects.create(
         screen=screen, widget_type="Text", parent_widget=header_row,
         order=0, widget_id="cat_title"
     )
     add_widget_property(title, "text", "string", string_value="Shop by Category")
     add_widget_property(title, "fontSize", "decimal", decimal_value=18)
+    add_widget_property(title, "fontWeight", "string", string_value="w600")
 
     see_all = Widget.objects.create(
         screen=screen, widget_type="TextButton", parent_widget=header_row,
         order=1, widget_id="cat_see_all"
     )
-    add_widget_property(see_all, "text", "string", string_value="See All")
+    add_widget_property(see_all, "text", "string", string_value="See All →")
     add_widget_property(see_all, "onPressed", "action_reference",
                         action_reference=actions["Navigate to Categories"])
 
+    # Categories grid container with fixed height
+    grid_container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=container,
+        order=1, widget_id="cat_grid_container"
+    )
+    add_widget_property(grid_container, "height", "decimal", decimal_value=200)
+
     # Categories grid
     grid = Widget.objects.create(
-        screen=screen, widget_type="GridView", parent_widget=container,
-        order=1, widget_id="cat_grid"
+        screen=screen, widget_type="GridView", parent_widget=grid_container,
+        order=0, widget_id="cat_grid"
     )
 
-    add_widget_property(grid, "crossAxisCount", "integer", integer_value=3)
+    add_widget_property(grid, "crossAxisCount", "integer", integer_value=4)
     add_widget_property(grid, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Categories"], "name"))
+                        data_source_field_reference=get_field(data_sources["Categories"], "id"))
 
 
 def create_trending_section(screen, parent, order, data_sources, actions):
     """Create trending products section"""
-    create_product_section(screen, parent, order, "Trending Now",
-                           data_sources["Trending Products"], actions, "trending")
+    container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=parent,
+        order=order, widget_id="trending_section"
+    )
+
+    add_widget_property(container, "padding", "decimal", decimal_value=16)
+
+    # Header
+    header = Widget.objects.create(
+        screen=screen, widget_type="Row", parent_widget=container,
+        order=0, widget_id="trending_header"
+    )
+
+    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
+
+    title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=header,
+        order=0, widget_id="trending_title"
+    )
+    add_widget_property(title, "text", "string", string_value="🔥 Trending Now")
+    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
+    add_widget_property(title, "fontWeight", "string", string_value="w600")
+
+    see_all = Widget.objects.create(
+        screen=screen, widget_type="TextButton", parent_widget=header,
+        order=1, widget_id="trending_see_all"
+    )
+    add_widget_property(see_all, "text", "string", string_value="View All →")
+    add_widget_property(see_all, "onPressed", "action_reference",
+                        action_reference=actions["Navigate to Product List"])
+
+    # Products list container
+    list_container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=container,
+        order=1, widget_id="trending_list_container"
+    )
+    add_widget_property(list_container, "height", "decimal", decimal_value=250)
+
+    # Products ListView
+    products_list = Widget.objects.create(
+        screen=screen, widget_type="ListView", parent_widget=list_container,
+        order=0, widget_id="trending_list"
+    )
+
+    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
+    add_widget_property(products_list, "dataSource", "data_source_field_reference",
+                        data_source_field_reference=get_field(data_sources["Trending Products"], "id"))
 
 
 def create_new_arrivals_section(screen, parent, order, data_sources, actions):
     """Create new arrivals section"""
-    create_product_section(screen, parent, order, "New Arrivals",
-                           data_sources["New Arrivals"], actions, "new_arrivals")
+    container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=parent,
+        order=order, widget_id="new_arrivals_section"
+    )
+
+    add_widget_property(container, "padding", "decimal", decimal_value=16)
+
+    # Header
+    header = Widget.objects.create(
+        screen=screen, widget_type="Row", parent_widget=container,
+        order=0, widget_id="new_arrivals_header"
+    )
+
+    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
+
+    title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=header,
+        order=0, widget_id="new_arrivals_title"
+    )
+    add_widget_property(title, "text", "string", string_value="✨ New Arrivals")
+    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
+    add_widget_property(title, "fontWeight", "string", string_value="w600")
+
+    see_all = Widget.objects.create(
+        screen=screen, widget_type="TextButton", parent_widget=header,
+        order=1, widget_id="new_arrivals_see_all"
+    )
+    add_widget_property(see_all, "text", "string", string_value="View All →")
+    add_widget_property(see_all, "onPressed", "action_reference",
+                        action_reference=actions["Navigate to Product List"])
+
+    # Products list container
+    list_container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=container,
+        order=1, widget_id="new_arrivals_list_container"
+    )
+    add_widget_property(list_container, "height", "decimal", decimal_value=250)
+
+    # Products ListView
+    products_list = Widget.objects.create(
+        screen=screen, widget_type="ListView", parent_widget=list_container,
+        order=0, widget_id="new_arrivals_list"
+    )
+
+    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
+    add_widget_property(products_list, "dataSource", "data_source_field_reference",
+                        data_source_field_reference=get_field(data_sources["New Arrivals"], "id"))
 
 
 def create_best_sellers_section(screen, parent, order, data_sources, actions):
     """Create best sellers section"""
-    create_product_section(screen, parent, order, "Best Sellers",
-                           data_sources["Best Sellers"], actions, "best_sellers")
+    container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=parent,
+        order=order, widget_id="best_sellers_section"
+    )
+
+    add_widget_property(container, "padding", "decimal", decimal_value=16)
+
+    # Header
+    header = Widget.objects.create(
+        screen=screen, widget_type="Row", parent_widget=container,
+        order=0, widget_id="best_sellers_header"
+    )
+
+    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
+
+    title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=header,
+        order=0, widget_id="best_sellers_title"
+    )
+    add_widget_property(title, "text", "string", string_value="🏆 Best Sellers")
+    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
+    add_widget_property(title, "fontWeight", "string", string_value="w600")
+
+    see_all = Widget.objects.create(
+        screen=screen, widget_type="TextButton", parent_widget=header,
+        order=1, widget_id="best_sellers_see_all"
+    )
+    add_widget_property(see_all, "text", "string", string_value="View All →")
+    add_widget_property(see_all, "onPressed", "action_reference",
+                        action_reference=actions["Navigate to Product List"])
+
+    # Products list container
+    list_container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=container,
+        order=1, widget_id="best_sellers_list_container"
+    )
+    add_widget_property(list_container, "height", "decimal", decimal_value=250)
+
+    # Products ListView
+    products_list = Widget.objects.create(
+        screen=screen, widget_type="ListView", parent_widget=list_container,
+        order=0, widget_id="best_sellers_list"
+    )
+
+    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
+    add_widget_property(products_list, "dataSource", "data_source_field_reference",
+                        data_source_field_reference=get_field(data_sources["Best Sellers"], "id"))
 
 
 def create_recommendations_section(screen, parent, order, data_sources, actions):
     """Create personalized recommendations section"""
-    create_product_section(screen, parent, order, "Recommended For You",
-                           data_sources["Products"], actions, "recommendations")
+    container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=parent,
+        order=order, widget_id="recommendations_section"
+    )
+
+    add_widget_property(container, "padding", "decimal", decimal_value=16)
+
+    # Header
+    header = Widget.objects.create(
+        screen=screen, widget_type="Row", parent_widget=container,
+        order=0, widget_id="recommendations_header"
+    )
+
+    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
+
+    title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=header,
+        order=0, widget_id="recommendations_title"
+    )
+    add_widget_property(title, "text", "string", string_value="💡 Recommended For You")
+    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
+    add_widget_property(title, "fontWeight", "string", string_value="w600")
+
+    see_all = Widget.objects.create(
+        screen=screen, widget_type="TextButton", parent_widget=header,
+        order=1, widget_id="recommendations_see_all"
+    )
+    add_widget_property(see_all, "text", "string", string_value="View All →")
+    add_widget_property(see_all, "onPressed", "action_reference",
+                        action_reference=actions["Navigate to Product List"])
+
+    # Products list container
+    list_container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=container,
+        order=1, widget_id="recommendations_list_container"
+    )
+    add_widget_property(list_container, "height", "decimal", decimal_value=250)
+
+    # Products ListView
+    products_list = Widget.objects.create(
+        screen=screen, widget_type="ListView", parent_widget=list_container,
+        order=0, widget_id="recommendations_list"
+    )
+
+    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
+    add_widget_property(products_list, "dataSource", "data_source_field_reference",
+                        data_source_field_reference=get_field(data_sources["Products"], "id"))
 
 
 def create_recently_viewed_section(screen, parent, order, data_sources, actions):
     """Create recently viewed products section"""
-    create_product_section(screen, parent, order, "Recently Viewed",
-                           data_sources["Recently Viewed"], actions, "recent")
+    container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=parent,
+        order=order, widget_id="recent_section"
+    )
+
+    add_widget_property(container, "padding", "decimal", decimal_value=16)
+
+    # Header
+    header = Widget.objects.create(
+        screen=screen, widget_type="Row", parent_widget=container,
+        order=0, widget_id="recent_header"
+    )
+
+    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
+
+    title = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=header,
+        order=0, widget_id="recent_title"
+    )
+    add_widget_property(title, "text", "string", string_value="👁️ Recently Viewed")
+    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
+    add_widget_property(title, "fontWeight", "string", string_value="w600")
+
+    see_all = Widget.objects.create(
+        screen=screen, widget_type="TextButton", parent_widget=header,
+        order=1, widget_id="recent_see_all"
+    )
+    add_widget_property(see_all, "text", "string", string_value="View All →")
+    add_widget_property(see_all, "onPressed", "action_reference",
+                        action_reference=actions["Navigate to Recently Viewed"])
+
+    # Products list container
+    list_container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=container,
+        order=1, widget_id="recent_list_container"
+    )
+    add_widget_property(list_container, "height", "decimal", decimal_value=250)
+
+    # Products ListView
+    products_list = Widget.objects.create(
+        screen=screen, widget_type="ListView", parent_widget=list_container,
+        order=0, widget_id="recent_list"
+    )
+
+    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
+    add_widget_property(products_list, "dataSource", "data_source_field_reference",
+                        data_source_field_reference=get_field(data_sources["Recently Viewed"], "productId"))
 
 
 def create_product_section(screen, parent, order, title_text, data_source, actions, section_id):
@@ -997,23 +1245,11 @@ def create_bottom_navigation(screen, actions):
         screen=screen, widget_type="BottomNavigationBar", order=99, widget_id="bottom_nav"
     )
 
-    add_widget_property(bottom_nav, "color", "color", color_value="#FFFFFF")
-
-    # Navigation items
-    nav_items = [
-        ("Home", "home", actions["Navigate to Home"]),
-        ("Categories", "category", actions["Navigate to Categories"]),
-        ("Cart", "shopping_cart", actions["Navigate to Cart"]),
-        ("Account", "person", actions["Navigate to Profile"]),
-    ]
-
-    for i, (label, icon, action) in enumerate(nav_items):
-        item = Widget.objects.create(
-            screen=screen, widget_type="IconButton", parent_widget=bottom_nav,
-            order=i, widget_id=f"nav_{label.lower()}"
-        )
-        add_widget_property(item, "icon", "string", string_value=icon)
-        add_widget_property(item, "onPressed", "action_reference", action_reference=action)
+    # Set properties for the navigation bar
+    add_widget_property(bottom_nav, "type", "string", string_value="fixed")
+    add_widget_property(bottom_nav, "selectedItemColor", "color", color_value="#FF6B35")
+    add_widget_property(bottom_nav, "unselectedItemColor", "color", color_value="#757575")
+    add_widget_property(bottom_nav, "currentIndex", "integer", integer_value=0)
 
 
 # Continue with all other screen UI creation functions...

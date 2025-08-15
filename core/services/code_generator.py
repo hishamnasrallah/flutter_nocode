@@ -493,6 +493,9 @@ class AppRoutes {
         screen_file_name = self._to_snake_case(screen.name) + '_screen.dart'
         screen_class_name = self._to_pascal_case(screen.name) + 'Screen'
 
+        # Check if this is home screen
+        is_home_screen = screen.name.lower() == 'home' or screen.is_home_screen
+
         # Get root widgets for this screen
         root_widgets = Widget.objects.filter(
             screen=screen,
@@ -500,53 +503,165 @@ class AppRoutes {
         ).order_by('order')
 
         screen_content = f'''import 'package:flutter/material.dart';
-import '../services/api_service.dart';
-import '../models/app_models.dart';
+    import '../services/api_service.dart';
+    import '../models/app_models.dart';
 
-class {screen_class_name} extends StatefulWidget {{
-  @override
-  _{screen_class_name}State createState() => _{screen_class_name}State();
-}}
+    class {screen_class_name} extends StatefulWidget {{
+      @override
+      _{screen_class_name}State createState() => _{screen_class_name}State();
+    }}
 
-class _{screen_class_name}State extends State<{screen_class_name}> {{
-  final ApiService _apiService = ApiService();
+    class _{screen_class_name}State extends State<{screen_class_name}> {{
+      final ApiService _apiService = ApiService();'''
 
-  @override
-  Widget build(BuildContext context) {{
-    return Scaffold(
-'''
+        # Add search controller and helper methods for home screen
+        if is_home_screen:
+            screen_content += '''
+      final TextEditingController _searchController = TextEditingController();
+
+      void _performSearch() {
+        if (_searchController.text.isNotEmpty) {
+          Navigator.pushNamed(context, '/search', arguments: _searchController.text);
+        }
+      }
+
+      void _openVoiceSearch() {
+        Navigator.pushNamed(context, '/voice-search');
+      }
+
+      void _openBarcodeScanner() {
+        Navigator.pushNamed(context, '/barcode');
+      }
+
+      IconData _getCategoryIcon(String categoryName) {
+        switch (categoryName.toLowerCase()) {
+          case 'electronics':
+            return Icons.devices;
+          case 'fashion':
+            return Icons.shopping_bag;
+          case 'home & garden':
+          case 'home garden':
+            return Icons.home;
+          case 'sports':
+          case 'sports & outdoors':
+            return Icons.sports_soccer;
+          case 'books':
+          case 'books & media':
+            return Icons.menu_book;
+          case 'beauty':
+          case 'beauty & personal care':
+            return Icons.face;
+          case 'food':
+          case 'food & groceries':
+            return Icons.restaurant;
+          case 'health':
+          case 'health & wellness':
+            return Icons.favorite;
+          case 'automotive':
+            return Icons.directions_car;
+          case 'toys':
+          case 'toys & games':
+            return Icons.toys;
+          case 'pets':
+          case 'pet supplies':
+            return Icons.pets;
+          default:
+            return Icons.category;
+        }
+      }
+
+      String _getTimeAgo(String? dateString) {
+        if (dateString == null) return 'recently';
+        try {
+          final date = DateTime.parse(dateString);
+          final now = DateTime.now();
+          final difference = now.difference(date);
+
+          if (difference.inDays > 0) {
+            return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+          } else if (difference.inHours > 0) {
+            return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+          } else if (difference.inMinutes > 0) {
+            return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''} ago';
+          } else {
+            return 'just now';
+          }
+        } catch (e) {
+          return 'recently';
+        }
+      }'''
+
+        screen_content += '''
+
+      @override
+      Widget build(BuildContext context) {
+        return Scaffold(
+    '''
 
         # Add AppBar if needed
         if screen.show_app_bar:
             screen_content += f'''      appBar: AppBar(
-        title: Text('{screen.app_bar_title or screen.name}'),
-        automaticallyImplyLeading: {str(screen.show_back_button).lower()},
-      ),
-'''
+            title: Text('{screen.app_bar_title or screen.name}'),
+            automaticallyImplyLeading: {str(screen.show_back_button).lower()},
+          ),
+    '''
 
         # Add body
         screen_content += '''      body: '''
 
-        if root_widgets.count() == 1:
+        if is_home_screen and root_widgets.exists():
+            # Special handling for home screen with SingleChildScrollView
+            has_scroll_view = root_widgets.filter(widget_type='SingleChildScrollView').exists()
+
+            if has_scroll_view:
+                # Home screen with scroll view - generate it directly without wrapper
+                scroll_widget = root_widgets.filter(widget_type='SingleChildScrollView').first()
+                screen_content += self._generate_widget_code(scroll_widget, 0)
+            else:
+                # Wrap in SingleChildScrollView if not present
+                screen_content += '''SingleChildScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+    '''
+                for widget in root_widgets:
+                    screen_content += '            ' + self._generate_widget_code(widget, 3) + ',\n'
+                screen_content += '''          ],
+            ),
+          )'''
+        elif root_widgets.count() == 1:
             screen_content += self._generate_widget_code(root_widgets.first(), 0)
         elif root_widgets.count() > 1:
             screen_content += '''Column(
-        children: [
-'''
+            children: [
+    '''
             for widget in root_widgets:
                 screen_content += '          ' + self._generate_widget_code(widget, 2) + ',\n'
             screen_content += '''        ],
-      )'''
+          )'''
         else:
             screen_content += '''Center(
-        child: Text('No content configured for this screen'),
-      )'''
+            child: Text('No content configured for this screen'),
+          )'''
+
+        # Handle bottom navigation separately if it exists
+        bottom_nav = Widget.objects.filter(
+            screen=screen,
+            widget_type='BottomNavigationBar'
+        ).first()
+
+        if bottom_nav:
+            screen_content += ''',
+          bottomNavigationBar: '''
+            screen_content += self._generate_widget_code(bottom_nav, 0)
 
         screen_content += ''',
-    );
-  }
-}
-'''
+        );
+      }
+    }
+    '''
 
         with open(self.lib_path / 'screens' / screen_file_name, 'w', encoding='utf-8') as f:
             f.write(screen_content)
@@ -605,15 +720,35 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
 {indent}  child: Icon(Icons.{icon}),
 {indent})'''
 
+
         elif widget.widget_type in ['Column', 'Row']:
+
             axis = 'mainAxisAlignment'
+
             alignment = self._get_property_value(prop_dict, axis, 'start')
+
             cross_alignment = self._get_property_value(prop_dict, 'crossAxisAlignment', 'center')
+
+            # Check if this is the main home column
+
+            is_home_column = widget.widget_id == 'home_column'
+
             widget_code = f'''{widget.widget_type}(
-{indent}  mainAxisAlignment: MainAxisAlignment.{alignment},
-{indent}  crossAxisAlignment: CrossAxisAlignment.{cross_alignment},
-{indent}  children: [
-'''
+
+        {indent}  mainAxisAlignment: MainAxisAlignment.{alignment},
+
+        {indent}  crossAxisAlignment: CrossAxisAlignment.{cross_alignment},'''
+
+            if widget.widget_type == 'Column' and is_home_column:
+                widget_code += f'''
+
+        {indent}  mainAxisSize: MainAxisSize.min,'''
+
+            widget_code += f'''
+
+        {indent}  children: [
+
+        '''
             for child in child_widgets:
                 widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
             widget_code += f"{indent}  ],\n{indent})"
@@ -712,25 +847,117 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         elif widget.widget_type == 'GridView':
             widget_code = self._generate_grid_view(widget, prop_dict, child_widgets, indent_level)
 
+
+
+
         elif widget.widget_type == 'SingleChildScrollView':
+
+            scroll_direction = self._get_property_value(prop_dict, 'scrollDirection', 'vertical')
+
             physics = self._get_property_value(prop_dict, 'physics', 'AlwaysScrollableScrollPhysics')
-            widget_code = f'''SingleChildScrollView(
-{indent}  physics: {physics}(),
-{indent}  child: '''
-            if child_widgets.exists():
-                if child_widgets.count() == 1:
-                    widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
-                else:
-                    # If multiple children, wrap in Column
+
+            # Special handling for home scroll
+
+            is_home_scroll = widget.widget_id == 'home_scroll'
+
+            if is_home_scroll:
+
+                # For home screen, ensure proper scrolling setup
+
+                widget_code = f'''SingleChildScrollView(
+
+        {indent}  scrollDirection: Axis.{scroll_direction},
+
+        {indent}  physics: {physics}(),
+
+        {indent}  child: '''
+
+                if child_widgets.exists():
+
+                    # Always wrap children in a Column with proper constraints
+
                     widget_code += f'''Column(
-{indent}    children: [
-'''
+
+        {indent}    mainAxisSize: MainAxisSize.min,
+
+        {indent}    crossAxisAlignment: CrossAxisAlignment.stretch,
+
+        {indent}    children: [
+
+        '''
+
+                    # Process all child widgets
+
                     for child in child_widgets:
-                        widget_code += f"{indent}      {self._generate_widget_code(child, indent_level + 3)},\n"
+
+                        # If child is a Column, get its children directly
+
+                        if child.widget_type == 'Column':
+
+                            column_children = Widget.objects.filter(parent_widget=child).order_by('order')
+
+                            for column_child in column_children:
+
+                                # Wrap each section in a flexible container if needed
+
+                                if column_child.widget_type == 'Container':
+
+                                    widget_code += f"{indent}      {self._generate_widget_code(column_child, indent_level + 3)},\n"
+
+                                else:
+
+                                    widget_code += f"{indent}      Flexible(fit: FlexFit.loose, child: {self._generate_widget_code(column_child, indent_level + 3)}),\n"
+
+                        else:
+
+                            widget_code += f"{indent}      {self._generate_widget_code(child, indent_level + 3)},\n"
+
                     widget_code += f"{indent}    ],\n{indent}  )"
+
+                else:
+
+                    widget_code += "Container()"
+
+                widget_code += f",\n{indent})"
+
             else:
-                widget_code += "Container()"
-            widget_code += f",\n{indent})"
+
+                # Regular SingleChildScrollView
+
+                widget_code = f'''SingleChildScrollView(
+
+        {indent}  scrollDirection: Axis.{scroll_direction},
+
+        {indent}  physics: {physics}(),
+
+        {indent}  child: '''
+
+                if child_widgets.exists():
+
+                    if child_widgets.count() == 1:
+
+                        widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+
+                    else:
+
+                        widget_code += f'''Column(
+
+        {indent}    mainAxisSize: MainAxisSize.min,
+
+        {indent}    children: [
+
+        '''
+
+                        for child in child_widgets:
+                            widget_code += f"{indent}      {self._generate_widget_code(child, indent_level + 3)},\n"
+
+                        widget_code += f"{indent}    ],\n{indent}  )"
+
+                else:
+
+                    widget_code += "Container()"
+
+                widget_code += f",\n{indent})"
 
         elif widget.widget_type == 'PageView':
             widget_code = f'''PageView(
@@ -1095,50 +1322,51 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
 
             # Determine if this is a product-related data source
             is_product_list = any(keyword in data_source.name.lower()
-                                 for keyword in ['product', 'flash', 'trending', 'arrival', 'seller'])
+                                  for keyword in ['product', 'flash', 'trending', 'arrival', 'seller', 'best'])
 
             # For horizontal lists, use Container with fixed height
             height_wrapper_start = ""
             height_wrapper_end = ""
             if is_horizontal:
-                height_wrapper_start = f"Container(height: 250, child: "
+                height_wrapper_start = f"Container(height: 280, child: "
                 height_wrapper_end = ")"
 
             return f'''{height_wrapper_start}FutureBuilder<List<dynamic>>(
-{indent}  future: _apiService.fetchData('{data_source.name}'),
-{indent}  builder: (context, snapshot) {{
-{indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
-{indent}      return Center(child: CircularProgressIndicator());
-{indent}    }}
-{indent}    if (snapshot.hasError) {{
-{indent}      return Center(child: Text('Error loading data'));
-{indent}    }}
-{indent}    final items = snapshot.data ?? [];
-{indent}    if (items.isEmpty) {{
-{indent}      return Center(child: Text('No items available'));
-{indent}    }}
-{indent}    return ListView.builder(
-{indent}      scrollDirection: Axis.{'horizontal' if is_horizontal else 'vertical'},
-{indent}      shrinkWrap: {'false' if is_horizontal else 'true'},
-{indent}      physics: {'AlwaysScrollableScrollPhysics()' if is_horizontal else 'NeverScrollableScrollPhysics()'},
-{indent}      itemCount: items.length > {'5' if is_horizontal else '10'} ? {'5' if is_horizontal else '10'} : items.length,
-{indent}      itemBuilder: (context, index) {{
-{indent}        final item = items[index];
-{indent}        return {self._generate_list_item_widget(data_source.name, field.field_name, is_horizontal, is_product_list, indent_level + 3)};
-{indent}      }},
-{indent}    );
-{indent}  }},
-{indent}){height_wrapper_end}'''
+    {indent}  future: _apiService.fetchData('{data_source.name}'),
+    {indent}  builder: (context, snapshot) {{
+    {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
+    {indent}      return Center(child: CircularProgressIndicator());
+    {indent}    }}
+    {indent}    if (snapshot.hasError) {{
+    {indent}      return Center(child: Text('Error loading data'));
+    {indent}    }}
+    {indent}    final items = snapshot.data ?? [];
+    {indent}    if (items.isEmpty) {{
+    {indent}      return Center(child: Text('No items available'));
+    {indent}    }}
+    {indent}    return ListView.builder(
+    {indent}      scrollDirection: Axis.{'horizontal' if is_horizontal else 'vertical'},
+    {indent}      shrinkWrap: {'false' if is_horizontal else 'true'},
+    {indent}      physics: {'ClampingScrollPhysics()' if is_horizontal else 'NeverScrollableScrollPhysics()'},
+    {indent}      primary: false,
+    {indent}      itemCount: items.length,
+    {indent}      itemBuilder: (context, index) {{
+    {indent}        final item = items[index];
+    {indent}        return {self._generate_list_item_widget(data_source.name, field.field_name, is_horizontal, is_product_list, indent_level + 3)};
+    {indent}      }},
+    {indent}    );
+    {indent}  }},
+    {indent}){height_wrapper_end}'''
         else:
             # Static ListView with child widgets
             if child_widgets.exists():
-                code = f"ListView(\n{indent}  shrinkWrap: true,\n{indent}  children: [\n"
+                code = f"ListView(\n{indent}  shrinkWrap: true,\n{indent}  physics: NeverScrollableScrollPhysics(),\n{indent}  primary: false,\n{indent}  children: [\n"
                 for child in child_widgets:
                     code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
                 code += f"{indent}  ],\n{indent})"
                 return code
             else:
-                return "ListView(shrinkWrap: true, children: [])"
+                return "ListView(shrinkWrap: true, physics: NeverScrollableScrollPhysics(), children: [])"
 
     def _generate_grid_view(self, widget, prop_dict, child_widgets, indent_level):
         """Generate GridView from database configuration"""
@@ -1155,45 +1383,56 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
             data_source = data_source_prop.data_source_field_reference.data_source
             field = data_source_prop.data_source_field_reference
 
+            # Check if this is categories grid
+            is_categories = 'categor' in data_source.name.lower()
+
             return f'''FutureBuilder<List<dynamic>>(
-{indent}  future: _apiService.fetchData('{data_source.name}'),
-{indent}  builder: (context, snapshot) {{
-{indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
-{indent}      return Center(child: CircularProgressIndicator());
-{indent}    }}
-{indent}    if (snapshot.hasError) {{
-{indent}      return Center(child: Text('Error loading data'));
-{indent}    }}
-{indent}    final data = snapshot.data ?? [];
-{indent}    if (data.isEmpty) {{
-{indent}      return Center(child: Text('No items'));
-{indent}    }}
-{indent}    return GridView.builder(
-{indent}      shrinkWrap: true,
-{indent}      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-{indent}        crossAxisCount: {columns},
-{indent}        crossAxisSpacing: 10,
-{indent}        mainAxisSpacing: 10,
-{indent}      ),
-{indent}      itemCount: data.length,
-{indent}      itemBuilder: (context, index) {{
-{indent}        final item = data[index];
-{indent}        return Card(
-{indent}          child: Center(
-{indent}            child: Text(item['{field.field_name}']?.toString() ?? ''),
-{indent}          ),
-{indent}        );
-{indent}      }},
-{indent}    );
-{indent}  }},
-{indent})'''
+    {indent}  future: _apiService.fetchData('{data_source.name}'),
+    {indent}  builder: (context, snapshot) {{
+    {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
+    {indent}      return Container(
+    {indent}        height: 200,
+    {indent}        child: Center(child: CircularProgressIndicator()),
+    {indent}      );
+    {indent}    }}
+    {indent}    if (snapshot.hasError) {{
+    {indent}      return Container(
+    {indent}        height: 200,
+    {indent}        child: Center(child: Text('Error loading data')),
+    {indent}      );
+    {indent}    }}
+    {indent}    final data = snapshot.data ?? [];
+    {indent}    if (data.isEmpty) {{
+    {indent}      return Container(
+    {indent}        height: 200,
+    {indent}        child: Center(child: Text('No items')),
+    {indent}      );
+    {indent}    }}
+    {indent}    return GridView.builder(
+    {indent}      shrinkWrap: true,
+    {indent}      physics: NeverScrollableScrollPhysics(),
+    {indent}      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+    {indent}        crossAxisCount: {columns},
+    {indent}        crossAxisSpacing: 8,
+    {indent}        mainAxisSpacing: 8,
+    {indent}        childAspectRatio: {('1.0' if is_categories else '0.8')},
+    {indent}      ),
+    {indent}      itemCount: data.length > 8 ? 8 : data.length,
+    {indent}      itemBuilder: (context, index) {{
+    {indent}        final item = data[index];
+    {indent}        return {self._generate_category_item(indent_level + 3) if is_categories else self._generate_grid_item(field.field_name, indent_level + 3)};
+    {indent}      }},
+    {indent}    );
+    {indent}  }},
+    {indent})'''
         else:
             # Static GridView
             return f'''GridView.count(
-{indent}  crossAxisCount: {columns},
-{indent}  shrinkWrap: true,
-{indent}  children: [],
-{indent})'''
+    {indent}  crossAxisCount: {columns},
+    {indent}  shrinkWrap: true,
+    {indent}  physics: NeverScrollableScrollPhysics(),
+    {indent}  children: [],
+    {indent})'''
 
     def _generate_children_column(self, child_widgets, indent_level):
         """Generate a Column for multiple children"""
@@ -1207,8 +1446,55 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
     def _generate_bottom_nav(self, child_widgets, indent_level):
         """Generate BottomNavigationBar"""
         indent = '  ' * indent_level
-        # Simplified bottom nav generation
-        return "BottomNavigationBar(items: [BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home')])"
+
+        # Get properties from the widget
+        widget = None
+        for child in child_widgets:
+            if child.widget_type == 'BottomNavigationBar':
+                widget = child
+                break
+
+        # Generate proper bottom navigation
+        return f'''BottomNavigationBar(
+    {indent}  type: BottomNavigationBarType.fixed,
+    {indent}  currentIndex: 0,
+    {indent}  selectedItemColor: Theme.of(context).primaryColor,
+    {indent}  unselectedItemColor: Colors.grey,
+    {indent}  onTap: (index) {{
+    {indent}    switch (index) {{
+    {indent}      case 0:
+    {indent}        Navigator.pushReplacementNamed(context, '/');
+    {indent}        break;
+    {indent}      case 1:
+    {indent}        Navigator.pushNamed(context, '/categories');
+    {indent}        break;
+    {indent}      case 2:
+    {indent}        Navigator.pushNamed(context, '/cart');
+    {indent}        break;
+    {indent}      case 3:
+    {indent}        Navigator.pushNamed(context, '/profile');
+    {indent}        break;
+    {indent}    }}
+    {indent}  }},
+    {indent}  items: [
+    {indent}    BottomNavigationBarItem(
+    {indent}      icon: Icon(Icons.home),
+    {indent}      label: 'Home',
+    {indent}    ),
+    {indent}    BottomNavigationBarItem(
+    {indent}      icon: Icon(Icons.category),
+    {indent}      label: 'Categories',
+    {indent}    ),
+    {indent}    BottomNavigationBarItem(
+    {indent}      icon: Icon(Icons.shopping_cart),
+    {indent}      label: 'Cart',
+    {indent}    ),
+    {indent}    BottomNavigationBarItem(
+    {indent}      icon: Icon(Icons.person),
+    {indent}      label: 'Profile',
+    {indent}    ),
+    {indent}  ],
+    {indent})'''
 
     def _generate_tab_bar(self, child_widgets, indent_level):
         """Generate TabBar"""
@@ -1502,82 +1788,415 @@ class ErrorWidget extends StatelessWidget {
         pascal = self._to_pascal_case(text)
         return pascal[0].lower() + pascal[1:] if pascal else ''
 
-    def _generate_list_item_widget(self, data_source_name, field_name, is_horizontal, is_product_list,
-                                   indent_level):
+    def _generate_list_item_widget(self, data_source_name, field_name, is_horizontal, is_product_list, indent_level):
         """Generate appropriate list item widget based on data type"""
         indent = '  ' * indent_level
 
-        if is_product_list:
-            # Generate product card for product-related lists
+        # Check data source type
+        is_flash_sale = 'flash' in data_source_name.lower()
+        is_recently_viewed = 'recently' in data_source_name.lower() or 'viewed' in data_source_name.lower()
+
+        if is_recently_viewed:
+            # Special handling for recently viewed items
             return f'''Container(
-{indent}  width: {200 if is_horizontal else 'double.infinity'},
-{indent}  margin: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-{indent}  child: Card(
-{indent}    child: Column(
-{indent}      crossAxisAlignment: CrossAxisAlignment.start,
-{indent}      children: [
-{indent}        Container(
-{indent}          height: 120,
-{indent}          decoration: BoxDecoration(
-{indent}            color: Colors.grey[300],
-{indent}            image: item['image'] != null 
-{indent}              ? DecorationImage(
-{indent}                  image: NetworkImage(item['image']),
-{indent}                  fit: BoxFit.cover,
-{indent}                )
-{indent}              : null,
-{indent}          ),
-{indent}          child: item['image'] == null 
-{indent}            ? Center(child: Icon(Icons.image, size: 50))
-{indent}            : null,
-{indent}        ),
-{indent}        Padding(
-{indent}          padding: EdgeInsets.all(8),
-{indent}          child: Column(
-{indent}            crossAxisAlignment: CrossAxisAlignment.start,
-{indent}            children: [
-{indent}              Text(
-{indent}                item['name']?.toString() ?? 'Product',
-{indent}                style: TextStyle(fontWeight: FontWeight.bold),
-{indent}                maxLines: 2,
-{indent}                overflow: TextOverflow.ellipsis,
-{indent}              ),
-{indent}              SizedBox(height: 4),
-{indent}              Text(
-{indent}                '\$' + (item['price']?.toString() ?? '0.00'),
-{indent}                style: TextStyle(
-{indent}                  color: Theme.of(context).primaryColor,
-{indent}                  fontSize: 16,
-{indent}                  fontWeight: FontWeight.w600,
-{indent}                ),
-{indent}              ),
-{indent}              if (item['discount'] != null && item['discount'] > 0) ...[
-{indent}                SizedBox(height: 2),
-{indent}                Container(
-{indent}                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-{indent}                  decoration: BoxDecoration(
-{indent}                    color: Colors.red,
-{indent}                    borderRadius: BorderRadius.circular(4),
-{indent}                  ),
-{indent}                  child: Text(
-{indent}                    item['discount'].toString() + '% OFF',
-{indent}                    style: TextStyle(color: Colors.white, fontSize: 10),
-{indent}                  ),
-{indent}                ),
-{indent}              ],
-{indent}            ],
-{indent}          ),
-{indent}        ),
-{indent}      ],
-{indent}    ),
-{indent}  ),
-{indent})'''
+    {indent}  width: 150,
+    {indent}  margin: EdgeInsets.only(right: 12),
+    {indent}  child: Card(
+    {indent}    elevation: 1,
+    {indent}    shape: RoundedRectangleBorder(
+    {indent}      borderRadius: BorderRadius.circular(8),
+    {indent}    ),
+    {indent}    child: InkWell(
+    {indent}      onTap: () {{
+    {indent}        if (item['productId'] != null) {{
+    {indent}          Navigator.pushNamed(context, '/product/${{item['productId']}}');
+    {indent}        }}
+    {indent}      }},
+    {indent}      borderRadius: BorderRadius.circular(8),
+    {indent}      child: Column(
+    {indent}        crossAxisAlignment: CrossAxisAlignment.start,
+    {indent}        children: [
+    {indent}          Container(
+    {indent}            height: 120,
+    {indent}            width: double.infinity,
+    {indent}            child: ClipRRect(
+    {indent}              borderRadius: BorderRadius.only(
+    {indent}                topLeft: Radius.circular(8),
+    {indent}                topRight: Radius.circular(8),
+    {indent}              ),
+    {indent}              child: (item['productImage'] != null)
+    {indent}                ? Image.network(
+    {indent}                    item['productImage'],
+    {indent}                    fit: BoxFit.cover,
+    {indent}                    errorBuilder: (context, error, stackTrace) => Container(
+    {indent}                      color: Colors.grey[300],
+    {indent}                      child: Icon(Icons.image_not_supported, size: 40),
+    {indent}                    ),
+    {indent}                  )
+    {indent}                : Container(
+    {indent}                    color: Colors.grey[300],
+    {indent}                    child: Icon(Icons.shopping_bag, size: 40),
+    {indent}                  ),
+    {indent}            ),
+    {indent}          ),
+    {indent}          Padding(
+    {indent}            padding: EdgeInsets.all(8),
+    {indent}            child: Column(
+    {indent}              crossAxisAlignment: CrossAxisAlignment.start,
+    {indent}              children: [
+    {indent}                Text(
+    {indent}                  item['productName']?.toString() ?? 'Product',
+    {indent}                  style: TextStyle(
+    {indent}                    fontSize: 12,
+    {indent}                    fontWeight: FontWeight.w500,
+    {indent}                  ),
+    {indent}                  maxLines: 2,
+    {indent}                  overflow: TextOverflow.ellipsis,
+    {indent}                ),
+    {indent}                SizedBox(height: 4),
+    {indent}                Text(
+    {indent}                  '\\$${{item['price']?.toString() ?? '0.00'}}',
+    {indent}                  style: TextStyle(
+    {indent}                    color: Theme.of(context).primaryColor,
+    {indent}                    fontSize: 14,
+    {indent}                    fontWeight: FontWeight.bold,
+    {indent}                  ),
+    {indent}                ),
+    {indent}                SizedBox(height: 2),
+    {indent}                Text(
+    {indent}                  'Viewed ${{_getTimeAgo(item['viewedAt'])}}',
+    {indent}                  style: TextStyle(
+    {indent}                    fontSize: 10,
+    {indent}                    color: Colors.grey[600],
+    {indent}                  ),
+    {indent}                ),
+    {indent}              ],
+    {indent}            ),
+    {indent}          ),
+    {indent}        ],
+    {indent}      ),
+    {indent}    ),
+    {indent}  ),
+    {indent})'''
+        elif is_flash_sale:
+            # Special handling for flash sale items with proper image loading
+            return f'''Container(
+    {indent}  width: 160,
+    {indent}  margin: EdgeInsets.only(right: 12),
+    {indent}  child: Card(
+    {indent}    elevation: 2,
+    {indent}    shape: RoundedRectangleBorder(
+    {indent}      borderRadius: BorderRadius.circular(12),
+    {indent}    ),
+    {indent}    child: Column(
+    {indent}      crossAxisAlignment: CrossAxisAlignment.start,
+    {indent}      children: [
+    {indent}        Stack(
+    {indent}          children: [
+    {indent}            // Product Image
+    {indent}            Container(
+    {indent}              height: 140,
+    {indent}              width: double.infinity,
+    {indent}              child: ClipRRect(
+    {indent}                borderRadius: BorderRadius.only(
+    {indent}                  topLeft: Radius.circular(12),
+    {indent}                  topRight: Radius.circular(12),
+    {indent}                ),
+    {indent}                child: (item['product'] != null && item['product']['image'] != null)
+    {indent}                  ? Image.network(
+    {indent}                      item['product']['image'],
+    {indent}                      fit: BoxFit.cover,
+    {indent}                      errorBuilder: (context, error, stackTrace) => Container(
+    {indent}                        color: Colors.grey[300],
+    {indent}                        child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey[600]),
+    {indent}                      ),
+    {indent}                      loadingBuilder: (context, child, loadingProgress) {{
+    {indent}                        if (loadingProgress == null) return child;
+    {indent}                        return Container(
+    {indent}                          color: Colors.grey[200],
+    {indent}                          child: Center(
+    {indent}                            child: CircularProgressIndicator(
+    {indent}                              value: loadingProgress.expectedTotalBytes != null
+    {indent}                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+    {indent}                                : null,
+    {indent}                            ),
+    {indent}                          ),
+    {indent}                        );
+    {indent}                      }},
+    {indent}                    )
+    {indent}                  : Container(
+    {indent}                      color: Colors.grey[300],
+    {indent}                      child: Icon(Icons.shopping_bag, size: 40, color: Colors.grey[600]),
+    {indent}                    ),
+    {indent}              ),
+    {indent}            ),
+    {indent}            // Discount Badge
+    {indent}            Positioned(
+    {indent}              top: 8,
+    {indent}              right: 8,
+    {indent}              child: Container(
+    {indent}                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    {indent}                decoration: BoxDecoration(
+    {indent}                  color: Colors.red,
+    {indent}                  borderRadius: BorderRadius.circular(12),
+    {indent}                ),
+    {indent}                child: Text(
+    {indent}                  '${{item['discountPercent'] ?? 50}}% OFF',
+    {indent}                  style: TextStyle(
+    {indent}                    color: Colors.white,
+    {indent}                    fontSize: 10,
+    {indent}                    fontWeight: FontWeight.bold,
+    {indent}                  ),
+    {indent}                ),
+    {indent}              ),
+    {indent}            ),
+    {indent}          ],
+    {indent}        ),
+    {indent}        Padding(
+    {indent}          padding: EdgeInsets.all(8),
+    {indent}          child: Column(
+    {indent}            crossAxisAlignment: CrossAxisAlignment.start,
+    {indent}            children: [
+    {indent}              Text(
+    {indent}                item['product']?['name'] ?? 'Flash Sale Item',
+    {indent}                style: TextStyle(
+    {indent}                  fontSize: 12,
+    {indent}                  fontWeight: FontWeight.w500,
+    {indent}                ),
+    {indent}                maxLines: 2,
+    {indent}                overflow: TextOverflow.ellipsis,
+    {indent}              ),
+    {indent}              SizedBox(height: 4),
+    {indent}              Row(
+    {indent}                children: [
+    {indent}                  Text(
+    {indent}                    '\\$${{item['salePrice'] ?? '29.99'}}',
+    {indent}                    style: TextStyle(
+    {indent}                      color: Theme.of(context).primaryColor,
+    {indent}                      fontSize: 14,
+    {indent}                      fontWeight: FontWeight.bold,
+    {indent}                    ),
+    {indent}                  ),
+    {indent}                  SizedBox(width: 4),
+    {indent}                  Text(
+    {indent}                    '\\$${{item['originalPrice'] ?? '59.99'}}',
+    {indent}                    style: TextStyle(
+    {indent}                      color: Colors.grey,
+    {indent}                      fontSize: 11,
+    {indent}                      decoration: TextDecoration.lineThrough,
+    {indent}                    ),
+    {indent}                  ),
+    {indent}                ],
+    {indent}              ),
+    {indent}              SizedBox(height: 4),
+    {indent}              LinearProgressIndicator(
+    {indent}                value: (item['sold'] ?? 0) / ((item['sold'] ?? 0) + (item['stock'] ?? 50)),
+    {indent}                backgroundColor: Colors.grey[300],
+    {indent}                valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+    {indent}                minHeight: 3,
+    {indent}              ),
+    {indent}              SizedBox(height: 2),
+    {indent}              Text(
+    {indent}                '${{item['sold'] ?? 0}} sold',
+    {indent}                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+    {indent}              ),
+    {indent}            ],
+    {indent}          ),
+    {indent}        ),
+    {indent}      ],
+    {indent}    ),
+    {indent}  ),
+    {indent})'''
+
+        elif is_product_list:
+            # Generate regular product card for other product lists
+            return f'''Container(
+    {indent}  width: 150,
+    {indent}  margin: EdgeInsets.only(right: 12),
+    {indent}  child: Card(
+    {indent}    elevation: 1,
+    {indent}    shape: RoundedRectangleBorder(
+    {indent}      borderRadius: BorderRadius.circular(8),
+    {indent}    ),
+    {indent}    child: InkWell(
+    {indent}      onTap: () {{
+    {indent}        // Navigate to product details
+    {indent}        if (item['id'] != null) {{
+    {indent}          Navigator.pushNamed(context, '/product/${{item['id']}}');
+    {indent}        }}
+    {indent}      }},
+    {indent}      borderRadius: BorderRadius.circular(8),
+    {indent}      child: Column(
+    {indent}        crossAxisAlignment: CrossAxisAlignment.start,
+    {indent}        children: [
+    {indent}          // Product Image
+    {indent}          Container(
+    {indent}            height: 120,
+    {indent}            width: double.infinity,
+    {indent}            child: ClipRRect(
+    {indent}              borderRadius: BorderRadius.only(
+    {indent}                topLeft: Radius.circular(8),
+    {indent}                topRight: Radius.circular(8),
+    {indent}              ),
+    {indent}              child: (item['image'] != null)
+    {indent}                ? Image.network(
+    {indent}                    item['image'],
+    {indent}                    fit: BoxFit.cover,
+    {indent}                    errorBuilder: (context, error, stackTrace) => Container(
+    {indent}                      color: Colors.grey[300],
+    {indent}                      child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey[600]),
+    {indent}                    ),
+    {indent}                    loadingBuilder: (context, child, loadingProgress) {{
+    {indent}                      if (loadingProgress == null) return child;
+    {indent}                      return Container(
+    {indent}                        color: Colors.grey[200],
+    {indent}                        child: Center(
+    {indent}                          child: CircularProgressIndicator(),
+    {indent}                        ),
+    {indent}                      );
+    {indent}                    }},
+    {indent}                  )
+    {indent}                : Container(
+    {indent}                    color: Colors.grey[300],
+    {indent}                    child: Icon(Icons.shopping_bag, size: 40, color: Colors.grey[600]),
+    {indent}                  ),
+    {indent}            ),
+    {indent}          ),
+    {indent}          Padding(
+    {indent}            padding: EdgeInsets.all(8),
+    {indent}            child: Column(
+    {indent}              crossAxisAlignment: CrossAxisAlignment.start,
+    {indent}              children: [
+    {indent}                Text(
+    {indent}                  item['name']?.toString() ?? 'Product',
+    {indent}                  style: TextStyle(
+    {indent}                    fontSize: 12,
+    {indent}                    fontWeight: FontWeight.w500,
+    {indent}                  ),
+    {indent}                  maxLines: 2,
+    {indent}                  overflow: TextOverflow.ellipsis,
+    {indent}                ),
+    {indent}                SizedBox(height: 4),
+    {indent}                Text(
+    {indent}                  '\\$${{item['price']?.toString() ?? '0.00'}}',
+    {indent}                  style: TextStyle(
+    {indent}                    color: Theme.of(context).primaryColor,
+    {indent}                    fontSize: 14,
+    {indent}                    fontWeight: FontWeight.bold,
+    {indent}                  ),
+    {indent}                ),
+    {indent}                if (item['discount'] != null && item['discount'] > 0) ...[
+    {indent}                  SizedBox(height: 2),
+    {indent}                  Container(
+    {indent}                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+    {indent}                    decoration: BoxDecoration(
+    {indent}                      color: Colors.red,
+    {indent}                      borderRadius: BorderRadius.circular(4),
+    {indent}                    ),
+    {indent}                    child: Text(
+    {indent}                      '${{item['discount']}}% OFF',
+    {indent}                      style: TextStyle(color: Colors.white, fontSize: 10),
+    {indent}                    ),
+    {indent}                  ),
+    {indent}                ],
+    {indent}                if (item['rating'] != null) ...[
+    {indent}                  SizedBox(height: 4),
+    {indent}                  Row(
+    {indent}                    children: [
+    {indent}                      Icon(Icons.star, size: 12, color: Colors.amber),
+    {indent}                      SizedBox(width: 2),
+    {indent}                      Text(
+    {indent}                        item['rating'].toString(),
+    {indent}                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+    {indent}                      ),
+    {indent}                    ],
+    {indent}                  ),
+    {indent}                ],
+    {indent}              ],
+    {indent}            ),
+    {indent}          ),
+    {indent}        ],
+    {indent}      ),
+    {indent}    ),
+    {indent}  ),
+    {indent})'''
         else:
             # Default list tile for non-product lists
             return f'''Card(
-{indent}  margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-{indent}  child: ListTile(
-{indent}    title: Text(item['{field_name}']?.toString() ?? 'Item'),
-{indent}    onTap: () {{}},
-{indent}  ),
-{indent})'''
+    {indent}  margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    {indent}  child: ListTile(
+    {indent}    title: Text(item['{field_name}']?.toString() ?? 'Item'),
+    {indent}    onTap: () {{}},
+    {indent}  ),
+    {indent})'''
+
+    def _generate_category_item(self, indent_level):
+        """Generate category grid item"""
+        indent = '  ' * indent_level
+        return f'''InkWell(
+    {indent}  onTap: () {{
+    {indent}    // Navigate to category
+    {indent}    Navigator.pushNamed(context, '/category/${{item['id'] ?? ''}}');
+    {indent}  }},
+    {indent}  borderRadius: BorderRadius.circular(8),
+    {indent}  child: Container(
+    {indent}    decoration: BoxDecoration(
+    {indent}      color: Colors.white,
+    {indent}      borderRadius: BorderRadius.circular(8),
+    {indent}      boxShadow: [
+    {indent}        BoxShadow(
+    {indent}          color: Colors.grey.withOpacity(0.1),
+    {indent}          spreadRadius: 1,
+    {indent}          blurRadius: 3,
+    {indent}          offset: Offset(0, 1),
+    {indent}        ),
+    {indent}      ],
+    {indent}    ),
+    {indent}    child: Column(
+    {indent}      mainAxisAlignment: MainAxisAlignment.center,
+    {indent}      children: [
+    {indent}        Container(
+    {indent}          width: 50,
+    {indent}          height: 50,
+    {indent}          decoration: BoxDecoration(
+    {indent}            color: Theme.of(context).primaryColor.withOpacity(0.1),
+    {indent}            borderRadius: BorderRadius.circular(25),
+    {indent}          ),
+    {indent}          child: Icon(
+    {indent}            _getCategoryIcon(item['name'] ?? 'Other'),
+    {indent}            size: 30,
+    {indent}            color: Theme.of(context).primaryColor,
+    {indent}          ),
+    {indent}        ),
+    {indent}        SizedBox(height: 8),
+    {indent}        Text(
+    {indent}          item['name'] ?? 'Category',
+    {indent}          style: TextStyle(
+    {indent}            fontSize: 11,
+    {indent}            fontWeight: FontWeight.w500,
+    {indent}          ),
+    {indent}          textAlign: TextAlign.center,
+    {indent}          maxLines: 2,
+    {indent}          overflow: TextOverflow.ellipsis,
+    {indent}        ),
+    {indent}        if (item['productCount'] != null)
+    {indent}          Text(
+    {indent}            '${{item['productCount']}} items',
+    {indent}            style: TextStyle(
+    {indent}              fontSize: 9,
+    {indent}              color: Colors.grey[600],
+    {indent}            ),
+    {indent}          ),
+    {indent}      ],
+    {indent}    ),
+    {indent}  ),
+    {indent})'''
+
+    def _generate_grid_item(self, field_name, indent_level):
+        """Generate generic grid item"""
+        indent = '  ' * indent_level
+        return f'''Card(
+    {indent}  child: Center(
+    {indent}    child: Text(item['{field_name}']?.toString() ?? ''),
+    {indent}  ),
+    {indent})'''
