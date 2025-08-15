@@ -157,7 +157,7 @@ class ApplicationAdmin(admin.ModelAdmin):
     inlines = [ScreenInline, ActionInline, CustomPubDevWidgetInline, BuildHistoryInline]
 
     actions = ['generate_flutter_code', 'build_apk', 'clean_project_directory', 'create_sample_ecommerce',
-               'create_sample_social_media', 'create_sample_news']
+               'create_sample_social_media', 'create_sample_news', 'create_full_marketplace']
 
     def get_urls(self):
         urls = super().get_urls()
@@ -253,19 +253,35 @@ class ApplicationAdmin(admin.ModelAdmin):
                 self.message_user(request, f"Error creating social media sample for {app.name}: {str(e)}", level=messages.ERROR)
     
     create_sample_social_media.short_description = "📱 Create Social Media Sample"
-    
+
     def create_sample_news(self, request, queryset):
         """Create a sample news application"""
         from .management.commands.create_sample_app import create_news_app
-        
+
         for app in queryset:
             try:
                 create_news_app(app)
                 self.message_user(request, f"Sample news app structure created for {app.name}")
             except Exception as e:
                 self.message_user(request, f"Error creating news sample for {app.name}: {str(e)}", level=messages.ERROR)
-    
+
     create_sample_news.short_description = "📰 Create News App Sample"
+
+    def create_full_marketplace(self, request, queryset):
+        """Create a complete marketplace application"""
+        from django.core.management import call_command
+
+        for app in queryset:
+            try:
+                # Call the management command with the app's details
+                call_command('create_full_marketplace',
+                             name=app.name,
+                             package=app.package_name)
+                self.message_user(request, f"Full marketplace created for {app.name}")
+            except Exception as e:
+                self.message_user(request, f"Error creating marketplace: {str(e)}", level=messages.ERROR)
+
+    create_full_marketplace.short_description = "🛍️ Create Full Marketplace"
     
     def download_apk(self, request, app_id):
         """Download APK file"""

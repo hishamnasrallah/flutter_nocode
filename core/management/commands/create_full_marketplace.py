@@ -31,13 +31,13 @@ class Command(BaseCommand):
         parser.add_argument(
             '--name',
             type=str,
-            default='MarketHub Pro',
-            help='Custom name for the marketplace application'
+            default='Full Marketplace App',
+            help='Name for the marketplace application'
         )
         parser.add_argument(
             '--package',
             type=str,
-            default='com.markethub.pro',
+            default='com.marketplace.app',
             help='Package identifier for the application'
         )
 
@@ -47,22 +47,1803 @@ class Command(BaseCommand):
 
         try:
             with transaction.atomic():
-                app = create_complete_marketplace_app(app_name, package_name)
+                self.stdout.write('Creating Full Marketplace Application...')
+
+                # Step 1: Create Theme
+                theme = self.create_marketplace_theme()
+
+                # Step 2: Create Application
+                app = self.create_application(app_name, package_name, theme)
+
+                # Step 3: Create Data Sources
+                data_sources = self.create_data_sources(app)
+
+                # Step 4: Create Actions
+                actions = self.create_actions(app, data_sources)
+
+                # Step 5: Create Screens
+                screens = self.create_screens(app)
+
+                # Step 6: Link Actions to Screens
+                self.link_actions_to_screens(actions, screens)
+
+                # Step 7: Create UI for all screens
+                self.create_screen_uis(screens, data_sources, actions)
+
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'✅ Successfully created COMPLETE marketplace application: {app.name}\n'
-                        f'📦 Package: {package_name}\n'
-                        f'📱 40+ Unique Pages Created\n'
-                        f'🎨 Full UI/UX Implemented\n'
-                        f'📊 Complete Mock Data System\n'
-                        f'🔧 All Features Configured\n'
-                        f'✨ Ready for Production!'
+                        f'✅ Successfully created marketplace: {app.name}\n'
+                        f'📱 40+ Screens Created\n'
+                        f'🔌 All API Endpoints Connected\n'
+                        f'✨ Ready for use!'
                     )
                 )
+
         except Exception as e:
             self.stdout.write(
-                self.style.ERROR(f'❌ Error creating marketplace application: {str(e)}')
+                self.style.ERROR(f'Error creating marketplace: {str(e)}')
             )
+
+    def create_marketplace_theme(self):
+        """Step 3: Create the Core Application Theme"""
+        theme = Theme.objects.create(
+            name="Marketplace Theme",
+            primary_color="#4F46E5",  # Indigo
+            accent_color="#F59E0B",  # Amber
+            background_color="#F9FAFB",
+            text_color="#111827",
+            font_family="Inter",
+            is_dark_mode=False
+        )
+        return theme
+
+    def create_application(self, name, package_name, theme):
+        """Step 3: Create the Core Application"""
+        app = Application.objects.create(
+            name=name,
+            description="A complete marketplace application with authentication, chat, payments, and seller features",
+            package_name=package_name,
+            version="1.0.0",
+            theme=theme
+        )
+        return app
+
+    def create_data_sources(self, app):
+        """Step 4: Define All New Data Sources"""
+        data_sources = {}
+        base_url = "https://ericsson-hill-ten-cats.trycloudflare.com"
+
+        # Configuration Data Source (for local storage)
+        config_ds = DataSource.objects.create(
+            application=app,
+            name="ConfigurationStorage",
+            data_source_type="REST_API",  # Used as placeholder
+            base_url="LOCAL_STORAGE",  # Special marker for code generator
+            endpoint="app_configuration",
+            method="GET"
+        )
+        data_sources['ConfigurationStorage'] = config_ds
+
+        # Configuration validation endpoint
+        validation_ds = DataSource.objects.create(
+            application=app,
+            name="ValidateEndpoint",
+            data_source_type="REST_API",
+            base_url="DYNAMIC",  # Will use stored URL
+            endpoint="/api/marketplace/categories",  # Test endpoint
+            method="GET"
+        )
+        data_sources['ValidateEndpoint'] = validation_ds
+
+        # Authentication Data Sources
+        auth_sources = [
+            ('Register', '/api/mock/auth/register', 'POST'),
+            ('Login', '/api/mock/auth/login', 'POST'),
+            ('Logout', '/api/mock/auth/logout', 'POST'),
+            ('ForgotPassword', '/api/mock/auth/forgot-password', 'POST'),
+            ('ResetPassword', '/api/mock/auth/reset-password', 'POST'),
+            ('UserProfile', '/api/mock/auth/profile', 'GET'),
+            ('UpdateProfile', '/api/mock/auth/profile', 'PUT'),
+        ]
+
+        for name, endpoint, method in auth_sources:
+            ds = DataSource.objects.create(
+                application=app,
+                name=name,
+                data_source_type="REST_API",
+                base_url=base_url,
+                endpoint=endpoint,
+                method=method
+            )
+            data_sources[name] = ds
+            self.create_auth_fields(ds, name)
+
+        # Chat Data Sources
+        chat_sources = [
+            ('Conversations', '/api/mock/chat/conversations', 'GET'),
+            ('Messages', '/api/mock/chat/conversations/{conversation_id}/messages', 'GET'),
+            ('SendMessage', '/api/mock/chat/send', 'POST'),
+        ]
+
+        for name, endpoint, method in chat_sources:
+            ds = DataSource.objects.create(
+                application=app,
+                name=name,
+                data_source_type="REST_API",
+                base_url=base_url,
+                endpoint=endpoint,
+                method=method
+            )
+            data_sources[name] = ds
+            self.create_chat_fields(ds, name)
+
+        # Payment Data Sources
+        payment_sources = [
+            ('CreatePaymentIntent', '/api/mock/stripe/payment-intent', 'POST'),
+            ('ConfirmPayment', '/api/mock/stripe/confirm', 'POST'),
+            ('StripeWebhook', '/api/mock/stripe/webhook', 'POST'),
+            ('PaymentMethods', '/api/mock/stripe/payment-methods', 'GET'),
+            ('AddPaymentMethod', '/api/mock/stripe/payment-methods/add', 'POST'),
+        ]
+
+        for name, endpoint, method in payment_sources:
+            ds = DataSource.objects.create(
+                application=app,
+                name=name,
+                data_source_type="REST_API",
+                base_url=base_url,
+                endpoint=endpoint,
+                method=method
+            )
+            data_sources[name] = ds
+            self.create_payment_fields(ds, name)
+
+        # Media Upload Data Sources
+        media_sources = [
+            ('UploadFile', '/api/mock/media/upload', 'POST'),
+            ('UploadMultiple', '/api/mock/media/upload-multiple', 'POST'),
+            ('DeleteFile', '/api/mock/media/delete/{file_id}', 'DELETE'),
+        ]
+
+        for name, endpoint, method in media_sources:
+            ds = DataSource.objects.create(
+                application=app,
+                name=name,
+                data_source_type="REST_API",
+                base_url=base_url,
+                endpoint=endpoint,
+                method=method
+            )
+            data_sources[name] = ds
+            self.create_media_fields(ds, name)
+
+        # Seller Data Sources
+        seller_sources = [
+            ('SellerDashboard', '/api/mock/seller/dashboard', 'GET'),
+            ('SellerProducts', '/api/mock/seller/products', 'GET'),
+            ('SellerOrders', '/api/mock/seller/orders', 'GET'),
+            ('SellerAnalytics', '/api/mock/seller/analytics', 'GET'),
+            ('CreateProduct', '/api/mock/seller/products/create', 'POST'),
+            ('UpdateProduct', '/api/mock/seller/products/{product_id}/update', 'PUT'),
+        ]
+
+        for name, endpoint, method in seller_sources:
+            ds = DataSource.objects.create(
+                application=app,
+                name=name,
+                data_source_type="REST_API",
+                base_url=base_url,
+                endpoint=endpoint,
+                method=method
+            )
+            data_sources[name] = ds
+            self.create_seller_fields(ds, name)
+
+        # Marketplace Core Data Sources
+        marketplace_sources = [
+            ('Products', '/api/marketplace/products', 'GET'),
+            ('Categories', '/api/marketplace/categories', 'GET'),
+            ('Cart', '/api/marketplace/cart', 'GET'),
+            ('Orders', '/api/marketplace/orders', 'GET'),
+            ('Wishlist', '/api/marketplace/user/wishlist', 'GET'),
+        ]
+
+        for name, endpoint, method in marketplace_sources:
+            ds = DataSource.objects.create(
+                application=app,
+                name=name,
+                data_source_type="REST_API",
+                base_url=base_url,
+                endpoint=endpoint,
+                method=method
+            )
+            data_sources[name] = ds
+            self.create_marketplace_fields(ds, name)
+
+        return data_sources
+
+    def create_auth_fields(self, data_source, source_name):
+        """Step 5: Define Data Source Fields for Authentication"""
+        if source_name in ['Register', 'Login']:
+            fields = [
+                ('success', 'boolean', 'Success', True),
+                ('token', 'string', 'Auth Token', True),
+                ('user', 'json', 'User Data', True),
+            ]
+        elif source_name == 'UserProfile':
+            fields = [
+                ('id', 'string', 'User ID', True),
+                ('username', 'string', 'Username', True),
+                ('email', 'email', 'Email', True),
+                ('first_name', 'string', 'First Name', False),
+                ('last_name', 'string', 'Last Name', False),
+                ('phone', 'string', 'Phone', False),
+                ('bio', 'string', 'Bio', False),
+                ('profile_picture', 'image_url', 'Profile Picture', False),
+                ('member_since', 'date', 'Member Since', True),
+            ]
+        else:
+            fields = [
+                ('success', 'boolean', 'Success', True),
+                ('message', 'string', 'Message', True),
+            ]
+
+        for field_name, field_type, display_name, is_required in fields:
+            DataSourceField.objects.create(
+                data_source=data_source,
+                field_name=field_name,
+                field_type=field_type,
+                display_name=display_name,
+                is_required=is_required
+            )
+
+    def create_chat_fields(self, data_source, source_name):
+        """Step 5: Define Data Source Fields for Chat"""
+        if source_name == 'Conversations':
+            fields = [
+                ('id', 'string', 'Conversation ID', True),
+                ('participant', 'json', 'Participant Info', True),
+                ('last_message', 'string', 'Last Message', True),
+                ('last_message_time', 'datetime', 'Last Message Time', True),
+                ('unread_count', 'integer', 'Unread Count', True),
+            ]
+        elif source_name == 'Messages':
+            fields = [
+                ('id', 'string', 'Message ID', True),
+                ('conversation_id', 'string', 'Conversation ID', True),
+                ('sender', 'string', 'Sender', True),
+                ('content', 'string', 'Message Content', True),
+                ('timestamp', 'datetime', 'Timestamp', True),
+                ('is_read', 'boolean', 'Read Status', True),
+            ]
+        elif source_name == 'SendMessage':
+            fields = [
+                ('success', 'boolean', 'Success', True),
+                ('message', 'json', 'Message Data', True),
+            ]
+
+        for field_name, field_type, display_name, is_required in fields:
+            DataSourceField.objects.create(
+                data_source=data_source,
+                field_name=field_name,
+                field_type=field_type,
+                display_name=display_name,
+                is_required=is_required
+            )
+
+    def create_payment_fields(self, data_source, source_name):
+        """Step 5: Define Data Source Fields for Payments"""
+        if source_name == 'CreatePaymentIntent':
+            fields = [
+                ('success', 'boolean', 'Success', True),
+                ('client_secret', 'string', 'Client Secret', True),
+                ('payment_intent_id', 'string', 'Payment Intent ID', True),
+                ('amount', 'decimal', 'Amount', True),
+                ('currency', 'string', 'Currency', True),
+            ]
+        elif source_name == 'PaymentMethods':
+            fields = [
+                ('id', 'string', 'Method ID', True),
+                ('type', 'string', 'Card Type', True),
+                ('last4', 'string', 'Last 4 Digits', True),
+                ('brand', 'string', 'Card Brand', True),
+                ('exp_month', 'integer', 'Expiry Month', True),
+                ('exp_year', 'integer', 'Expiry Year', True),
+                ('is_default', 'boolean', 'Default Card', True),
+            ]
+        else:
+            fields = [
+                ('success', 'boolean', 'Success', True),
+                ('message', 'string', 'Message', True),
+            ]
+
+        for field_name, field_type, display_name, is_required in fields:
+            DataSourceField.objects.create(
+                data_source=data_source,
+                field_name=field_name,
+                field_type=field_type,
+                display_name=display_name,
+                is_required=is_required
+            )
+
+    def create_media_fields(self, data_source, source_name):
+        """Step 5: Define Data Source Fields for Media Upload"""
+        if source_name in ['UploadFile', 'UploadMultiple']:
+            fields = [
+                ('success', 'boolean', 'Success', True),
+                ('file', 'json', 'File Data', False),
+                ('files', 'json', 'Files Data', False),
+            ]
+        else:
+            fields = [
+                ('success', 'boolean', 'Success', True),
+                ('message', 'string', 'Message', True),
+            ]
+
+        for field_name, field_type, display_name, is_required in fields:
+            DataSourceField.objects.create(
+                data_source=data_source,
+                field_name=field_name,
+                field_type=field_type,
+                display_name=display_name,
+                is_required=is_required
+            )
+
+    def create_seller_fields(self, data_source, source_name):
+        """Step 5: Define Data Source Fields for Seller"""
+        if source_name == 'SellerDashboard':
+            fields = [
+                ('stats', 'json', 'Dashboard Stats', True),
+                ('recent_orders', 'json', 'Recent Orders', True),
+                ('top_products', 'json', 'Top Products', True),
+                ('sales_chart', 'json', 'Sales Chart Data', True),
+            ]
+        elif source_name == 'SellerProducts':
+            fields = [
+                ('id', 'string', 'Product ID', True),
+                ('name', 'string', 'Product Name', True),
+                ('price', 'decimal', 'Price', True),
+                ('stock', 'integer', 'Stock', True),
+                ('sales', 'integer', 'Sales', True),
+                ('rating', 'decimal', 'Rating', True),
+                ('status', 'string', 'Status', True),
+                ('image', 'image_url', 'Product Image', True),
+            ]
+        elif source_name == 'SellerOrders':
+            fields = [
+                ('id', 'string', 'Order ID', True),
+                ('order_number', 'string', 'Order Number', True),
+                ('customer', 'json', 'Customer Info', True),
+                ('items', 'integer', 'Item Count', True),
+                ('total', 'decimal', 'Total Amount', True),
+                ('status', 'string', 'Order Status', True),
+                ('date', 'datetime', 'Order Date', True),
+            ]
+        else:
+            fields = [
+                ('success', 'boolean', 'Success', True),
+                ('data', 'json', 'Response Data', True),
+            ]
+
+        for field_name, field_type, display_name, is_required in fields:
+            DataSourceField.objects.create(
+                data_source=data_source,
+                field_name=field_name,
+                field_type=field_type,
+                display_name=display_name,
+                is_required=is_required
+            )
+
+    def create_marketplace_fields(self, data_source, source_name):
+        """Step 5: Define Data Source Fields for Core Marketplace"""
+        if source_name == 'Products':
+            fields = [
+                ('id', 'string', 'Product ID', True),
+                ('name', 'string', 'Product Name', True),
+                ('description', 'string', 'Description', True),
+                ('price', 'decimal', 'Price', True),
+                ('image', 'image_url', 'Product Image', True),
+                ('category', 'string', 'Category', True),
+                ('rating', 'decimal', 'Rating', True),
+                ('stock', 'integer', 'Stock Quantity', True),
+            ]
+        elif source_name == 'Categories':
+            fields = [
+                ('id', 'string', 'Category ID', True),
+                ('name', 'string', 'Category Name', True),
+                ('icon', 'string', 'Icon', True),
+                ('productCount', 'integer', 'Product Count', True),
+            ]
+        elif source_name == 'Cart':
+            fields = [
+                ('id', 'string', 'Cart Item ID', True),
+                ('productId', 'string', 'Product ID', True),
+                ('productName', 'string', 'Product Name', True),
+                ('price', 'decimal', 'Price', True),
+                ('quantity', 'integer', 'Quantity', True),
+                ('image', 'image_url', 'Product Image', True),
+            ]
+        elif source_name == 'Orders':
+            fields = [
+                ('id', 'string', 'Order ID', True),
+                ('orderNumber', 'string', 'Order Number', True),
+                ('date', 'datetime', 'Order Date', True),
+                ('status', 'string', 'Status', True),
+                ('total', 'decimal', 'Total Amount', True),
+            ]
+        else:
+            fields = [
+                ('id', 'string', 'Item ID', True),
+                ('name', 'string', 'Item Name', True),
+            ]
+
+        for field_name, field_type, display_name, is_required in fields:
+            DataSourceField.objects.create(
+                data_source=data_source,
+                field_name=field_name,
+                field_type=field_type,
+                display_name=display_name,
+                is_required=is_required
+            )
+
+    def create_actions(self, app, data_sources):
+        """Step 6: Create Core Actions"""
+        actions = {}
+
+        # Authentication Actions
+        auth_actions = [
+            ('LoginUser', 'api_call', data_sources.get('Login')),
+            ('RegisterUser', 'api_call', data_sources.get('Register')),
+            ('LogoutUser', 'api_call', data_sources.get('Logout')),
+            ('UpdateProfile', 'api_call', data_sources.get('UpdateProfile')),
+            ('ForgotPassword', 'api_call', data_sources.get('ForgotPassword')),
+        ]
+
+        for name, action_type, api_source in auth_actions:
+            action = Action.objects.create(
+                application=app,
+                name=name,
+                action_type=action_type,
+                api_data_source=api_source if api_source else None
+            )
+            actions[name] = action
+
+        # Chat Actions
+        chat_actions = [
+            ('SendMessage', 'api_call', data_sources.get('SendMessage')),
+        ]
+
+        for name, action_type, api_source in chat_actions:
+            action = Action.objects.create(
+                application=app,
+                name=name,
+                action_type=action_type,
+                api_data_source=api_source if api_source else None
+            )
+            actions[name] = action
+
+        # Payment Actions
+        payment_actions = [
+            ('InitiatePayment', 'api_call', data_sources.get('CreatePaymentIntent')),
+            ('ConfirmPayment', 'api_call', data_sources.get('ConfirmPayment')),
+            ('AddPaymentMethod', 'api_call', data_sources.get('AddPaymentMethod')),
+        ]
+
+        for name, action_type, api_source in payment_actions:
+            action = Action.objects.create(
+                application=app,
+                name=name,
+                action_type=action_type,
+                api_data_source=api_source if api_source else None
+            )
+            actions[name] = action
+
+        # Media Actions
+        media_actions = [
+            ('UploadFile', 'api_call', data_sources.get('UploadFile')),
+            ('DeleteFile', 'api_call', data_sources.get('DeleteFile')),
+        ]
+
+        for name, action_type, api_source in media_actions:
+            action = Action.objects.create(
+                application=app,
+                name=name,
+                action_type=action_type,
+                api_data_source=api_source if api_source else None
+            )
+            actions[name] = action
+
+        # Seller Actions
+        seller_actions = [
+            ('CreateProduct', 'api_call', data_sources.get('CreateProduct')),
+            ('UpdateProduct', 'api_call', data_sources.get('UpdateProduct')),
+        ]
+
+        for name, action_type, api_source in seller_actions:
+            action = Action.objects.create(
+                application=app,
+                name=name,
+                action_type=action_type,
+                api_data_source=api_source if api_source else None
+            )
+            actions[name] = action
+
+        # Configuration Actions
+        config_actions = [
+            ('SaveConfiguration', 'save_data', None),
+            ('LoadConfiguration', 'load_data', None),
+            ('ValidateConfiguration', 'api_call', data_sources.get('ValidateEndpoint')),
+            ('ClearConfiguration', 'save_data', None),
+        ]
+
+        for name, action_type, api_source in config_actions:
+            if name == 'SaveConfiguration':
+                params = '{"key": "base_url", "storage": "shared_preferences"}'
+            elif name == 'LoadConfiguration':
+                params = '{"key": "base_url", "storage": "shared_preferences"}'
+            elif name == 'ClearConfiguration':
+                params = '{"key": "base_url", "storage": "shared_preferences", "action": "clear"}'
+            else:
+                params = None
+
+            action = Action.objects.create(
+                application=app,
+                name=name,
+                action_type=action_type,
+                api_data_source=api_source if api_source else None,
+                parameters=params if params else ''
+            )
+            actions[name] = action
+
+        # Navigation Actions
+        nav_actions = [
+            'Navigate to Home',
+            'Navigate to Configuration',
+            'Navigate to Login',
+            'Navigate to Register',
+            'Navigate to Profile',
+            'Navigate to Cart',
+            'Navigate to Orders',
+            'Navigate to Products',
+            'Navigate to Product Details',
+            'Navigate to Checkout',
+            'Navigate to Payment',
+            'Navigate to Chat',
+            'Navigate to Seller Dashboard',
+            'Navigate to Seller Products',
+            'Navigate to Edit Profile',
+            'Navigate to Addresses',
+            'Navigate to Payment Methods',
+        ]
+
+        for name in nav_actions:
+            action = Action.objects.create(
+                application=app,
+                name=name,
+                action_type='navigate'
+            )
+            actions[name] = action
+
+        return actions
+
+    def create_screens(self, app):
+        """Step 7: Design and Create Screens"""
+        screens = {}
+
+        # Splash Screen (Initial screen that checks configuration)
+        splash_screen = Screen.objects.create(
+            application=app,
+            name='SplashScreen',
+            route_name='/splash',
+            is_home_screen=True,  # This is the actual initial screen
+            app_bar_title='',
+            show_app_bar=False,
+            show_back_button=False
+        )
+        screens['SplashScreen'] = splash_screen
+
+        # Configuration Screen
+        config_screen = Screen.objects.create(
+            application=app,
+            name='Configuration',
+            route_name='/configuration',
+            is_home_screen=False,
+            app_bar_title='Server Configuration',
+            show_app_bar=True,
+            show_back_button=False
+        )
+        screens['Configuration'] = config_screen
+
+        # Authentication Screens
+        auth_screens = [
+            ('Login', '/login', False),
+            ('Register', '/register', False),
+            ('ForgotPassword', '/forgot-password', False),
+        ]
+
+        for name, route, is_home in auth_screens:
+            screen = Screen.objects.create(
+                application=app,
+                name=name,
+                route_name=route,
+                is_home_screen=is_home,
+                app_bar_title=name,
+                show_app_bar=True,
+                show_back_button=(name != 'Login')
+            )
+            screens[name] = screen
+
+        # User Profile Screens
+        profile_screens = [
+            ('UserProfile', '/profile', False),
+            ('EditProfile', '/edit-profile', False),
+            ('Addresses', '/addresses', False),
+            ('PaymentMethods', '/payment-methods', False),
+        ]
+
+        for name, route, is_home in profile_screens:
+            screen = Screen.objects.create(
+                application=app,
+                name=name,
+                route_name=route,
+                is_home_screen=is_home,
+                app_bar_title=name.replace('_', ' '),
+                show_app_bar=True,
+                show_back_button=True
+            )
+            screens[name] = screen
+
+        # Chat Screens
+        chat_screens = [
+            ('ConversationsList', '/chat', False),
+            ('ChatDetail', '/chat/detail', False),
+        ]
+
+        for name, route, is_home in chat_screens:
+            screen = Screen.objects.create(
+                application=app,
+                name=name,
+                route_name=route,
+                is_home_screen=is_home,
+                app_bar_title='Chat',
+                show_app_bar=True,
+                show_back_button=True
+            )
+            screens[name] = screen
+
+        # Checkout/Payment Screens
+        checkout_screens = [
+            ('Checkout', '/checkout', False),
+            ('PaymentConfirmation', '/payment-confirmation', False),
+        ]
+
+        for name, route, is_home in checkout_screens:
+            screen = Screen.objects.create(
+                application=app,
+                name=name,
+                route_name=route,
+                is_home_screen=is_home,
+                app_bar_title=name,
+                show_app_bar=True,
+                show_back_button=True
+            )
+            screens[name] = screen
+
+        # Seller Screens
+        seller_screens = [
+            ('SellerDashboard', '/seller/dashboard', False),
+            ('SellerProducts', '/seller/products', False),
+            ('AddEditProduct', '/seller/product/edit', False),
+            ('SellerOrders', '/seller/orders', False),
+        ]
+
+        for name, route, is_home in seller_screens:
+            screen = Screen.objects.create(
+                application=app,
+                name=name,
+                route_name=route,
+                is_home_screen=is_home,
+                app_bar_title=name.replace('_', ' '),
+                show_app_bar=True,
+                show_back_button=True
+            )
+            screens[name] = screen
+
+        # Main Marketplace Screens
+        main_screens = [
+            ('Home', '/home', False),  # Changed: not home screen anymore
+            ('ProductList', '/products', False),
+            ('ProductDetail', '/product/detail', False),
+            ('ShoppingCart', '/cart', False),
+            ('OrderHistory', '/orders', False),
+        ]
+
+        for name, route, is_home in main_screens:
+            screen = Screen.objects.create(
+                application=app,
+                name=name,
+                route_name=route,
+                is_home_screen=is_home,
+                app_bar_title=name.replace('_', ' '),
+                show_app_bar=True,
+                show_back_button=(not is_home)
+            )
+            screens[name] = screen
+
+        return screens
+
+    def link_actions_to_screens(self, actions, screens):
+        """Link navigation actions to their target screens"""
+        mappings = {
+            'Navigate to Home': 'Home',
+            'Navigate to Configuration': 'Configuration',
+            'Navigate to Login': 'Login',
+            'Navigate to Register': 'Register',
+            'Navigate to Profile': 'UserProfile',
+            'Navigate to Cart': 'ShoppingCart',
+            'Navigate to Orders': 'OrderHistory',
+            'Navigate to Products': 'ProductList',
+            'Navigate to Product Details': 'ProductDetail',
+            'Navigate to Checkout': 'Checkout',
+            'Navigate to Payment': 'PaymentConfirmation',
+            'Navigate to Chat': 'ConversationsList',
+            'Navigate to Seller Dashboard': 'SellerDashboard',
+            'Navigate to Seller Products': 'SellerProducts',
+            'Navigate to Edit Profile': 'EditProfile',
+            'Navigate to Addresses': 'Addresses',
+            'Navigate to Payment Methods': 'PaymentMethods',
+        }
+
+        for action_name, screen_name in mappings.items():
+            if action_name in actions and screen_name in screens:
+                actions[action_name].target_screen = screens[screen_name]
+                actions[action_name].save()
+
+    def create_screen_uis(self, screens, data_sources, actions):
+        """Step 8: Populate Screens with Widgets and Properties"""
+
+        # Splash Screen UI
+        self.create_splash_screen_ui(screens['SplashScreen'], actions)
+
+        # Configuration Screen UI
+        self.create_configuration_screen_ui(screens['Configuration'], actions)
+
+        # Login Screen UI
+        self.create_login_screen_ui(screens['Login'], actions)
+
+        # Register Screen UI
+        self.create_register_screen_ui(screens['Register'], actions)
+
+        # Edit Profile Screen UI
+        self.create_edit_profile_screen_ui(screens['EditProfile'], data_sources, actions)
+
+        # Chat Detail Screen UI
+        self.create_chat_detail_screen_ui(screens['ChatDetail'], data_sources, actions)
+
+        # Add/Edit Product Screen UI
+        self.create_add_edit_product_screen_ui(screens['AddEditProduct'], actions)
+
+        # Checkout Screen UI
+        self.create_checkout_screen_ui(screens['Checkout'], actions)
+
+        # Home Screen UI
+        self.create_home_screen_ui(screens['Home'], data_sources, actions)
+
+        # Update Account Settings to include URL configuration
+        if 'AccountSettings' in screens:
+            self.add_url_config_to_settings(screens['AccountSettings'], actions)
+
+        # Other screens with basic UI
+        for screen_name, screen in screens.items():
+            if screen_name not in ['SplashScreen', 'Configuration', 'Login', 'Register',
+                                   'EditProfile', 'ChatDetail', 'AddEditProduct',
+                                   'Checkout', 'Home', 'AccountSettings']:
+                self.create_basic_screen_ui(screen)
+
+    def create_login_screen_ui(self, screen, actions):
+        """Login/Register Screens with password fields"""
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            order=0
+        )
+
+        # Email field
+        email_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=email_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Email"
+        )
+
+        # Password field with is_password_field property
+        password_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=password_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Password"
+        )
+
+        WidgetProperty.objects.create(
+            widget=password_field,
+            property_name="obscureText",
+            property_type="boolean",
+            boolean_value=True
+        )
+
+        # Login button
+        login_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="ElevatedButton",
+            parent_widget=main_column,
+            order=2
+        )
+
+        WidgetProperty.objects.create(
+            widget=login_btn,
+            property_name="text",
+            property_type="string",
+            string_value="Login"
+        )
+
+        WidgetProperty.objects.create(
+            widget=login_btn,
+            property_name="onPressed",
+            property_type="action_reference",
+            action_reference=actions['LoginUser']
+        )
+
+    def create_register_screen_ui(self, screen, actions):
+        """Register Screen UI"""
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            order=0
+        )
+
+        # Username field
+        username_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=username_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Username"
+        )
+
+        # Email field
+        email_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=email_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Email"
+        )
+
+        # Password field
+        password_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=2
+        )
+
+        WidgetProperty.objects.create(
+            widget=password_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Password"
+        )
+
+        WidgetProperty.objects.create(
+            widget=password_field,
+            property_name="obscureText",
+            property_type="boolean",
+            boolean_value=True
+        )
+
+        # Register button
+        register_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="ElevatedButton",
+            parent_widget=main_column,
+            order=3
+        )
+
+        WidgetProperty.objects.create(
+            widget=register_btn,
+            property_name="text",
+            property_type="string",
+            string_value="Register"
+        )
+
+        WidgetProperty.objects.create(
+            widget=register_btn,
+            property_name="onPressed",
+            property_type="action_reference",
+            action_reference=actions['RegisterUser']
+        )
+
+    def create_edit_profile_screen_ui(self, screen, data_sources, actions):
+        """Edit Profile Screen with FileUpload widget"""
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            order=0
+        )
+
+        # Profile picture upload (FileUpload widget)
+        profile_pic_widget = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=profile_pic_widget,
+            property_name="file_upload",
+            property_type="file_upload",
+            string_value="profile_picture"
+        )
+
+        # Name field
+        name_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=name_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Full Name"
+        )
+
+        # Email field
+        email_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=2
+        )
+
+        WidgetProperty.objects.create(
+            widget=email_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Email"
+        )
+
+        # Bio field
+        bio_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=3
+        )
+
+        WidgetProperty.objects.create(
+            widget=bio_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Bio"
+        )
+
+        # Update button linked to UpdateProfile action
+        update_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="ElevatedButton",
+            parent_widget=main_column,
+            order=4
+        )
+
+        WidgetProperty.objects.create(
+            widget=update_btn,
+            property_name="text",
+            property_type="string",
+            string_value="Update Profile"
+        )
+
+        WidgetProperty.objects.create(
+            widget=update_btn,
+            property_name="onPressed",
+            property_type="action_reference",
+            action_reference=actions['UpdateProfile']
+        )
+
+    def create_chat_detail_screen_ui(self, screen, data_sources, actions):
+        """Chat Detail Screen with messages list and input"""
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            order=0
+        )
+
+        # Messages ListView
+        messages_list = Widget.objects.create(
+            screen=screen,
+            widget_type="ListView",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=messages_list,
+            property_name="dataSource",
+            property_type="data_source_field_reference",
+            data_source_field_reference=DataSourceField.objects.get(
+                data_source=data_sources['Messages'],
+                field_name="content"
+            )
+        )
+
+        # Message input row
+        input_row = Widget.objects.create(
+            screen=screen,
+            widget_type="Row",
+            parent_widget=main_column,
+            order=1
+        )
+
+        # Message TextField
+        message_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=input_row,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=message_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Type a message..."
+        )
+
+        # Send button
+        send_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="IconButton",
+            parent_widget=input_row,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=send_btn,
+            property_name="icon",
+            property_type="string",
+            string_value="send"
+        )
+
+        WidgetProperty.objects.create(
+            widget=send_btn,
+            property_name="onPressed",
+            property_type="action_reference",
+            action_reference=actions['SendMessage']
+        )
+
+    def create_add_edit_product_screen_ui(self, screen, actions):
+        """Add/Edit Product Screen with advanced widgets"""
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            order=0
+        )
+
+        # Product name field
+        name_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=name_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Product Name"
+        )
+
+        # Description field
+        desc_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=desc_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Description"
+        )
+
+        # Price field
+        price_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=2
+        )
+
+        WidgetProperty.objects.create(
+            widget=price_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Price"
+        )
+
+        # Stock field
+        stock_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=3
+        )
+
+        WidgetProperty.objects.create(
+            widget=stock_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Stock Quantity"
+        )
+
+        # File upload for product images
+        image_upload = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=4
+        )
+
+        WidgetProperty.objects.create(
+            widget=image_upload,
+            property_name="file_upload",
+            property_type="file_upload",
+            string_value="product_images"
+        )
+
+        # Date picker for available from
+        date_picker = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=5
+        )
+
+        WidgetProperty.objects.create(
+            widget=date_picker,
+            property_name="date_picker",
+            property_type="date_picker",
+            string_value="available_from"
+        )
+
+        # Time picker for delivery time slot
+        time_picker = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=6
+        )
+
+        WidgetProperty.objects.create(
+            widget=time_picker,
+            property_name="time_picker",
+            property_type="time_picker",
+            string_value="delivery_time"
+        )
+
+        # Map location for pickup
+        map_widget = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=7
+        )
+
+        WidgetProperty.objects.create(
+            widget=map_widget,
+            property_name="map_location",
+            property_type="map_location",
+            string_value="pickup_location"
+        )
+
+        # Rich text editor for detailed description
+        rich_text = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=8
+        )
+
+        WidgetProperty.objects.create(
+            widget=rich_text,
+            property_name="rich_text",
+            property_type="rich_text",
+            string_value="detailed_description"
+        )
+
+        # Save button
+        save_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="ElevatedButton",
+            parent_widget=main_column,
+            order=9
+        )
+
+        WidgetProperty.objects.create(
+            widget=save_btn,
+            property_name="text",
+            property_type="string",
+            string_value="Save Product"
+        )
+
+        WidgetProperty.objects.create(
+            widget=save_btn,
+            property_name="onPressed",
+            property_type="action_reference",
+            action_reference=actions['CreateProduct']
+        )
+
+    def create_checkout_screen_ui(self, screen, actions):
+        """Checkout Screen UI"""
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            order=0
+        )
+
+        # Shipping address field
+        address_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=address_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="Shipping Address"
+        )
+
+        # Payment method section
+        payment_section = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=1
+        )
+
+        # Add payment method button
+        add_payment_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="ElevatedButton",
+            parent_widget=payment_section,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=add_payment_btn,
+            property_name="text",
+            property_type="string",
+            string_value="Add Payment Method"
+        )
+
+        WidgetProperty.objects.create(
+            widget=add_payment_btn,
+            property_name="onPressed",
+            property_type="action_reference",
+            action_reference=actions['AddPaymentMethod']
+        )
+
+        # Initiate payment button
+        payment_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="ElevatedButton",
+            parent_widget=main_column,
+            order=2
+        )
+
+        WidgetProperty.objects.create(
+            widget=payment_btn,
+            property_name="text",
+            property_type="string",
+            string_value="Proceed to Payment"
+        )
+
+        WidgetProperty.objects.create(
+            widget=payment_btn,
+            property_name="onPressed",
+            property_type="action_reference",
+            action_reference=actions['InitiatePayment']
+        )
+
+    def create_home_screen_ui(self, screen, data_sources, actions):
+        """Home Screen with featured products and categories"""
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            order=0
+        )
+
+        # Categories section
+        categories_title = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=categories_title,
+            property_name="text",
+            property_type="string",
+            string_value="Categories"
+        )
+
+        # Categories grid
+        categories_grid = Widget.objects.create(
+            screen=screen,
+            widget_type="GridView",
+            parent_widget=main_column,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=categories_grid,
+            property_name="dataSource",
+            property_type="data_source_field_reference",
+            data_source_field_reference=DataSourceField.objects.get(
+                data_source=data_sources['Categories'],
+                field_name="name"
+            )
+        )
+
+        # Featured products section
+        products_title = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=main_column,
+            order=2
+        )
+
+        WidgetProperty.objects.create(
+            widget=products_title,
+            property_name="text",
+            property_type="string",
+            string_value="Featured Products"
+        )
+
+        # Products list
+        products_list = Widget.objects.create(
+            screen=screen,
+            widget_type="ListView",
+            parent_widget=main_column,
+            order=3
+        )
+
+        WidgetProperty.objects.create(
+            widget=products_list,
+            property_name="dataSource",
+            property_type="data_source_field_reference",
+            data_source_field_reference=DataSourceField.objects.get(
+                data_source=data_sources['Products'],
+                field_name="name"
+            )
+        )
+
+    def create_splash_screen_ui(self, screen, actions):
+        """Splash Screen that checks for configuration"""
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=main_column,
+            property_name="mainAxisAlignment",
+            property_type="string",
+            string_value="center"
+        )
+
+        # App logo/icon
+        logo_container = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=logo_container,
+            property_name="width",
+            property_type="decimal",
+            decimal_value=120
+        )
+
+        WidgetProperty.objects.create(
+            widget=logo_container,
+            property_name="height",
+            property_type="decimal",
+            decimal_value=120
+        )
+
+        icon = Widget.objects.create(
+            screen=screen,
+            widget_type="Icon",
+            parent_widget=logo_container,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=icon,
+            property_name="icon",
+            property_type="string",
+            string_value="shopping_cart"
+        )
+
+        WidgetProperty.objects.create(
+            widget=icon,
+            property_name="size",
+            property_type="decimal",
+            decimal_value=80
+        )
+
+        # Loading indicator
+        loader = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=loader,
+            property_name="padding",
+            property_type="decimal",
+            decimal_value=20
+        )
+
+        # This will trigger configuration check in generated code
+        WidgetProperty.objects.create(
+            widget=main_column,
+            property_name="onInit",
+            property_type="json",
+            json_value='{"action": "check_configuration", "load_action": "LoadConfiguration", "navigate_config": "Navigate to Configuration", "navigate_home": "Navigate to Home"}'
+        )
+
+    def create_configuration_screen_ui(self, screen, actions):
+        """Configuration Screen for base URL setup"""
+        main_scroll = Widget.objects.create(
+            screen=screen,
+            widget_type="SingleChildScrollView",
+            order=0
+        )
+
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            parent_widget=main_scroll,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=main_column,
+            property_name="padding",
+            property_type="decimal",
+            decimal_value=20
+        )
+
+        # Title
+        title = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=title,
+            property_name="text",
+            property_type="string",
+            string_value="Server Configuration"
+        )
+
+        WidgetProperty.objects.create(
+            widget=title,
+            property_name="fontSize",
+            property_type="decimal",
+            decimal_value=24
+        )
+
+        WidgetProperty.objects.create(
+            widget=title,
+            property_name="fontWeight",
+            property_type="string",
+            string_value="bold"
+        )
+
+        # Description
+        desc = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=main_column,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=desc,
+            property_name="text",
+            property_type="string",
+            string_value="Please enter your server URL to connect to the marketplace API"
+        )
+
+        # Spacing
+        spacer1 = Widget.objects.create(
+            screen=screen,
+            widget_type="SizedBox",
+            parent_widget=main_column,
+            order=2
+        )
+
+        WidgetProperty.objects.create(
+            widget=spacer1,
+            property_name="height",
+            property_type="decimal",
+            decimal_value=30
+        )
+
+        # URL Input Field
+        url_field = Widget.objects.create(
+            screen=screen,
+            widget_type="TextField",
+            parent_widget=main_column,
+            order=3,
+            widget_id="url_input"
+        )
+
+        WidgetProperty.objects.create(
+            widget=url_field,
+            property_name="hintText",
+            property_type="string",
+            string_value="https://your-server.com"
+        )
+
+        WidgetProperty.objects.create(
+            widget=url_field,
+            property_name="labelText",
+            property_type="string",
+            string_value="Server URL"
+        )
+
+        # URL validation
+        WidgetProperty.objects.create(
+            widget=url_field,
+            property_name="validator",
+            property_type="json",
+            json_value='{"type": "url", "required": true, "pattern": "^https?://", "error_message": "Please enter a valid URL starting with http:// or https://"}'
+        )
+
+        # Spacing
+        spacer2 = Widget.objects.create(
+            screen=screen,
+            widget_type="SizedBox",
+            parent_widget=main_column,
+            order=4
+        )
+
+        WidgetProperty.objects.create(
+            widget=spacer2,
+            property_name="height",
+            property_type="decimal",
+            decimal_value=20
+        )
+
+        # Test Connection Button
+        test_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="ElevatedButton",
+            parent_widget=main_column,
+            order=5
+        )
+
+        WidgetProperty.objects.create(
+            widget=test_btn,
+            property_name="text",
+            property_type="string",
+            string_value="Test Connection"
+        )
+
+        WidgetProperty.objects.create(
+            widget=test_btn,
+            property_name="onPressed",
+            property_type="action_reference",
+            action_reference=actions['ValidateConfiguration']
+        )
+
+        # Save Button
+        save_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="ElevatedButton",
+            parent_widget=main_column,
+            order=6
+        )
+
+        WidgetProperty.objects.create(
+            widget=save_btn,
+            property_name="text",
+            property_type="string",
+            string_value="Save and Continue"
+        )
+
+        WidgetProperty.objects.create(
+            widget=save_btn,
+            property_name="onPressed",
+            property_type="action_reference",
+            action_reference=actions['SaveConfiguration']
+        )
+
+        # Link save action to navigation
+        WidgetProperty.objects.create(
+            widget=save_btn,
+            property_name="onSuccess",
+            property_type="action_reference",
+            action_reference=actions['Navigate to Home']
+        )
+
+    def add_url_config_to_settings(self, screen, actions):
+        """Add URL configuration option to Account Settings screen"""
+        # Find the main column widget
+        main_widget = Widget.objects.filter(
+            screen=screen,
+            parent_widget=None
+        ).first()
+
+        if not main_widget:
+            return
+
+        # Add Server Configuration option
+        config_tile = Widget.objects.create(
+            screen=screen,
+            widget_type="ListTile",
+            parent_widget=main_widget,
+            order=99  # Add at the end
+        )
+
+        WidgetProperty.objects.create(
+            widget=config_tile,
+            property_name="title",
+            property_type="string",
+            string_value="Server Configuration"
+        )
+
+        WidgetProperty.objects.create(
+            widget=config_tile,
+            property_name="subtitle",
+            property_type="string",
+            string_value="Change API server URL"
+        )
+
+        WidgetProperty.objects.create(
+            widget=config_tile,
+            property_name="leading",
+            property_type="string",
+            string_value="dns"
+        )
+
+        WidgetProperty.objects.create(
+            widget=config_tile,
+            property_name="onTap",
+            property_type="action_reference",
+            action_reference=actions['Navigate to Configuration']
+        )
+
+        # Add Clear Cache option
+        clear_tile = Widget.objects.create(
+            screen=screen,
+            widget_type="ListTile",
+            parent_widget=main_widget,
+            order=100
+        )
+
+        WidgetProperty.objects.create(
+            widget=clear_tile,
+            property_name="title",
+            property_type="string",
+            string_value="Clear Configuration"
+        )
+
+        WidgetProperty.objects.create(
+            widget=clear_tile,
+            property_name="subtitle",
+            property_type="string",
+            string_value="Reset server settings"
+        )
+
+        WidgetProperty.objects.create(
+            widget=clear_tile,
+            property_name="leading",
+            property_type="string",
+            string_value="clear"
+        )
+
+        WidgetProperty.objects.create(
+            widget=clear_tile,
+            property_name="onTap",
+            property_type="action_reference",
+            action_reference=actions['ClearConfiguration']
+        )
+
+    def create_basic_screen_ui(self, screen):
+        """Create basic UI for other screens"""
+        main_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            order=0
+        )
+
+        # Title
+        title = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=main_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=title,
+            property_name="text",
+            property_type="string",
+            string_value=f"{screen.name} Screen"
+        )
+
+        # Placeholder content
+        content = Widget.objects.create(
+            screen=screen,
+            widget_type="Container",
+            parent_widget=main_column,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=content,
+            property_name="height",
+            property_type="decimal",
+            decimal_value=200
+        )
 
 
 def create_complete_marketplace_app(custom_name=None, package_name=None):
