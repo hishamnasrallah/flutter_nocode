@@ -1,12 +1,18 @@
-# File Path: core/management/commands/create_full_marketplace.py
-# File Name: create_full_marketplace.py
+"""
+Complete Marketplace Application with 40+ Unique Pages
+File: core/management/commands/create_marketplace_app.py
 
+This creates a FULL production-ready marketplace application with:
+- Complete user authentication flow
+- Product browsing and search
+- Shopping cart and checkout
+- Order management
+- User profiles and settings
+- Vendor/seller functionality
+- Reviews and ratings
+- Customer support
+- And much more...
 """
-COMPLETE MARKETPLACE APPLICATION GENERATOR
-Creates a full-featured marketplace with 56+ screens and 160+ widgets
-All data fetched from mock APIs - Nothing hardcoded
-"""
-import json
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -14,24 +20,24 @@ from core.models import (
     Application, Theme, Screen, Widget, WidgetProperty,
     Action, DataSource, DataSourceField
 )
+import json
 import uuid
-import random
 
 
 class Command(BaseCommand):
-    help = 'Create a complete marketplace application with 56+ pages and 160+ widgets'
+    help = 'Create a complete marketplace application with 40+ pages'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--name',
             type=str,
-            default='MegaMart Pro',
+            default='MarketHub Pro',
             help='Custom name for the marketplace application'
         )
         parser.add_argument(
             '--package',
             type=str,
-            default='com.megamart.pro',
+            default='com.markethub.pro',
             help='Package identifier for the application'
         )
 
@@ -41,22 +47,16 @@ class Command(BaseCommand):
 
         try:
             with transaction.atomic():
-                app = create_complete_marketplace(app_name, package_name)
+                app = create_complete_marketplace_app(app_name, package_name)
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'\n✅ SUCCESSFULLY CREATED COMPLETE MARKETPLACE APPLICATION!\n'
-                        f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-                        f'📱 Application: {app.name}\n'
+                        f'✅ Successfully created COMPLETE marketplace application: {app.name}\n'
                         f'📦 Package: {package_name}\n'
-                        f'📊 Statistics:\n'
-                        f'   • 56 Unique Screens Created\n'
-                        f'   • 160+ Different Widgets Configured\n'
-                        f'   • 30+ Data Sources Connected\n'
-                        f'   • 100+ Actions Configured\n'
-                        f'   • Complete Navigation System\n'
-                        f'   • Full Mock API Integration\n'
-                        f'━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
-                        f'🚀 Ready for Production!\n'
+                        f'📱 40+ Unique Pages Created\n'
+                        f'🎨 Full UI/UX Implemented\n'
+                        f'📊 Complete Mock Data System\n'
+                        f'🔧 All Features Configured\n'
+                        f'✨ Ready for Production!'
                     )
                 )
         except Exception as e:
@@ -65,22 +65,30 @@ class Command(BaseCommand):
             )
 
 
-def create_complete_marketplace(custom_name=None, package_name=None):
-    """Create the complete marketplace application with all features"""
+def create_complete_marketplace_app(custom_name=None, package_name=None):
+    """Create a complete marketplace application with 40+ pages"""
 
     print("🚀 Creating Complete Marketplace Application...")
 
     # Create professional theme
-    theme = create_marketplace_theme()
+    theme = Theme.objects.create(
+        name="MarketHub Professional Theme",
+        primary_color="#6366F1",  # Indigo
+        accent_color="#F59E0B",  # Amber
+        background_color="#FFFFFF",
+        text_color="#1F2937",
+        font_family="Inter",
+        is_dark_mode=False
+    )
 
     # Create application
     app = Application.objects.create(
-        name=custom_name or "MegaMart Pro - Complete Marketplace",
-        description="""A fully-featured marketplace application with 56+ unique screens including:
-        authentication, product browsing, advanced search, AR view, seller management, 
-        live chat, order tracking, loyalty program, wallet, referrals, and much more.
-        Complete with 160+ widgets and full API integration.""",
-        package_name=package_name or "com.megamart.pro",
+        name=custom_name or "MarketHub Pro - Complete Marketplace",
+        description="""A fully-featured marketplace application with 40+ unique pages including:
+        authentication, product browsing, search, filters, cart, checkout, payments,
+        order tracking, user profiles, vendor management, reviews, support, and more.
+        Production-ready with complete UI/UX and functionality.""",
+        package_name=package_name or "com.markethub.pro",
         version="1.0.0",
         theme=theme
     )
@@ -88,302 +96,584 @@ def create_complete_marketplace(custom_name=None, package_name=None):
     print("📊 Creating comprehensive data sources...")
     data_sources = create_all_data_sources(app)
 
-    print("🎯 Creating all actions...")
+    print("🎯 Creating actions...")
     actions = create_all_actions(app)
 
-    print("📱 Creating 56 unique screens...")
+    print("📱 Creating 40+ unique screens...")
     screens = create_all_screens(app)
 
     print("🔗 Linking navigation actions to screens...")
-    link_navigation_actions(actions, screens)
+    update_action_targets(actions, screens)
 
-    print("🎨 Creating complete UI with 160+ widgets...")
+    print("🎨 Creating complete UI for all screens...")
     create_all_screen_uis(screens, data_sources, actions)
 
     print("✅ Complete marketplace application created successfully!")
     return app
 
 
-def create_marketplace_theme():
-    """Create a professional marketplace theme"""
-    return Theme.objects.create(
-        name="MegaMart Professional Theme",
-        primary_color="#FF6B35",  # Orange
-        accent_color="#4ECDC4",  # Teal
-        background_color="#F7F9FC",
-        text_color="#2D3436",
-        font_family="Inter",
-        is_dark_mode=False
+def create_all_data_sources(app):
+    """Create all data sources for the marketplace"""
+    data_sources = {}
+
+    # Base URL for mock APIs
+    base_url = "https://api.markethub.com"
+
+    # 1. Products Data Source
+    products_ds = DataSource.objects.create(
+        application=app,
+        name="Products",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/products",
+        method="GET"
     )
 
-
-def create_all_data_sources(app):
-    """Create all 30+ data sources for the marketplace"""
-    data_sources = {}
-    base_url = "https://ericsson-hill-ten-cats.trycloudflare.com"  # Changed to remove /api/marketplace
-
-    # Product Management Data Sources
-    sources_config = [
-        ("Products", "/api/marketplace/products", ["id", "name", "price", "image", "rating", "seller", "category", "discount"]),
-        ("Product Details", "/api/marketplace/products/{id}",
-         ["id", "name", "description", "price", "images", "specifications", "reviews"]),
-        ("Categories", "/api/marketplace/categories", ["id", "name", "icon", "image", "productCount", "subcategories"]),
-        ("Trending Products", "/api/marketplace/products/trending", ["id", "name", "price", "image", "trendScore"]),
-        ("Flash Sales", "/api/marketplace/flash-sales", ["id", "productId", "discountPercent", "endTime", "stock"]),
-        ("New Arrivals", "/api/marketplace/products/new-arrivals", ["id", "name", "price", "image", "arrivalDate"]),
-        ("Best Sellers", "/api/marketplace/best-sellers", ["id", "name", "price", "soldCount", "image"]),
-        ("Deals", "/api/marketplace/products/deals", ["id", "title", "discount", "validUntil", "products"]),
-
-        # User Account Data Sources
-        ("User Profile", "/api/marketplace/user/profile", ["id", "name", "email", "avatar", "memberSince", "tier"]),
-        ("Addresses", "/api/marketplace/user/addresses", ["id", "name", "street", "city", "state", "zipCode", "isDefault"]),
-        ("Payment Cards", "/api/marketplace/user/cards", ["id", "lastFour", "brand", "expiryMonth", "expiryYear", "isDefault"]),
-        ("Wishlist", "/api/marketplace/user/wishlist", ["id", "productId", "productName", "price", "image", "addedDate"]),
-        ("Recently Viewed", "/api/marketplace/user/recently-viewed", ["id", "productId", "viewedAt", "productName", "price"]),
-        ("Loyalty Points", "/api/marketplace/user/loyalty-points", ["totalPoints", "availablePoints", "history", "rewards"]),
-        ("Wallet", "/api/marketplace/user/wallet", ["balance", "transactions", "pendingAmount"]),
-        ("Referrals", "/api/marketplace/user/referrals", ["referralCode", "referredUsers", "earnings", "pendingEarnings"]),
-
-        # Cart & Orders
-        ("Cart", "/api/marketplace/cart", ["id", "productId", "productName", "price", "quantity", "image", "subtotal"]),
-        ("Orders", "/api/marketplace/orders", ["id", "orderNumber", "date", "status", "total", "items"]),
-        ("Order Details", "/orders/{id}", ["id", "products", "shipping", "payment", "timeline"]),
-        ("Order Tracking", "/orders/{id}/tracking", ["status", "location", "estimatedDelivery", "updates"]),
-        ("Returns", "/returns", ["id", "orderId", "reason", "status", "refundAmount"]),
-
-        # Sellers
-        ("Sellers", "/sellers", ["id", "name", "logo", "rating", "productCount", "followers"]),
-        ("Seller Details", "/sellers/{id}", ["id", "name", "description", "policies", "products"]),
-        ("Seller Dashboard", "/seller/dashboard", ["sales", "orders", "revenue", "products", "metrics"]),
-        ("Seller Analytics", "/seller/analytics", ["views", "conversions", "revenue", "topProducts"]),
-
-        # Reviews & Communication
-        ("Reviews", "/reviews", ["id", "productId", "rating", "title", "comment", "userName", "date"]),
-        ("Questions", "/questions", ["id", "productId", "question", "answer", "askedBy", "answeredBy"]),
-        ("Notifications", "/notifications", ["id", "title", "message", "type", "date", "read"]),
-        ("Messages", "/messages", ["id", "senderId", "senderName", "message", "timestamp", "read"]),
-        ("Chat", "/chat/{sellerId}", ["messages", "sellerId", "sellerName", "online"]),
-
-        # Support & Help
-        ("FAQs", "/faqs", ["id", "category", "question", "answer"]),
-        ("Help Articles", "/help-articles", ["id", "title", "content", "category", "helpful"]),
-        ("Support Tickets", "/tickets", ["id", "subject", "status", "priority", "createdAt"]),
-
-        # Offers & Promotions
-        ("Coupons", "/coupons", ["code", "discount", "minPurchase", "validUntil", "used"]),
-        ("Gift Cards", "/gift-cards", ["id", "code", "balance", "expiryDate"]),
-        ("Subscriptions", "/subscriptions", ["id", "name", "benefits", "price", "duration"]),
+    product_fields = [
+        ("id", "string", "Product ID", True),
+        ("name", "string", "Product Name", True),
+        ("description", "string", "Description", True),
+        ("price", "decimal", "Price", True),
+        ("originalPrice", "decimal", "Original Price", False),
+        ("discount", "integer", "Discount Percentage", False),
+        ("image", "image_url", "Product Image", True),
+        ("images", "string", "Product Images", False),
+        ("category", "string", "Category", True),
+        ("subcategory", "string", "Subcategory", False),
+        ("brand", "string", "Brand", True),
+        ("rating", "decimal", "Rating", True),
+        ("reviewCount", "integer", "Review Count", True),
+        ("stock", "integer", "Stock Quantity", True),
+        ("sku", "string", "SKU", True),
+        ("tags", "string", "Tags", False),
+        ("seller", "string", "Seller Name", True),
+        ("sellerId", "string", "Seller ID", True),
+        ("shippingCost", "decimal", "Shipping Cost", True),
+        ("deliveryDays", "integer", "Delivery Days", True),
+        ("features", "string", "Features", False),
+        ("specifications", "string", "Specifications", False),
     ]
 
-    for name, endpoint, fields in sources_config:
-        ds = DataSource.objects.create(
-            application=app,
-            name=name,
-            data_source_type="REST_API",
-            base_url=base_url,
-            endpoint=endpoint,
-            method="GET"
+    for field_name, field_type, display_name, is_required in product_fields:
+        DataSourceField.objects.create(
+            data_source=products_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
         )
 
-        for field_name in fields:
-            field_type = determine_field_type(field_name)
-            DataSourceField.objects.create(
-                data_source=ds,
-                field_name=field_name,
-                field_type=field_type,
-                display_name=field_name.replace('_', ' ').title(),
-                is_required=field_name in ['id', 'name', 'price']
-            )
+    data_sources['products'] = products_ds
 
-        data_sources[name] = ds
+    # 2. Flash Sales Data Source
+    flash_sales_ds = DataSource.objects.create(
+        application=app,
+        name="FlashSales",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/flash-sales",
+        method="GET"
+    )
 
-    print(f"✅ Created {len(data_sources)} data sources")
+    flash_sale_fields = [
+        ("id", "string", "Sale ID", True),
+        ("product", "string", "Product Info", True),
+        ("salePrice", "decimal", "Sale Price", True),
+        ("originalPrice", "decimal", "Original Price", True),
+        ("discountPercent", "integer", "Discount Percentage", True),
+        ("sold", "integer", "Units Sold", True),
+        ("stock", "integer", "Stock Remaining", True),
+        ("endTime", "datetime", "Sale End Time", True),
+    ]
+
+    for field_name, field_type, display_name, is_required in flash_sale_fields:
+        DataSourceField.objects.create(
+            data_source=flash_sales_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['flash_sales'] = flash_sales_ds
+
+    # 3. Recently Viewed Data Source
+    recently_viewed_ds = DataSource.objects.create(
+        application=app,
+        name="RecentlyViewed",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/recently-viewed",
+        method="GET"
+    )
+
+    recently_viewed_fields = [
+        ("id", "string", "View ID", True),
+        ("productId", "string", "Product ID", True),
+        ("productName", "string", "Product Name", True),
+        ("productImage", "image_url", "Product Image", True),
+        ("price", "decimal", "Price", True),
+        ("viewedAt", "datetime", "Viewed At", True),
+    ]
+
+    for field_name, field_type, display_name, is_required in recently_viewed_fields:
+        DataSourceField.objects.create(
+            data_source=recently_viewed_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['recently_viewed'] = recently_viewed_ds
+
+    # 4. Trending Products Data Source
+    trending_ds = DataSource.objects.create(
+        application=app,
+        name="TrendingProducts",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/trending",
+        method="GET"
+    )
+
+    # Use same fields as products
+    for field_name, field_type, display_name, is_required in product_fields:
+        DataSourceField.objects.create(
+            data_source=trending_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['trending'] = trending_ds
+
+    # 5. Best Sellers Data Source
+    best_sellers_ds = DataSource.objects.create(
+        application=app,
+        name="BestSellers",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/best-sellers",
+        method="GET"
+    )
+
+    # Use same fields as products
+    for field_name, field_type, display_name, is_required in product_fields:
+        DataSourceField.objects.create(
+            data_source=best_sellers_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['best_sellers'] = best_sellers_ds
+
+    # 6. New Arrivals Data Source
+    new_arrivals_ds = DataSource.objects.create(
+        application=app,
+        name="NewArrivals",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/new-arrivals",
+        method="GET"
+    )
+
+    # Use same fields as products
+    for field_name, field_type, display_name, is_required in product_fields:
+        DataSourceField.objects.create(
+            data_source=new_arrivals_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['new_arrivals'] = new_arrivals_ds
+
+    # 7. Categories Data Source
+    categories_ds = DataSource.objects.create(
+        application=app,
+        name="Categories",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/categories",
+        method="GET"
+    )
+
+    category_fields = [
+        ("id", "string", "Category ID", True),
+        ("name", "string", "Category Name", True),
+        ("icon", "string", "Icon", True),
+        ("image", "image_url", "Category Image", False),
+        ("productCount", "integer", "Product Count", True),
+        ("subcategories", "string", "Subcategories", False),
+    ]
+
+    for field_name, field_type, display_name, is_required in category_fields:
+        DataSourceField.objects.create(
+            data_source=categories_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['categories'] = categories_ds
+
+    # 8. Cart Data Source
+    cart_ds = DataSource.objects.create(
+        application=app,
+        name="Cart",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/cart",
+        method="GET"
+    )
+
+    cart_fields = [
+        ("id", "string", "Cart Item ID", True),
+        ("productId", "string", "Product ID", True),
+        ("productName", "string", "Product Name", True),
+        ("price", "decimal", "Price", True),
+        ("quantity", "integer", "Quantity", True),
+        ("image", "image_url", "Product Image", True),
+        ("subtotal", "decimal", "Subtotal", True),
+    ]
+
+    for field_name, field_type, display_name, is_required in cart_fields:
+        DataSourceField.objects.create(
+            data_source=cart_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['cart'] = cart_ds
+
+    # 9. Orders Data Source
+    orders_ds = DataSource.objects.create(
+        application=app,
+        name="Orders",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/orders",
+        method="GET"
+    )
+
+    order_fields = [
+        ("id", "string", "Order ID", True),
+        ("orderNumber", "string", "Order Number", True),
+        ("date", "datetime", "Order Date", True),
+        ("status", "string", "Status", True),
+        ("total", "decimal", "Total Amount", True),
+        ("items", "integer", "Item Count", True),
+        ("trackingNumber", "string", "Tracking Number", False),
+        ("estimatedDelivery", "date", "Estimated Delivery", False),
+    ]
+
+    for field_name, field_type, display_name, is_required in order_fields:
+        DataSourceField.objects.create(
+            data_source=orders_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['orders'] = orders_ds
+
+    # 10. User Profile Data Source
+    profile_ds = DataSource.objects.create(
+        application=app,
+        name="UserProfile",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/user/profile",
+        method="GET"
+    )
+
+    profile_fields = [
+        ("id", "string", "User ID", True),
+        ("name", "string", "Full Name", True),
+        ("email", "email", "Email", True),
+        ("phone", "string", "Phone", True),
+        ("avatar", "image_url", "Avatar", False),
+        ("memberSince", "date", "Member Since", True),
+        ("totalOrders", "integer", "Total Orders", True),
+        ("totalSpent", "decimal", "Total Spent", True),
+        ("loyaltyPoints", "integer", "Loyalty Points", True),
+    ]
+
+    for field_name, field_type, display_name, is_required in profile_fields:
+        DataSourceField.objects.create(
+            data_source=profile_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['profile'] = profile_ds
+
+    # 11. Reviews Data Source
+    reviews_ds = DataSource.objects.create(
+        application=app,
+        name="Reviews",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/reviews",
+        method="GET"
+    )
+
+    review_fields = [
+        ("id", "string", "Review ID", True),
+        ("productId", "string", "Product ID", True),
+        ("userId", "string", "User ID", True),
+        ("userName", "string", "User Name", True),
+        ("rating", "integer", "Rating", True),
+        ("title", "string", "Review Title", True),
+        ("comment", "string", "Comment", True),
+        ("date", "datetime", "Review Date", True),
+        ("helpful", "integer", "Helpful Count", True),
+        ("verified", "boolean", "Verified Purchase", True),
+    ]
+
+    for field_name, field_type, display_name, is_required in review_fields:
+        DataSourceField.objects.create(
+            data_source=reviews_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['reviews'] = reviews_ds
+
+    # 12. Sellers Data Source
+    sellers_ds = DataSource.objects.create(
+        application=app,
+        name="Sellers",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/sellers",
+        method="GET"
+    )
+
+    seller_fields = [
+        ("id", "string", "Seller ID", True),
+        ("name", "string", "Seller Name", True),
+        ("logo", "image_url", "Logo", True),
+        ("rating", "decimal", "Rating", True),
+        ("productCount", "integer", "Product Count", True),
+        ("followers", "integer", "Followers", True),
+        ("description", "string", "Description", True),
+        ("joinedDate", "date", "Joined Date", True),
+    ]
+
+    for field_name, field_type, display_name, is_required in seller_fields:
+        DataSourceField.objects.create(
+            data_source=sellers_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['sellers'] = sellers_ds
+
+    # 13. Wishlist Data Source
+    wishlist_ds = DataSource.objects.create(
+        application=app,
+        name="Wishlist",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/wishlist",
+        method="GET"
+    )
+
+    wishlist_fields = [
+        ("id", "string", "Wishlist Item ID", True),
+        ("productId", "string", "Product ID", True),
+        ("productName", "string", "Product Name", True),
+        ("price", "decimal", "Price", True),
+        ("image", "image_url", "Product Image", True),
+        ("addedDate", "datetime", "Added Date", True),
+    ]
+
+    for field_name, field_type, display_name, is_required in wishlist_fields:
+        DataSourceField.objects.create(
+            data_source=wishlist_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['wishlist'] = wishlist_ds
+
+    # 14. Notifications Data Source
+    notifications_ds = DataSource.objects.create(
+        application=app,
+        name="Notifications",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/notifications",
+        method="GET"
+    )
+
+    notification_fields = [
+        ("id", "string", "Notification ID", True),
+        ("title", "string", "Title", True),
+        ("message", "string", "Message", True),
+        ("type", "string", "Type", True),
+        ("date", "datetime", "Date", True),
+        ("read", "boolean", "Read Status", True),
+    ]
+
+    for field_name, field_type, display_name, is_required in notification_fields:
+        DataSourceField.objects.create(
+            data_source=notifications_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['notifications'] = notifications_ds
+
+    # 15. Addresses Data Source
+    addresses_ds = DataSource.objects.create(
+        application=app,
+        name="Addresses",
+        data_source_type="REST_API",
+        base_url=base_url,
+        endpoint="/api/addresses",
+        method="GET"
+    )
+
+    address_fields = [
+        ("id", "string", "Address ID", True),
+        ("name", "string", "Address Name", True),
+        ("street", "string", "Street", True),
+        ("city", "string", "City", True),
+        ("state", "string", "State", True),
+        ("zipCode", "string", "ZIP Code", True),
+        ("country", "string", "Country", True),
+        ("isDefault", "boolean", "Default Address", True),
+    ]
+
+    for field_name, field_type, display_name, is_required in address_fields:
+        DataSourceField.objects.create(
+            data_source=addresses_ds,
+            field_name=field_name,
+            field_type=field_type,
+            display_name=display_name,
+            is_required=is_required
+        )
+
+    data_sources['addresses'] = addresses_ds
+
+    print(f"✅ Created {len(data_sources)} data sources with complete field definitions")
     return data_sources
 
 
-def determine_field_type(field_name):
-    """Determine field type based on field name"""
-    if 'price' in field_name or 'amount' in field_name or 'balance' in field_name:
-        return 'decimal'
-    elif 'count' in field_name or 'quantity' in field_name or 'points' in field_name:
-        return 'integer'
-    elif 'date' in field_name or 'time' in field_name:
-        return 'datetime'
-    elif 'image' in field_name or 'logo' in field_name or 'avatar' in field_name:
-        return 'image_url'
-    elif 'email' in field_name:
-        return 'email'
-    elif 'url' in field_name or 'link' in field_name:
-        return 'url'
-    elif field_name in ['read', 'isDefault', 'online', 'verified']:
-        return 'boolean'
-    else:
-        return 'string'
-
-
 def create_all_actions(app):
-    """Create all 100+ actions for the marketplace"""
+    """Create all actions for the marketplace"""
     actions = {}
 
-    # Navigation Actions for all 56 screens
+    # Navigation Actions (40+ screens)
     nav_actions = [
-        # Authentication & Onboarding
-        "Navigate to Login", "Navigate to Register", "Navigate to Forgot Password",
-        "Navigate to Reset Password", "Navigate to OTP Verification", "Navigate to Onboarding",
+        # Authentication
+        "Navigate to Login",
+        "Navigate to Register",
+        "Navigate to Forgot Password",
+        "Navigate to Reset Password",
 
-        # Home & Discovery
-        "Navigate to Home", "Navigate to Search", "Navigate to Advanced Search",
-        "Navigate to Barcode Scanner", "Navigate to Voice Search", "Navigate to Explore",
+        # Main Pages
+        "Navigate to Home",
+        "Navigate to Categories",
+        "Navigate to Search",
+        "Navigate to Cart",
+        "Navigate to Profile",
 
-        # Categories (12 category screens)
-        "Navigate to Categories", "Navigate to Electronics", "Navigate to Fashion",
-        "Navigate to Home Garden", "Navigate to Sports", "Navigate to Books",
-        "Navigate to Beauty", "Navigate to Food", "Navigate to Health",
-        "Navigate to Automotive", "Navigate to Toys", "Navigate to Pets",
+        # Product Pages
+        "Navigate to Product List",
+        "Navigate to Product Details",
+        "Navigate to Product Reviews",
+        "Navigate to Compare Products",
 
-        # Products
-        "Navigate to Product List", "Navigate to Product Details", "Navigate to Product Gallery",
-        "Navigate to Product Reviews", "Navigate to Write Review", "Navigate to Product QA",
-        "Navigate to Size Guide", "Navigate to Compare", "Navigate to AR View",
-        "Navigate to Product Videos",
+        # Category Pages
+        "Navigate to Electronics",
+        "Navigate to Fashion",
+        "Navigate to Home & Garden",
+        "Navigate to Sports",
+        "Navigate to Books",
+        "Navigate to Toys",
 
-        # Cart & Checkout
-        "Navigate to Cart", "Navigate to Checkout", "Navigate to Shipping",
-        "Navigate to Payment", "Navigate to Coupons", "Navigate to Order Review",
-        "Navigate to Order Success",
+        # User Pages
+        "Navigate to Orders",
+        "Navigate to Order Details",
+        "Navigate to Order Tracking",
+        "Navigate to Wishlist",
+        "Navigate to Recently Viewed",
+        "Navigate to Recommendations",
 
-        # Orders
-        "Navigate to Orders", "Navigate to Order Details", "Navigate to Order Tracking",
-        "Navigate to Returns", "Navigate to Cancel Order", "Navigate to Rate Order",
+        # Account Pages
+        "Navigate to Account Settings",
+        "Navigate to Personal Info",
+        "Navigate to Addresses",
+        "Navigate to Payment Methods",
+        "Navigate to Security",
+        "Navigate to Notifications Settings",
 
-        # User Account
-        "Navigate to Profile", "Navigate to Edit Profile", "Navigate to Addresses",
-        "Navigate to Payment Cards", "Navigate to Wishlist", "Navigate to Recently Viewed",
-        "Navigate to Loyalty", "Navigate to Referrals", "Navigate to Wallet",
+        # Checkout Pages
+        "Navigate to Checkout",
+        "Navigate to Shipping",
+        "Navigate to Payment",
+        "Navigate to Order Confirmation",
 
-        # Sellers
-        "Navigate to Seller Dashboard", "Navigate to Seller Products", "Navigate to Seller Orders",
-        "Navigate to Seller Analytics", "Navigate to Seller Profile", "Navigate to Seller Reviews",
+        # Seller Pages
+        "Navigate to Seller Dashboard",
+        "Navigate to Seller Products",
+        "Navigate to Seller Orders",
+        "Navigate to Seller Analytics",
+        "Navigate to Seller Profile",
 
-        # Support
-        "Navigate to Help", "Navigate to FAQs", "Navigate to Contact Support",
-        "Navigate to Live Chat", "Navigate to Tickets",
+        # Support Pages
+        "Navigate to Help Center",
+        "Navigate to Contact Support",
+        "Navigate to FAQs",
+        "Navigate to Return Policy",
+        "Navigate to Terms of Service",
+        "Navigate to Privacy Policy",
 
-        # Settings
-        "Navigate to Settings", "Navigate to Notifications Settings", "Navigate to Privacy",
-        "Navigate to Language", "Navigate to Country",
+        # Special Pages
+        "Navigate to Deals",
+        "Navigate to Flash Sale",
+        "Navigate to New Arrivals",
+        "Navigate to Best Sellers",
 
         "Go Back",
     ]
 
     for name in nav_actions:
-        action_type = "navigate_back" if name == "Go Back" else "navigate"
-        actions[name] = Action.objects.create(
-            application=app,
-            name=name,
-            action_type=action_type
-        )
-
-    # Add Helper Method Actions (NEW)
-    helper_actions = [
-        {
-            "name": "Perform Search",
-            "action_type": "submit_form",
-            "parameters": json.dumps({
-                "code": """
-                if (_searchController.text.isNotEmpty) {
-                  Navigator.pushNamed(context, '/search', arguments: _searchController.text);
-                }
-                """
-            })
-        },
-        {
-            "name": "Open Voice Search",
-            "action_type": "navigate",
-            "target_screen": None,  # Will be linked later
-            "parameters": json.dumps({
-                "route": "/voice-search"
-            })
-        },
-        {
-            "name": "Open Barcode Scanner",
-            "action_type": "navigate",
-            "target_screen": None,  # Will be linked later
-            "parameters": json.dumps({
-                "route": "/barcode"
-            })
-        },
-        {
-            "name": "Get Category Icon",
-            "action_type": "api_call",
-            "parameters": json.dumps({
-                "function": """
-                IconData _getCategoryIcon(String categoryName) {
-                  switch (categoryName.toLowerCase()) {
-                    case 'electronics': return Icons.devices;
-                    case 'fashion': return Icons.shopping_bag;
-                    case 'home & garden':
-                    case 'home garden': return Icons.home;
-                    case 'sports':
-                    case 'sports & outdoors': return Icons.sports_soccer;
-                    case 'books':
-                    case 'books & media': return Icons.menu_book;
-                    case 'beauty':
-                    case 'beauty & personal care': return Icons.face;
-                    case 'food':
-                    case 'food & groceries': return Icons.restaurant;
-                    case 'health':
-                    case 'health & wellness': return Icons.favorite;
-                    case 'automotive': return Icons.directions_car;
-                    case 'toys':
-                    case 'toys & games': return Icons.toys;
-                    case 'pets':
-                    case 'pet supplies': return Icons.pets;
-                    default: return Icons.category;
-                  }
-                }
-                """
-            })
-        },
-        {
-            "name": "Format Time Ago",
-            "action_type": "api_call",
-            "parameters": json.dumps({
-                "function": """
-                String _getTimeAgo(String? dateString) {
-                  if (dateString == null) return 'recently';
-                  try {
-                    final date = DateTime.parse(dateString);
-                    final now = DateTime.now();
-                    final difference = now.difference(date);
-                    
-                    if (difference.inDays > 0) {
-                      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
-                    } else if (difference.inHours > 0) {
-                      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
-                    } else if (difference.inMinutes > 0) {
-                      return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''} ago';
-                    } else {
-                      return 'just now';
-                    }
-                  } catch (e) {
-                    return 'recently';
-                  }
-                }
-                """
-            })
-        }
-    ]
-
-    for helper in helper_actions:
-        actions[helper["name"]] = Action.objects.create(
-            application=app,
-            name=helper["name"],
-            action_type=helper["action_type"],
-            parameters=helper.get("parameters", ""),
-            target_screen=helper.get("target_screen")
-        )
-
+        if name == "Go Back":
+            action = Action.objects.create(
+                application=app,
+                name=name,
+                action_type="navigate_back"
+            )
+        else:
+            action = Action.objects.create(
+                application=app,
+                name=name,
+                action_type="navigate"
+            )
+        actions[name] = action
 
     # Data Actions
     data_actions = [
@@ -397,171 +687,130 @@ def create_all_actions(app):
         ("Cancel Order", "api_call"),
         ("Track Order", "api_call"),
         ("Write Review", "submit_form"),
-        ("Ask Question", "submit_form"),
         ("Search Products", "api_call"),
         ("Filter Products", "api_call"),
         ("Sort Products", "api_call"),
         ("Share Product", "share_content"),
         ("Contact Seller", "send_email"),
-        ("Start Chat", "api_call"),
-        ("Send Message", "api_call"),
-        ("Upload Photo", "take_photo"),
-        ("Scan Barcode", "api_call"),
-        ("Voice Search", "api_call"),
-        ("Apply Filter", "api_call"),
-        ("Clear Filter", "api_call"),
-        ("Load More", "api_call"),
-        ("Refresh", "refresh_data"),
-        ("Clear Form", "clear_form"),
-        ("Save Address", "save_data"),
-        ("Save Data", "save_data"),
-        ("Delete Address", "api_call"),
-        ("Set Default", "api_call"),
-        ("Add Card", "save_data"),
-        ("Remove Card", "api_call"),
-        ("Redeem Points", "api_call"),
-        ("Transfer Points", "api_call"),
-        ("Claim Reward", "api_call"),
-        ("Share Referral", "share_content"),
-        ("Copy Code", "api_call"),
-        ("Add Money", "api_call"),
-        ("Withdraw Money", "api_call"),
-        ("View Transaction", "api_call"),
-        ("Download Invoice", "api_call"),
-        ("Request Return", "submit_form"),
-        ("Rate Product", "api_call"),
-        ("Follow Seller", "api_call"),
-        ("Unfollow Seller", "api_call"),
-        ("Report Issue", "submit_form"),
-        ("Subscribe", "api_call"),
-        ("Unsubscribe", "api_call"),
+        ("Perform Search", "api_call"),
+        ("Open Voice Search", "take_photo"),
+        ("Open Barcode Scanner", "take_photo"),
     ]
 
     for name, action_type in data_actions:
-        actions[name] = Action.objects.create(
+        action = Action.objects.create(
             application=app,
             name=name,
             action_type=action_type
         )
+        actions[name] = action
 
     # UI Actions
     ui_actions = [
-        ("Show Filter", "show_dialog"),
-        ("Show Sort Options", "show_dialog"),
-        ("Show Size Chart", "show_dialog"),
-        ("Show Product Info", "show_dialog"),
+        ("Show Product Quick View", "show_dialog"),
+        ("Show Size Guide", "show_dialog"),
         ("Show Shipping Info", "show_dialog"),
         ("Show Return Policy", "show_dialog"),
-        ("Show Terms", "show_dialog"),
-        ("Show Privacy", "show_dialog"),
-        ("Toggle View", "toggle_visibility"),
-        ("Switch Tab", "toggle_visibility"),
-        ("Zoom Image", "show_dialog"),
-        ("Play Video", "play_sound"),
-        ("Show AR", "show_dialog"),
-        ("Show 360 View", "show_dialog"),
+        ("Show Coupon Code", "show_snackbar"),
+        ("Show Success Message", "show_snackbar"),
+        ("Show Error Message", "show_snackbar"),
         ("Toggle Dark Mode", "toggle_visibility"),
-        ("Change Language", "show_dialog"),
-        ("Show Notification", "show_snackbar"),
-        ("Show Success", "show_snackbar"),
-        ("Show Error", "show_snackbar"),
-        ("Show Loading", "show_dialog"),
-        ("Hide Loading", "toggle_visibility"),
-        ("Open Map", "open_url"),
-        ("Call Support", "make_phone_call"),
-        ("Open Chat", "show_dialog"),
+        ("Open Chat Support", "open_url"),
     ]
 
     for name, action_type in ui_actions:
-        actions[name] = Action.objects.create(
+        action = Action.objects.create(
             application=app,
             name=name,
             action_type=action_type,
             dialog_title=name.replace("Show ", ""),
             dialog_message=f"Information about {name.replace('Show ', '').lower()}"
         )
+        actions[name] = action
 
     print(f"✅ Created {len(actions)} actions")
     return actions
 
 
 def create_all_screens(app):
-    """Create all 56 unique screens"""
+    """Create 40+ unique screens for the marketplace"""
     screens = {}
 
+    # List of all 40+ screens with their configurations
     screen_configs = [
-        # Authentication & Onboarding (6 screens)
-        ("Login", "/login", False, "Login", False, False, "#FFFFFF"),
-        ("Register", "/register", False, "Create Account", False, False, "#FFFFFF"),
-        ("Forgot Password", "/forgot-password", False, "Forgot Password", True, True, "#FFFFFF"),
-        ("Reset Password", "/reset-password", False, "Reset Password", True, True, "#FFFFFF"),
-        ("OTP Verification", "/otp", False, "Verify OTP", True, True, "#FFFFFF"),
-        ("Onboarding", "/onboarding", False, "", False, False, "#FFFFFF"),
+        # Authentication Screens (4)
+        ("Login", "/login", False, "Login", True, False),
+        ("Register", "/register", False, "Create Account", True, False),
+        ("Forgot Password", "/forgot-password", False, "Forgot Password", True, True),
+        ("Reset Password", "/reset-password", False, "Reset Password", True, True),
 
-        # Home & Discovery (6 screens)
-        ("Home", "/", True, "MegaMart", True, False, "#F7F9FC"),
-        ("Search", "/search", False, "Search", True, True, "#FFFFFF"),
-        ("Advanced Search", "/advanced-search", False, "Advanced Search", True, True, "#FFFFFF"),
-        ("Barcode Scanner", "/barcode", False, "Scan Product", True, True, "#000000"),
-        ("Voice Search", "/voice-search", False, "Voice Search", True, True, "#FFFFFF"),
-        ("Explore", "/explore", False, "Explore", True, True, "#F7F9FC"),
+        # Main Screens (5)
+        ("Home", "/", True, "MarketHub", True, False),
+        ("Categories", "/categories", False, "Categories", True, True),
+        ("Search", "/search", False, "Search Products", True, True),
+        ("Cart", "/cart", False, "Shopping Cart", True, True),
+        ("Profile", "/profile", False, "My Profile", True, True),
 
-        # Categories (12 screens)
-        ("Categories", "/categories", False, "All Categories", True, True, "#FFFFFF"),
-        ("Electronics", "/category/electronics", False, "Electronics", True, True, "#FFFFFF"),
-        ("Fashion", "/category/fashion", False, "Fashion", True, True, "#FFFFFF"),
-        ("Home Garden", "/category/home-garden", False, "Home & Garden", True, True, "#FFFFFF"),
-        ("Sports", "/category/sports", False, "Sports & Outdoors", True, True, "#FFFFFF"),
-        ("Books", "/category/books", False, "Books & Media", True, True, "#FFFFFF"),
-        ("Beauty", "/category/beauty", False, "Beauty & Personal Care", True, True, "#FFFFFF"),
-        ("Food", "/category/food", False, "Food & Groceries", True, True, "#FFFFFF"),
-        ("Health", "/category/health", False, "Health & Wellness", True, True, "#FFFFFF"),
-        ("Automotive", "/category/automotive", False, "Automotive", True, True, "#FFFFFF"),
-        ("Toys", "/category/toys", False, "Toys & Games", True, True, "#FFFFFF"),
-        ("Pets", "/category/pets", False, "Pet Supplies", True, True, "#FFFFFF"),
+        # Product Screens (4)
+        ("Product List", "/products", False, "Products", True, True),
+        ("Product Details", "/product-details", False, "Product Details", True, True),
+        ("Product Reviews", "/product-reviews", False, "Reviews", True, True),
+        ("Compare Products", "/compare", False, "Compare", True, True),
 
-        # Products (10 screens)
-        ("Product List", "/products", False, "Products", True, True, "#FFFFFF"),
-        ("Product Details", "/product/{id}", False, "Product Details", True, True, "#FFFFFF"),
-        ("Product Gallery", "/product/gallery", False, "Gallery", True, True, "#000000"),
-        ("Product Reviews", "/product/reviews", False, "Reviews", True, True, "#FFFFFF"),
-        ("Write Review", "/product/write-review", False, "Write Review", True, True, "#FFFFFF"),
-        ("Product QA", "/product/questions", False, "Questions & Answers", True, True, "#FFFFFF"),
-        ("Size Guide", "/size-guide", False, "Size Guide", True, True, "#FFFFFF"),
-        ("Compare", "/compare", False, "Compare Products", True, True, "#FFFFFF"),
-        ("AR View", "/ar-view", False, "AR View", True, True, "#000000"),
-        ("Product Videos", "/product/videos", False, "Product Videos", True, True, "#FFFFFF"),
+        # Category Specific Screens (6)
+        ("Electronics", "/category/electronics", False, "Electronics", True, True),
+        ("Fashion", "/category/fashion", False, "Fashion", True, True),
+        ("Home & Garden", "/category/home-garden", False, "Home & Garden", True, True),
+        ("Sports", "/category/sports", False, "Sports & Outdoors", True, True),
+        ("Books", "/category/books", False, "Books", True, True),
+        ("Toys", "/category/toys", False, "Toys & Games", True, True),
 
-        # Cart & Checkout (7 screens)
-        ("Cart", "/cart", False, "Shopping Cart", True, True, "#FFFFFF"),
-        ("Checkout", "/checkout", False, "Checkout", True, True, "#FFFFFF"),
-        ("Shipping", "/checkout/shipping", False, "Shipping Address", True, True, "#FFFFFF"),
-        ("Payment", "/checkout/payment", False, "Payment Method", True, True, "#FFFFFF"),
-        ("Coupons", "/coupons", False, "Apply Coupons", True, True, "#FFFFFF"),
-        ("Order Review", "/checkout/review", False, "Review Order", True, True, "#FFFFFF"),
-        ("Order Success", "/order-success", False, "Order Placed", False, False, "#FFFFFF"),
+        # User Account Screens (6)
+        ("Orders", "/orders", False, "My Orders", True, True),
+        ("Order Details", "/order-details", False, "Order Details", True, True),
+        ("Order Tracking", "/order-tracking", False, "Track Order", True, True),
+        ("Wishlist", "/wishlist", False, "My Wishlist", True, True),
+        ("Recently Viewed", "/recently-viewed", False, "Recently Viewed", True, True),
+        ("Recommendations", "/recommendations", False, "For You", True, True),
 
-        # Orders (6 screens)
-        ("Orders", "/orders", False, "My Orders", True, True, "#FFFFFF"),
-        ("Order Details", "/order/{id}", False, "Order Details", True, True, "#FFFFFF"),
-        ("Order Tracking", "/order/tracking", False, "Track Order", True, True, "#FFFFFF"),
-        ("Returns", "/returns", False, "Returns & Refunds", True, True, "#FFFFFF"),
-        ("Cancel Order", "/order/cancel", False, "Cancel Order", True, True, "#FFFFFF"),
-        ("Rate Order", "/order/rate", False, "Rate & Review", True, True, "#FFFFFF"),
+        # Settings Screens (6)
+        ("Account Settings", "/settings", False, "Settings", True, True),
+        ("Personal Info", "/settings/personal", False, "Personal Information", True, True),
+        ("Addresses", "/settings/addresses", False, "Shipping Addresses", True, True),
+        ("Payment Methods", "/settings/payment", False, "Payment Methods", True, True),
+        ("Security", "/settings/security", False, "Security", True, True),
+        ("Notifications Settings", "/settings/notifications", False, "Notifications", True, True),
 
-        # User Account (9 screens)
-        ("Profile", "/profile", False, "My Profile", True, True, "#FFFFFF"),
-        ("Edit Profile", "/profile/edit", False, "Edit Profile", True, True, "#FFFFFF"),
-        ("Addresses", "/addresses", False, "My Addresses", True, True, "#FFFFFF"),
-        ("Payment Cards", "/cards", False, "Payment Methods", True, True, "#FFFFFF"),
-        ("Wishlist", "/wishlist", False, "My Wishlist", True, True, "#FFFFFF"),
-        ("Recently Viewed", "/recently-viewed", False, "Recently Viewed", True, True, "#FFFFFF"),
-        ("Loyalty", "/loyalty", False, "Loyalty Program", True, True, "#FFFFFF"),
-        ("Referrals", "/referrals", False, "Refer & Earn", True, True, "#FFFFFF"),
-        ("Wallet", "/wallet", False, "My Wallet", True, True, "#FFFFFF"),
+        # Checkout Screens (4)
+        ("Checkout", "/checkout", False, "Checkout", True, True),
+        ("Shipping", "/checkout/shipping", False, "Shipping", True, True),
+        ("Payment", "/checkout/payment", False, "Payment", True, True),
+        ("Order Confirmation", "/order-confirmation", False, "Order Confirmed", True, False),
+
+        # Seller Screens (5)
+        ("Seller Dashboard", "/seller/dashboard", False, "Seller Dashboard", True, True),
+        ("Seller Products", "/seller/products", False, "My Products", True, True),
+        ("Seller Orders", "/seller/orders", False, "Seller Orders", True, True),
+        ("Seller Analytics", "/seller/analytics", False, "Analytics", True, True),
+        ("Seller Profile", "/seller/profile", False, "Seller Profile", True, True),
+
+        # Support Screens (6)
+        ("Help Center", "/help", False, "Help Center", True, True),
+        ("Contact Support", "/support/contact", False, "Contact Us", True, True),
+        ("FAQs", "/support/faqs", False, "FAQs", True, True),
+        ("Return Policy", "/support/returns", False, "Return Policy", True, True),
+        ("Terms of Service", "/legal/terms", False, "Terms of Service", True, True),
+        ("Privacy Policy", "/legal/privacy", False, "Privacy Policy", True, True),
+
+        # Special/Promotional Screens (4)
+        ("Deals", "/deals", False, "Today's Deals", True, True),
+        ("Flash Sale", "/flash-sale", False, "Flash Sale", True, True),
+        ("New Arrivals", "/new-arrivals", False, "New Arrivals", True, True),
+        ("Best Sellers", "/best-sellers", False, "Best Sellers", True, True),
     ]
 
-    for name, route, is_home, title, show_bar, show_back, bg_color in screen_configs:
+    # Create all screens
+    for name, route, is_home, title, show_bar, show_back in screen_configs:
         screen = Screen.objects.create(
             application=app,
             name=name,
@@ -570,7 +819,7 @@ def create_all_screens(app):
             app_bar_title=title,
             show_app_bar=show_bar,
             show_back_button=show_back,
-            background_color=bg_color
+            background_color="#FFFFFF" if not is_home else "#F9FAFB"
         )
         screens[name] = screen
 
@@ -578,3101 +827,4031 @@ def create_all_screens(app):
     return screens
 
 
-def link_navigation_actions(actions, screens):
-    """Link all navigation actions to their target screens"""
-
+def update_action_targets(actions, screens):
+    """Link navigation actions to their target screens"""
+    # Map action names to screen names
     action_screen_mapping = {
-        "Navigate to Login": "Login",
-        "Navigate to Register": "Register",
-        "Navigate to Forgot Password": "Forgot Password",
-        "Navigate to Reset Password": "Reset Password",
-        "Navigate to OTP Verification": "OTP Verification",
-        "Navigate to Onboarding": "Onboarding",
-        "Navigate to Home": "Home",
-        "Navigate to Search": "Search",
-        "Navigate to Advanced Search": "Advanced Search",
-        "Navigate to Barcode Scanner": "Barcode Scanner",
-        "Navigate to Voice Search": "Voice Search",
-        "Navigate to Explore": "Explore",
-        "Navigate to Categories": "Categories",
-        "Navigate to Electronics": "Electronics",
-        "Navigate to Fashion": "Fashion",
-        "Navigate to Home Garden": "Home Garden",
-        "Navigate to Sports": "Sports",
-        "Navigate to Books": "Books",
-        "Navigate to Beauty": "Beauty",
-        "Navigate to Food": "Food",
-        "Navigate to Health": "Health",
-        "Navigate to Automotive": "Automotive",
-        "Navigate to Toys": "Toys",
-        "Navigate to Pets": "Pets",
-        "Navigate to Product List": "Product List",
-        "Navigate to Product Details": "Product Details",
-        "Navigate to Product Gallery": "Product Gallery",
-        "Navigate to Product Reviews": "Product Reviews",
-        "Navigate to Write Review": "Write Review",
-        "Navigate to Product QA": "Product QA",
-        "Navigate to Size Guide": "Size Guide",
-        "Navigate to Compare": "Compare",
-        "Navigate to AR View": "AR View",
-        "Navigate to Product Videos": "Product Videos",
-        "Navigate to Cart": "Cart",
-        "Navigate to Checkout": "Checkout",
-        "Navigate to Shipping": "Shipping",
-        "Navigate to Payment": "Payment",
-        "Navigate to Coupons": "Coupons",
-        "Navigate to Order Review": "Order Review",
-        "Navigate to Order Success": "Order Success",
-        "Navigate to Orders": "Orders",
-        "Navigate to Order Details": "Order Details",
-        "Navigate to Order Tracking": "Order Tracking",
-        "Navigate to Returns": "Returns",
-        "Navigate to Cancel Order": "Cancel Order",
-        "Navigate to Rate Order": "Rate Order",
-        "Navigate to Profile": "Profile",
-        "Navigate to Edit Profile": "Edit Profile",
-        "Navigate to Addresses": "Addresses",
-        "Navigate to Payment Cards": "Payment Cards",
-        "Navigate to Wishlist": "Wishlist",
-        "Navigate to Recently Viewed": "Recently Viewed",
-        "Navigate to Loyalty": "Loyalty",
-        "Navigate to Referrals": "Referrals",
-        "Navigate to Wallet": "Wallet",
+        "Navigate to Login": screens.get("Login"),
+        "Navigate to Register": screens.get("Register"),
+        "Navigate to Forgot Password": screens.get("Forgot Password"),
+        "Navigate to Reset Password": screens.get("Reset Password"),
+        "Navigate to Home": screens.get("Home"),
+        "Navigate to Categories": screens.get("Categories"),
+        "Navigate to Search": screens.get("Search"),
+        "Navigate to Cart": screens.get("Cart"),
+        "Navigate to Profile": screens.get("Profile"),
+        "Navigate to Product List": screens.get("Product List"),
+        "Navigate to Product Details": screens.get("Product Details"),
+        "Navigate to Product Reviews": screens.get("Product Reviews"),
+        "Navigate to Compare Products": screens.get("Compare Products"),
+        "Navigate to Electronics": screens.get("Electronics"),
+        "Navigate to Fashion": screens.get("Fashion"),
+        "Navigate to Home & Garden": screens.get("Home & Garden"),
+        "Navigate to Sports": screens.get("Sports"),
+        "Navigate to Books": screens.get("Books"),
+        "Navigate to Toys": screens.get("Toys"),
+        "Navigate to Orders": screens.get("Orders"),
+        "Navigate to Order Details": screens.get("Order Details"),
+        "Navigate to Order Tracking": screens.get("Order Tracking"),
+        "Navigate to Wishlist": screens.get("Wishlist"),
+        "Navigate to Recently Viewed": screens.get("Recently Viewed"),
+        "Navigate to Recommendations": screens.get("Recommendations"),
+        "Navigate to Account Settings": screens.get("Account Settings"),
+        "Navigate to Personal Info": screens.get("Personal Info"),
+        "Navigate to Addresses": screens.get("Addresses"),
+        "Navigate to Payment Methods": screens.get("Payment Methods"),
+        "Navigate to Security": screens.get("Security"),
+        "Navigate to Notifications Settings": screens.get("Notifications Settings"),
+        "Navigate to Checkout": screens.get("Checkout"),
+        "Navigate to Shipping": screens.get("Shipping"),
+        "Navigate to Payment": screens.get("Payment"),
+        "Navigate to Order Confirmation": screens.get("Order Confirmation"),
+        "Navigate to Seller Dashboard": screens.get("Seller Dashboard"),
+        "Navigate to Seller Products": screens.get("Seller Products"),
+        "Navigate to Seller Orders": screens.get("Seller Orders"),
+        "Navigate to Seller Analytics": screens.get("Seller Analytics"),
+        "Navigate to Seller Profile": screens.get("Seller Profile"),
+        "Navigate to Help Center": screens.get("Help Center"),
+        "Navigate to Contact Support": screens.get("Contact Support"),
+        "Navigate to FAQs": screens.get("FAQs"),
+        "Navigate to Return Policy": screens.get("Return Policy"),
+        "Navigate to Terms of Service": screens.get("Terms of Service"),
+        "Navigate to Privacy Policy": screens.get("Privacy Policy"),
+        "Navigate to Deals": screens.get("Deals"),
+        "Navigate to Flash Sale": screens.get("Flash Sale"),
+        "Navigate to New Arrivals": screens.get("New Arrivals"),
+        "Navigate to Best Sellers": screens.get("Best Sellers"),
     }
 
-    for action_name, screen_name in action_screen_mapping.items():
-        if action_name in actions and screen_name in screens:
-            actions[action_name].target_screen = screens[screen_name]
+    for action_name, target_screen in action_screen_mapping.items():
+        if action_name in actions and target_screen:
+            actions[action_name].target_screen = target_screen
             actions[action_name].save()
 
     print("✅ Linked all navigation actions to screens")
 
 
 def create_all_screen_uis(screens, data_sources, actions):
-    """Create UI for all 56 screens with 160+ widgets"""
+    """Create UI for all 40+ screens"""
 
-    # Home Screen - Main marketplace dashboard
+    # Home Screen - Complete marketplace homepage
     create_home_screen_ui(screens['Home'], data_sources, actions)
 
     # Authentication Screens
     create_login_screen_ui(screens['Login'], actions)
     create_register_screen_ui(screens['Register'], actions)
-    create_forgot_password_ui(screens['Forgot Password'], actions)
-    create_reset_password_ui(screens['Reset Password'], actions)
-    create_otp_verification_ui(screens['OTP Verification'], actions)
-    create_onboarding_ui(screens['Onboarding'], actions)
+    create_forgot_password_screen_ui(screens['Forgot Password'], actions)
+    create_reset_password_screen_ui(screens['Reset Password'], actions)
 
-    # Discovery Screens
+    # Main Screens
+    create_categories_screen_ui(screens['Categories'], data_sources, actions)
     create_search_screen_ui(screens['Search'], data_sources, actions)
-    create_advanced_search_ui(screens['Advanced Search'], data_sources, actions)
-    create_barcode_scanner_ui(screens['Barcode Scanner'], actions)
-    create_voice_search_ui(screens['Voice Search'], actions)
-    create_explore_ui(screens['Explore'], data_sources, actions)
-
-    # Categories
-    create_categories_ui(screens['Categories'], data_sources, actions)
-    for category in ['Electronics', 'Fashion', 'Home Garden', 'Sports', 'Books',
-                     'Beauty', 'Food', 'Health', 'Automotive', 'Toys', 'Pets']:
-        create_category_screen_ui(screens[category], data_sources, actions, category)
+    create_cart_screen_ui(screens['Cart'], data_sources, actions)
+    create_profile_screen_ui(screens['Profile'], data_sources, actions)
 
     # Product Screens
-    create_product_list_ui(screens['Product List'], data_sources, actions)
-    create_product_details_ui(screens['Product Details'], data_sources, actions)
-    create_product_gallery_ui(screens['Product Gallery'], data_sources, actions)
-    create_product_reviews_ui(screens['Product Reviews'], data_sources, actions)
-    create_write_review_ui(screens['Write Review'], actions)
-    create_product_qa_ui(screens['Product QA'], data_sources, actions)
-    create_size_guide_ui(screens['Size Guide'], actions)
-    create_compare_ui(screens['Compare'], data_sources, actions)
-    create_ar_view_ui(screens['AR View'], actions)
-    create_product_videos_ui(screens['Product Videos'], data_sources, actions)
+    create_product_list_screen_ui(screens['Product List'], data_sources, actions)
+    create_product_details_screen_ui(screens['Product Details'], data_sources, actions)
+    create_product_reviews_screen_ui(screens['Product Reviews'], data_sources, actions)
+    create_compare_products_screen_ui(screens['Compare Products'], data_sources, actions)
 
-    # Cart & Checkout
-    create_cart_ui(screens['Cart'], data_sources, actions)
-    create_checkout_ui(screens['Checkout'], data_sources, actions)
-    create_shipping_ui(screens['Shipping'], data_sources, actions)
-    create_payment_ui(screens['Payment'], data_sources, actions)
-    create_coupons_ui(screens['Coupons'], data_sources, actions)
-    create_order_review_ui(screens['Order Review'], data_sources, actions)
-    create_order_success_ui(screens['Order Success'], actions)
+    # Category Screens
+    create_category_screen_ui(screens['Electronics'], data_sources, actions, "Electronics")
+    create_category_screen_ui(screens['Fashion'], data_sources, actions, "Fashion")
+    create_category_screen_ui(screens['Home & Garden'], data_sources, actions, "Home & Garden")
+    create_category_screen_ui(screens['Sports'], data_sources, actions, "Sports")
+    create_category_screen_ui(screens['Books'], data_sources, actions, "Books")
+    create_category_screen_ui(screens['Toys'], data_sources, actions, "Toys")
 
-    # Orders
-    create_orders_ui(screens['Orders'], data_sources, actions)
-    create_order_details_ui(screens['Order Details'], data_sources, actions)
-    create_order_tracking_ui(screens['Order Tracking'], data_sources, actions)
-    create_returns_ui(screens['Returns'], data_sources, actions)
-    create_cancel_order_ui(screens['Cancel Order'], data_sources, actions)
-    create_rate_order_ui(screens['Rate Order'], actions)
+    # User Account Screens
+    create_orders_screen_ui(screens['Orders'], data_sources, actions)
+    create_order_details_screen_ui(screens['Order Details'], data_sources, actions)
+    create_order_tracking_screen_ui(screens['Order Tracking'], data_sources, actions)
+    create_wishlist_screen_ui(screens['Wishlist'], data_sources, actions)
+    create_recently_viewed_screen_ui(screens['Recently Viewed'], data_sources, actions)
+    create_recommendations_screen_ui(screens['Recommendations'], data_sources, actions)
 
-    # User Account
-    create_profile_ui(screens['Profile'], data_sources, actions)
-    create_edit_profile_ui(screens['Edit Profile'], data_sources, actions)
-    create_addresses_ui(screens['Addresses'], data_sources, actions)
-    create_payment_cards_ui(screens['Payment Cards'], data_sources, actions)
-    create_wishlist_ui(screens['Wishlist'], data_sources, actions)
-    create_recently_viewed_ui(screens['Recently Viewed'], data_sources, actions)
-    create_loyalty_ui(screens['Loyalty'], data_sources, actions)
-    create_referrals_ui(screens['Referrals'], data_sources, actions)
-    create_wallet_ui(screens['Wallet'], data_sources, actions)
+    # Settings Screens
+    create_account_settings_screen_ui(screens['Account Settings'], actions)
+    create_personal_info_screen_ui(screens['Personal Info'], data_sources, actions)
+    create_addresses_screen_ui(screens['Addresses'], data_sources, actions)
+    create_payment_methods_screen_ui(screens['Payment Methods'], data_sources, actions)
+    create_security_screen_ui(screens['Security'], actions)
+    create_notifications_settings_screen_ui(screens['Notifications Settings'], actions)
 
-    print("✅ Created complete UI for all 56 screens with 160+ widgets")
+    # Checkout Screens
+    create_checkout_screen_ui(screens['Checkout'], data_sources, actions)
+    create_shipping_screen_ui(screens['Shipping'], data_sources, actions)
+    create_payment_screen_ui(screens['Payment'], data_sources, actions)
+    create_order_confirmation_screen_ui(screens['Order Confirmation'], data_sources, actions)
+
+    # Seller Screens
+    create_seller_dashboard_screen_ui(screens['Seller Dashboard'], data_sources, actions)
+    create_seller_products_screen_ui(screens['Seller Products'], data_sources, actions)
+    create_seller_orders_screen_ui(screens['Seller Orders'], data_sources, actions)
+    create_seller_analytics_screen_ui(screens['Seller Analytics'], data_sources, actions)
+    create_seller_profile_screen_ui(screens['Seller Profile'], data_sources, actions)
+
+    # Support Screens
+    create_help_center_screen_ui(screens['Help Center'], actions)
+    create_contact_support_screen_ui(screens['Contact Support'], actions)
+    create_faqs_screen_ui(screens['FAQs'], actions)
+    create_return_policy_screen_ui(screens['Return Policy'], actions)
+    create_terms_screen_ui(screens['Terms of Service'], actions)
+    create_privacy_screen_ui(screens['Privacy Policy'], actions)
+
+    # Special Screens
+    create_deals_screen_ui(screens['Deals'], data_sources, actions)
+    create_flash_sale_screen_ui(screens['Flash Sale'], data_sources, actions)
+    create_new_arrivals_screen_ui(screens['New Arrivals'], data_sources, actions)
+    create_best_sellers_screen_ui(screens['Best Sellers'], data_sources, actions)
+
+    print("✅ Created complete UI for all 40+ screens")
 
 
-# ============= UI CREATION FUNCTIONS FOR EACH SCREEN =============
+# UI Creation Functions for Each Screen
 
 def create_home_screen_ui(screen, data_sources, actions):
-    """Create the main home screen with all sections"""
+    """Create complete home screen UI with all marketplace features"""
 
-    # Main ScrollView with proper configuration
+    # Main ScrollView with specific widget_id
     main_scroll = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="home_scroll"
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0,
+        widget_id="home_scroll"
     )
 
-    # Add scroll properties for smooth scrolling
-    add_widget_property(main_scroll, "scrollDirection", "string", string_value="vertical")
-    add_widget_property(main_scroll, "physics", "string", string_value="AlwaysScrollableScrollPhysics")
+    WidgetProperty.objects.create(
+        widget=main_scroll,
+        property_name="scrollDirection",
+        property_type="string",
+        string_value="vertical"
+    )
 
-    # Add special handling configuration for home scroll
-    add_widget_property(main_scroll, "customConfiguration", "json", json_value=json.dumps({
-        "wrapInColumn": True,
-        "columnProperties": {
-            "mainAxisSize": "min",
-            "crossAxisAlignment": "stretch"
-        },
-        "childWrapping": {
-            "wrapNonContainers": True,
-            "wrapperWidget": "Flexible",
-            "wrapperProperties": {
-                "fit": "FlexFit.loose"
-            }
-        }
-    }))
+    WidgetProperty.objects.create(
+        widget=main_scroll,
+        property_name="physics",
+        property_type="string",
+        string_value="AlwaysScrollableScrollPhysics"
+    )
 
+    # Main Column with specific widget_id
     main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=main_scroll, order=0, widget_id="home_column"
+        screen=screen,
+        widget_type="Column",
+        parent_widget=main_scroll,
+        order=0,
+        widget_id="home_column"
     )
 
-    # Add proper column alignment
-    add_widget_property(main_column, "mainAxisAlignment", "string", string_value="start")
-    add_widget_property(main_column, "crossAxisAlignment", "string", string_value="stretch")
-    add_widget_property(main_column, "mainAxisSize", "string", string_value="min")
+    WidgetProperty.objects.create(
+        widget=main_column,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="start"
+    )
 
-    # Search Bar with Voice and Barcode
-    search_container = create_search_bar(screen, main_column, 0, actions)
+    WidgetProperty.objects.create(
+        widget=main_column,
+        property_name="crossAxisAlignment",
+        property_type="string",
+        string_value="stretch"
+    )
 
-    # Hero Banner Carousel
-    create_banner_carousel(screen, main_column, 1, data_sources)
+    # Search Bar Container
+    search_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=0,
+        widget_id="search_bar_container"
+    )
 
-    # Quick Actions Grid
-    create_quick_actions(screen, main_column, 2, actions)
+    WidgetProperty.objects.create(
+        widget=search_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
 
-    # Flash Sale Section
-    create_flash_sale_section(screen, main_column, 3, data_sources, actions)
+    WidgetProperty.objects.create(
+        widget=search_container,
+        property_name="color",
+        property_type="color",
+        color_value="#FFFFFF"
+    )
+
+    search_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=search_container,
+        order=0,
+        widget_id="search_row"
+    )
+
+    # Expanded widget for search field
+    search_expanded = Widget.objects.create(
+        screen=screen,
+        widget_type="Expanded",
+        parent_widget=search_row,
+        order=0
+    )
+
+    search_field = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=search_expanded,
+        order=0,
+        widget_id="search_field"
+    )
+
+    WidgetProperty.objects.create(
+        widget=search_field,
+        property_name="hintText",
+        property_type="string",
+        string_value="Search products..."
+    )
+
+    # Search Button
+    search_button = Widget.objects.create(
+        screen=screen,
+        widget_type="IconButton",
+        parent_widget=search_row,
+        order=1,
+        widget_id="search_button"
+    )
+
+    WidgetProperty.objects.create(
+        widget=search_button,
+        property_name="icon",
+        property_type="string",
+        string_value="search"
+    )
+
+    WidgetProperty.objects.create(
+        widget=search_button,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions.get("Perform Search", actions["Navigate to Search"])
+    )
+
+    # Voice Search Button
+    voice_button = Widget.objects.create(
+        screen=screen,
+        widget_type="IconButton",
+        parent_widget=search_row,
+        order=2,
+        widget_id="voice_search_button"
+    )
+
+    WidgetProperty.objects.create(
+        widget=voice_button,
+        property_name="icon",
+        property_type="string",
+        string_value="mic"
+    )
+
+    WidgetProperty.objects.create(
+        widget=voice_button,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions.get("Open Voice Search", actions["Navigate to Search"])
+    )
+
+    # Barcode Scanner Button
+    barcode_button = Widget.objects.create(
+        screen=screen,
+        widget_type="IconButton",
+        parent_widget=search_row,
+        order=3,
+        widget_id="barcode_button"
+    )
+
+    WidgetProperty.objects.create(
+        widget=barcode_button,
+        property_name="icon",
+        property_type="string",
+        string_value="qr_code_scanner"
+    )
+
+    WidgetProperty.objects.create(
+        widget=barcode_button,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions.get("Open Barcode Scanner", actions["Navigate to Search"])
+    )
+
+    # Banner/Hero Section
+    banner_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=1,
+        widget_id="banner_container"
+    )
+
+    WidgetProperty.objects.create(
+        widget=banner_container,
+        property_name="height",
+        property_type="decimal",
+        decimal_value=200
+    )
+
+    WidgetProperty.objects.create(
+        widget=banner_container,
+        property_name="margin",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    banner_image = Widget.objects.create(
+        screen=screen,
+        widget_type="Image",
+        parent_widget=banner_container,
+        order=0,
+        widget_id="banner_image"
+    )
+
+    WidgetProperty.objects.create(
+        widget=banner_image,
+        property_name="imageUrl",
+        property_type="url",
+        url_value="https://picsum.photos/800/400?random=banner"
+    )
+
+    # Categories Section
+    categories_header = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=2,
+        widget_id="categories_header"
+    )
+
+    WidgetProperty.objects.create(
+        widget=categories_header,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    cat_header_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=categories_header,
+        order=0,
+        widget_id="cat_header_row"
+    )
+
+    # Expanded for category title
+    cat_title_expanded = Widget.objects.create(
+        screen=screen,
+        widget_type="Expanded",
+        parent_widget=cat_header_row,
+        order=0
+    )
+
+    cat_title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=cat_title_expanded,
+        order=0,
+        widget_id="categories_title"
+    )
+
+    WidgetProperty.objects.create(
+        widget=cat_title,
+        property_name="text",
+        property_type="string",
+        string_value="Shop by Category"
+    )
+
+    WidgetProperty.objects.create(
+        widget=cat_title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=20
+    )
+
+    WidgetProperty.objects.create(
+        widget=cat_title,
+        property_name="fontWeight",
+        property_type="string",
+        string_value="bold"
+    )
+
+    see_all_cat = Widget.objects.create(
+        screen=screen,
+        widget_type="TextButton",
+        parent_widget=cat_header_row,
+        order=1,
+        widget_id="see_all_categories"
+    )
+
+    WidgetProperty.objects.create(
+        widget=see_all_cat,
+        property_name="text",
+        property_type="string",
+        string_value="See All"
+    )
+
+    WidgetProperty.objects.create(
+        widget=see_all_cat,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Categories"]
+    )
 
     # Categories Grid
-    create_categories_grid(screen, main_column, 4, data_sources, actions)
+    categories_grid_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=3,
+        widget_id="categories_grid_container"
+    )
 
-    # Trending Products
-    create_trending_section(screen, main_column, 5, data_sources, actions)
+    WidgetProperty.objects.create(
+        widget=categories_grid_container,
+        property_name="height",
+        property_type="decimal",
+        decimal_value=200
+    )
 
-    # New Arrivals
-    create_new_arrivals_section(screen, main_column, 6, data_sources, actions)
+    WidgetProperty.objects.create(
+        widget=categories_grid_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
 
-    # Best Sellers
-    create_best_sellers_section(screen, main_column, 7, data_sources, actions)
+    cat_grid = Widget.objects.create(
+        screen=screen,
+        widget_type="GridView",
+        parent_widget=categories_grid_container,
+        order=0,
+        widget_id="categories_grid"
+    )
 
-    # Recommended For You
-    create_recommendations_section(screen, main_column, 8, data_sources, actions)
+    WidgetProperty.objects.create(
+        widget=cat_grid,
+        property_name="crossAxisCount",
+        property_type="integer",
+        integer_value=3
+    )
 
-    # Recently Viewed
-    create_recently_viewed_section(screen, main_column, 9, data_sources, actions)
+    WidgetProperty.objects.create(
+        widget=cat_grid,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['categories'],
+            field_name="name"
+        )
+    )
+
+    # Flash Sale Section
+    flash_sale_header = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=4,
+        widget_id="flash_sale_header"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_sale_header,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    flash_header_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=flash_sale_header,
+        order=0
+    )
+
+    flash_title_expanded = Widget.objects.create(
+        screen=screen,
+        widget_type="Expanded",
+        parent_widget=flash_header_row,
+        order=0
+    )
+
+    flash_title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=flash_title_expanded,
+        order=0,
+        widget_id="flash_sale_title"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_title,
+        property_name="text",
+        property_type="string",
+        string_value="⚡ Flash Sale"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=20
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_title,
+        property_name="fontWeight",
+        property_type="string",
+        string_value="bold"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_title,
+        property_name="color",
+        property_type="color",
+        color_value="#FF0000"
+    )
+
+    see_all_flash = Widget.objects.create(
+        screen=screen,
+        widget_type="TextButton",
+        parent_widget=flash_header_row,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=see_all_flash,
+        property_name="text",
+        property_type="string",
+        string_value="View All"
+    )
+
+    WidgetProperty.objects.create(
+        widget=see_all_flash,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Flash Sale"]
+    )
+
+    # Flash Sale ListView (Horizontal)
+    flash_sale_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=5,
+        widget_id="flash_sale_list"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_sale_list,
+        property_name="scrollDirection",
+        property_type="string",
+        string_value="horizontal"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_sale_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['flash_sales'],
+            field_name="salePrice"
+        )
+    )
+
+    # Recently Viewed Section
+    recently_header = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=6,
+        widget_id="recently_header"
+    )
+
+    WidgetProperty.objects.create(
+        widget=recently_header,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    recently_title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=recently_header,
+        order=0,
+        widget_id="recently_title"
+    )
+
+    WidgetProperty.objects.create(
+        widget=recently_title,
+        property_name="text",
+        property_type="string",
+        string_value="Recently Viewed"
+    )
+
+    WidgetProperty.objects.create(
+        widget=recently_title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=18
+    )
+
+    # Recently Viewed ListView (Horizontal)
+    recently_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=7,
+        widget_id="recently_viewed_list"
+    )
+
+    WidgetProperty.objects.create(
+        widget=recently_list,
+        property_name="scrollDirection",
+        property_type="string",
+        string_value="horizontal"
+    )
+
+    WidgetProperty.objects.create(
+        widget=recently_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['recently_viewed'],
+            field_name="productName"
+        )
+    )
+
+    # Featured Products Section
+    featured_header = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=8,
+        widget_id="featured_header"
+    )
+
+    WidgetProperty.objects.create(
+        widget=featured_header,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    featured_title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=featured_header,
+        order=0,
+        widget_id="featured_title"
+    )
+
+    WidgetProperty.objects.create(
+        widget=featured_title,
+        property_name="text",
+        property_type="string",
+        string_value="Featured Products"
+    )
+
+    WidgetProperty.objects.create(
+        widget=featured_title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=20
+    )
+
+    # Products List
+    products_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=9,
+        widget_id="featured_products_list"
+    )
+
+    WidgetProperty.objects.create(
+        widget=products_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['products'],
+            field_name="name"
+        )
+    )
 
     # Bottom Navigation
     create_bottom_navigation(screen, actions)
 
 
-def create_search_bar(screen, parent, order, actions):
-    """Create advanced search bar with voice and barcode"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="search_container"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-    add_widget_property(container, "color", "color", color_value="#FFFFFF")
-
-    row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=container,
-        order=0, widget_id="search_row"
-    )
-
-    add_widget_property(row, "mainAxisAlignment", "string", string_value="center")
-    add_widget_property(row, "crossAxisAlignment", "string", string_value="center")
-
-    # Search field container
-    search_container = Widget.objects.create(
-        screen=screen, widget_type="Expanded", parent_widget=row,
-        order=0, widget_id="search_field_container"
-    )
-
-    search_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=search_container,
-        order=0, widget_id="search_field"
-    )
-    add_widget_property(search_field, "hintText", "string",
-                        string_value="Search products, brands...")
-
-    # Add controller definition and action as properties
-    add_widget_property(search_field, "controller", "string", string_value="_searchController")
-    add_widget_property(search_field, "controllerDefinition", "json", json_value=json.dumps({
-        "type": "TextEditingController",
-        "name": "_searchController",
-        "initialization": "final TextEditingController _searchController = TextEditingController();"
-    }))
-    add_widget_property(search_field, "onSubmitted", "action_reference",
-                        action_reference=actions.get("Perform Search"))
-
-    # Voice button
-    voice_btn = Widget.objects.create(
-        screen=screen, widget_type="IconButton", parent_widget=row,
-        order=1, widget_id="voice_search_btn"
-    )
-    add_widget_property(voice_btn, "icon", "string", string_value="mic")
-    add_widget_property(voice_btn, "onPressed", "action_reference",
-                        action_reference=actions.get("Open Voice Search"))
-
-    # Barcode button
-    barcode_btn = Widget.objects.create(
-        screen=screen, widget_type="IconButton", parent_widget=row,
-        order=2, widget_id="barcode_btn"
-    )
-    add_widget_property(barcode_btn, "icon", "string", string_value="qr_code_scanner")
-    add_widget_property(barcode_btn, "onPressed", "action_reference",
-                        action_reference=actions.get("Open Barcode Scanner"))
-
-    return container
-
-    # Voice button
-    voice_btn = Widget.objects.create(
-        screen=screen, widget_type="IconButton", parent_widget=row,
-        order=1, widget_id="voice_search_btn"
-    )
-    add_widget_property(voice_btn, "icon", "string", string_value="mic")
-    add_widget_property(voice_btn, "onPressed", "string", string_value="_openVoiceSearch")
-
-    # Barcode button
-    barcode_btn = Widget.objects.create(
-        screen=screen, widget_type="IconButton", parent_widget=row,
-        order=2, widget_id="barcode_btn"
-    )
-    add_widget_property(barcode_btn, "icon", "string", string_value="qr_code_scanner")
-    add_widget_property(barcode_btn, "onPressed", "string", string_value="_openBarcodeScanner")
-
-    return container
-
-
-def create_banner_carousel(screen, parent, order, data_sources):
-    """Create hero banner carousel"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="banner_carousel"
-    )
-
-    add_widget_property(container, "height", "decimal", decimal_value=200)
-    add_widget_property(container, "margin", "decimal", decimal_value=16)
-
-    page_view = Widget.objects.create(
-        screen=screen, widget_type="PageView", parent_widget=container,
-        order=0, widget_id="banner_pages"
-    )
-
-    # Add multiple banner images
-    for i in range(5):
-        img = Widget.objects.create(
-            screen=screen, widget_type="Image", parent_widget=page_view,
-            order=i, widget_id=f"banner_{i}"
-        )
-        add_widget_property(img, "imageUrl", "url",
-                            url_value=f"https://picsum.photos/800/400?random=banner{i}")
-
-
-def create_quick_actions(screen, parent, order, actions):
-    """Create quick action buttons grid"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="quick_actions"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-
-    grid = Widget.objects.create(
-        screen=screen, widget_type="GridView", parent_widget=container,
-        order=0, widget_id="actions_grid"
-    )
-
-    add_widget_property(grid, "crossAxisCount", "integer", integer_value=4)
-
-    # Quick action items
-    quick_actions = [
-        ("Categories", "category", actions["Navigate to Categories"]),
-        ("Offers", "local_offer", actions["Navigate to Coupons"]),
-        ("Wallet", "account_balance_wallet", actions["Navigate to Wallet"]),
-        ("Orders", "shopping_bag", actions["Navigate to Orders"]),
-    ]
-
-    for i, (label, icon, action) in enumerate(quick_actions):
-        item_column = Widget.objects.create(
-            screen=screen, widget_type="Column", parent_widget=grid,
-            order=i, widget_id=f"action_{i}"
-        )
-
-        icon_btn = Widget.objects.create(
-            screen=screen, widget_type="IconButton", parent_widget=item_column,
-            order=0, widget_id=f"action_icon_{i}"
-        )
-        add_widget_property(icon_btn, "icon", "string", string_value=icon)
-        add_widget_property(icon_btn, "onPressed", "action_reference", action_reference=action)
-
-        text = Widget.objects.create(
-            screen=screen, widget_type="Text", parent_widget=item_column,
-            order=1, widget_id=f"action_text_{i}"
-        )
-        add_widget_property(text, "text", "string", string_value=label)
-
-
-def create_product_card(screen, parent, order, actions, name="Product", price="$99", original_price="$199"):
-    """Helper function to create a product card widget"""
-    card = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id=f"product_card_{order}"
-    )
-    add_widget_property(card, "width", "decimal", decimal_value=150)
-    add_widget_property(card, "margin", "decimal", decimal_value=4)
-
-    card_content = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=card,
-        order=0, widget_id=f"product_card_content_{order}"
-    )
-
-    column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=card_content,
-        order=0, widget_id=f"product_column_{order}"
-    )
-
-    # Product image placeholder
-    image_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=column,
-        order=0, widget_id=f"product_image_{order}"
-    )
-    add_widget_property(image_container, "height", "decimal", decimal_value=120)
-    add_widget_property(image_container, "color", "color", color_value="#E0E0E0")
-
-    # Product name
-    name_text = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=column,
-        order=1, widget_id=f"product_name_{order}"
-    )
-    add_widget_property(name_text, "text", "string", string_value=name)
-
-    # Product price
-    price_text = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=column,
-        order=2, widget_id=f"product_price_{order}"
-    )
-    add_widget_property(price_text, "text", "string", string_value=price)
-    add_widget_property(price_text, "color", "color", color_value="#FF6B35")
-
-    # Make card clickable
-    if "Navigate to Product Details" in actions:
-        add_widget_property(card_content, "onTap", "action_reference",
-                            action_reference=actions["Navigate to Product Details"])
-
-
-def create_flash_sale_section(screen, parent, order, data_sources, actions):
-    """Create flash sale section with proper data binding"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="flash_sale_section"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-    add_widget_property(container, "color", "color", color_value="#FFF3E0")
-
-    # Header with countdown
-    header_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=container,
-        order=0, widget_id="flash_header"
-    )
-
-    add_widget_property(header_row, "mainAxisAlignment", "string", string_value="spaceBetween")
-
-    title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=header_row,
-        order=0, widget_id="flash_title"
-    )
-    add_widget_property(title, "text", "string", string_value="⚡ Flash Sale")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=20)
-    add_widget_property(title, "fontWeight", "string", string_value="bold")
-
-    countdown = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=header_row,
-        order=1, widget_id="countdown"
-    )
-    add_widget_property(countdown, "text", "string", string_value="Ends in: 02:45:30")
-    add_widget_property(countdown, "color", "color", color_value="#FF0000")
-
-    # Flash sale products - Use ListView with data source
-    products_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=container,
-        order=1, widget_id="flash_products_container"
-    )
-    add_widget_property(products_container, "height", "decimal", decimal_value=280)
-
-    # Create horizontal ListView bound to Flash Sales data source
-    products_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=products_container,
-        order=0, widget_id="flash_products_list"
-    )
-
-    # Bind to Flash Sales data source with custom item layout
-    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
-    add_widget_property(products_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Flash Sales"], "productId"))
-
-    # Add custom item layout configuration for flash sales
-    add_widget_property(products_list, "itemLayout", "json", json_value=json.dumps({
-        "type": "flash_sale_card",
-        "width": 160,
-        "height": 240,
-        "showDiscountBadge": True,
-        "showProgressBar": True,
-        "showSoldCount": True,
-        "priceDisplay": "sale_and_original",
-        "cardStyle": {
-            "elevation": 2,
-            "borderRadius": 12
-        },
-        "imageHeight": 140,
-        "badgePosition": {"top": 8, "right": 8},
-        "badgeStyle": {
-            "backgroundColor": "Colors.red",
-            "textColor": "Colors.white",
-            "borderRadius": 12,
-            "padding": {"horizontal": 8, "vertical": 4}
-        }
-    }))
-
-
-def create_categories_grid(screen, parent, order, data_sources, actions):
-    """Create categories grid section"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="categories_section"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-
-    # Section header
-    header_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=container,
-        order=0, widget_id="cat_header"
-    )
-
-    add_widget_property(header_row, "mainAxisAlignment", "string", string_value="spaceBetween")
-
-    title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=header_row,
-        order=0, widget_id="cat_title"
-    )
-    add_widget_property(title, "text", "string", string_value="Shop by Category")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
-    add_widget_property(title, "fontWeight", "string", string_value="w600")
-
-    see_all = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=header_row,
-        order=1, widget_id="cat_see_all"
-    )
-    add_widget_property(see_all, "text", "string", string_value="See All →")
-    add_widget_property(see_all, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Categories"])
-
-    # Categories grid container with fixed height
-    grid_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=container,
-        order=1, widget_id="cat_grid_container"
-    )
-    add_widget_property(grid_container, "height", "decimal", decimal_value=200)
-
-    # Categories grid
-    grid = Widget.objects.create(
-        screen=screen, widget_type="GridView", parent_widget=grid_container,
-        order=0, widget_id="cat_grid"
-    )
-
-    add_widget_property(grid, "crossAxisCount", "integer", integer_value=4)
-    add_widget_property(grid, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Categories"], "id"))
-
-    # Add category icon mapping and layout configuration
-    add_widget_property(grid, "itemLayout", "json", json_value=json.dumps({
-        "type": "category_card",
-        "showIcon": True,
-        "showProductCount": True,
-        "iconMapping": {
-            "electronics": "devices",
-            "fashion": "shopping_bag",
-            "home & garden": "home",
-            "home garden": "home",
-            "sports": "sports_soccer",
-            "sports & outdoors": "sports_soccer",
-            "books": "menu_book",
-            "books & media": "menu_book",
-            "beauty": "face",
-            "beauty & personal care": "face",
-            "food": "restaurant",
-            "food & groceries": "restaurant",
-            "health": "favorite",
-            "health & wellness": "favorite",
-            "automotive": "directions_car",
-            "toys": "toys",
-            "toys & games": "toys",
-            "pets": "pets",
-            "pet supplies": "pets",
-            "default": "category"
-        },
-        "cardStyle": {
-            "backgroundColor": "Colors.white",
-            "borderRadius": 8,
-            "elevation": 1,
-            "padding": 8
-        },
-        "iconStyle": {
-            "size": 30,
-            "containerSize": 50,
-            "backgroundColor": "Theme.of(context).primaryColor.withOpacity(0.1)",
-            "borderRadius": 25
-        }
-    }))
-
-
-def create_trending_section(screen, parent, order, data_sources, actions):
-    """Create trending products section"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="trending_section"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-
-    # Header
-    header = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=container,
-        order=0, widget_id="trending_header"
-    )
-
-    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
-
-    title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=header,
-        order=0, widget_id="trending_title"
-    )
-    add_widget_property(title, "text", "string", string_value="🔥 Trending Now")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
-    add_widget_property(title, "fontWeight", "string", string_value="w600")
-
-    see_all = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=header,
-        order=1, widget_id="trending_see_all"
-    )
-    add_widget_property(see_all, "text", "string", string_value="View All →")
-    add_widget_property(see_all, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Product List"])
-
-    # Products list container
-    list_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=container,
-        order=1, widget_id="trending_list_container"
-    )
-    add_widget_property(list_container, "height", "decimal", decimal_value=250)
-
-    # Products ListView
-    products_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=list_container,
-        order=0, widget_id="trending_list"
-    )
-
-    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
-    add_widget_property(products_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Trending Products"], "id"))
-
-    # Add product card layout configuration
-    add_widget_property(products_list, "itemLayout", "json", json_value=json.dumps({
-        "type": "product_card",
-        "width": 150,
-        "height": 250,
-        "imageHeight": 120,
-        "showRating": True,
-        "showDiscount": True,
-        "cardStyle": {
-            "elevation": 1,
-            "borderRadius": 8
-        },
-        "contentPadding": 8,
-        "titleMaxLines": 2,
-        "priceStyle": {
-            "color": "#FF6B35",
-            "fontSize": 14,
-            "fontWeight": "bold"
-        }
-    }))
-
-
-def create_new_arrivals_section(screen, parent, order, data_sources, actions):
-    """Create new arrivals section"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="new_arrivals_section"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-
-    # Header
-    header = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=container,
-        order=0, widget_id="new_arrivals_header"
-    )
-
-    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
-
-    title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=header,
-        order=0, widget_id="new_arrivals_title"
-    )
-    add_widget_property(title, "text", "string", string_value="✨ New Arrivals")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
-    add_widget_property(title, "fontWeight", "string", string_value="w600")
-
-    see_all = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=header,
-        order=1, widget_id="new_arrivals_see_all"
-    )
-    add_widget_property(see_all, "text", "string", string_value="View All →")
-    add_widget_property(see_all, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Product List"])
-
-    # Products list container
-    list_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=container,
-        order=1, widget_id="new_arrivals_list_container"
-    )
-    add_widget_property(list_container, "height", "decimal", decimal_value=250)
-
-    # Products ListView
-    products_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=list_container,
-        order=0, widget_id="new_arrivals_list"
-    )
-
-    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
-    add_widget_property(products_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["New Arrivals"], "id"))
-
-
-def create_best_sellers_section(screen, parent, order, data_sources, actions):
-    """Create best sellers section"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="best_sellers_section"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-
-    # Header
-    header = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=container,
-        order=0, widget_id="best_sellers_header"
-    )
-
-    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
-
-    title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=header,
-        order=0, widget_id="best_sellers_title"
-    )
-    add_widget_property(title, "text", "string", string_value="🏆 Best Sellers")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
-    add_widget_property(title, "fontWeight", "string", string_value="w600")
-
-    see_all = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=header,
-        order=1, widget_id="best_sellers_see_all"
-    )
-    add_widget_property(see_all, "text", "string", string_value="View All →")
-    add_widget_property(see_all, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Product List"])
-
-    # Products list container
-    list_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=container,
-        order=1, widget_id="best_sellers_list_container"
-    )
-    add_widget_property(list_container, "height", "decimal", decimal_value=250)
-
-    # Products ListView
-    products_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=list_container,
-        order=0, widget_id="best_sellers_list"
-    )
-
-    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
-    add_widget_property(products_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Best Sellers"], "id"))
-
-
-def create_recommendations_section(screen, parent, order, data_sources, actions):
-    """Create personalized recommendations section"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="recommendations_section"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-
-    # Header
-    header = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=container,
-        order=0, widget_id="recommendations_header"
-    )
-
-    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
-
-    title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=header,
-        order=0, widget_id="recommendations_title"
-    )
-    add_widget_property(title, "text", "string", string_value="💡 Recommended For You")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
-    add_widget_property(title, "fontWeight", "string", string_value="w600")
-
-    see_all = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=header,
-        order=1, widget_id="recommendations_see_all"
-    )
-    add_widget_property(see_all, "text", "string", string_value="View All →")
-    add_widget_property(see_all, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Product List"])
-
-    # Products list container
-    list_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=container,
-        order=1, widget_id="recommendations_list_container"
-    )
-    add_widget_property(list_container, "height", "decimal", decimal_value=250)
-
-    # Products ListView
-    products_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=list_container,
-        order=0, widget_id="recommendations_list"
-    )
-
-    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
-    add_widget_property(products_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Products"], "id"))
-
-
-def create_recently_viewed_section(screen, parent, order, data_sources, actions):
-    """Create recently viewed products section"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id="recent_section"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-
-    # Header
-    header = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=container,
-        order=0, widget_id="recent_header"
-    )
-
-    add_widget_property(header, "mainAxisAlignment", "string", string_value="spaceBetween")
-
-    title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=header,
-        order=0, widget_id="recent_title"
-    )
-    add_widget_property(title, "text", "string", string_value="👁️ Recently Viewed")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
-    add_widget_property(title, "fontWeight", "string", string_value="w600")
-
-    see_all = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=header,
-        order=1, widget_id="recent_see_all"
-    )
-    add_widget_property(see_all, "text", "string", string_value="View All →")
-    add_widget_property(see_all, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Recently Viewed"])
-
-    # Products list container
-    list_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=container,
-        order=1, widget_id="recent_list_container"
-    )
-    add_widget_property(list_container, "height", "decimal", decimal_value=250)
-
-    # Products ListView
-    products_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=list_container,
-        order=0, widget_id="recent_list"
-    )
-
-    add_widget_property(products_list, "scrollDirection", "string", string_value="horizontal")
-    add_widget_property(products_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Recently Viewed"], "productId"))
-
-    # Add recently viewed item layout with time formatting
-    add_widget_property(products_list, "itemLayout", "json", json_value=json.dumps({
-        "type": "recently_viewed_card",
-        "width": 150,
-        "showTimeAgo": True,
-        "timeAgoField": "viewedAt",
-        "timeAgoFormatter": {
-            "type": "relative",
-            "formatFunction": """
-            String _getTimeAgo(String? dateString) {
-              if (dateString == null) return 'recently';
-              try {
-                final date = DateTime.parse(dateString);
-                final now = DateTime.now();
-                final difference = now.difference(date);
-
-                if (difference.inDays > 0) {
-                  return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
-                } else if (difference.inHours > 0) {
-                  return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
-                } else if (difference.inMinutes > 0) {
-                  return '${difference.inMinutes} min${difference.inMinutes > 1 ? 's' : ''} ago';
-                } else {
-                  return 'just now';
-                }
-              } catch (e) {
-                return 'recently';
-              }
-            }
-            """
-        },
-        "cardStyle": {
-            "elevation": 1,
-            "borderRadius": 8
-        }
-    }))
-
-def create_product_section(screen, parent, order, title_text, data_source, actions, section_id):
-    """Generic function to create a product section"""
-    container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=parent,
-        order=order, widget_id=f"{section_id}_section"
-    )
-
-    add_widget_property(container, "padding", "decimal", decimal_value=16)
-
-    # Header
-    header = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=container,
-        order=0, widget_id=f"{section_id}_header"
-    )
-
-    title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=header,
-        order=0, widget_id=f"{section_id}_title"
-    )
-    add_widget_property(title, "text", "string", string_value=title_text)
-    add_widget_property(title, "fontSize", "decimal", decimal_value=18)
-
-    see_all = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=header,
-        order=1, widget_id=f"{section_id}_see_all"
-    )
-    add_widget_property(see_all, "text", "string", string_value="View All")
-    add_widget_property(see_all, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Product List"])
-
-    # Products horizontal list
-    products_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=container,
-        order=1, widget_id=f"{section_id}_list"
-    )
-
-    add_widget_property(products_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_source, "name"))
-
-
 def create_bottom_navigation(screen, actions):
-    """Create bottom navigation bar"""
+    """Create reusable bottom navigation bar with proper configuration"""
+
     bottom_nav = Widget.objects.create(
-        screen=screen, widget_type="BottomNavigationBar", order=99, widget_id="bottom_nav"
+        screen=screen,
+        widget_type="BottomNavigationBar",
+        order=99,  # Always at bottom
+        widget_id="bottom_navigation"
     )
 
-    # Set properties for the navigation bar
-    add_widget_property(bottom_nav, "type", "string", string_value="fixed")
-    add_widget_property(bottom_nav, "selectedItemColor", "color", color_value="#FF6B35")
-    add_widget_property(bottom_nav, "unselectedItemColor", "color", color_value="#757575")
-    add_widget_property(bottom_nav, "currentIndex", "integer", integer_value=0)
+    # Home Tab
+    home_item = Widget.objects.create(
+        screen=screen,
+        widget_type="BottomNavigationBarItem",
+        parent_widget=bottom_nav,
+        order=0,
+        widget_id="nav_home"
+    )
 
-    # Add navigation items as child widgets
-    nav_items = [
-        ("Home", "home", "/", "Navigate to Home"),
-        ("Categories", "category", "/categories", "Navigate to Categories"),
-        ("Cart", "shopping_cart", "/cart", "Navigate to Cart"),
-        ("Profile", "person", "/profile", "Navigate to Profile"),
-    ]
+    WidgetProperty.objects.create(
+        widget=home_item,
+        property_name="icon",
+        property_type="string",
+        string_value="home"
+    )
 
-    for i, (label, icon, route, action_name) in enumerate(nav_items):
-        nav_item = Widget.objects.create(
-            screen=screen,
-            widget_type="BottomNavigationBarItem",
-            parent_widget=bottom_nav,
-            order=i,
-            widget_id=f"bottom_nav_item_{i}"
-        )
-        add_widget_property(nav_item, "label", "string", string_value=label)
-        add_widget_property(nav_item, "icon", "string", string_value=icon)
-        add_widget_property(nav_item, "route", "string", string_value=route)
-        add_widget_property(nav_item, "onTap", "action_reference",
-                           action_reference=actions.get(action_name))
+    WidgetProperty.objects.create(
+        widget=home_item,
+        property_name="label",
+        property_type="string",
+        string_value="Home"
+    )
+
+    WidgetProperty.objects.create(
+        widget=home_item,
+        property_name="onTap",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Home"]
+    )
+
+    # Categories Tab
+    cat_item = Widget.objects.create(
+        screen=screen,
+        widget_type="BottomNavigationBarItem",
+        parent_widget=bottom_nav,
+        order=1,
+        widget_id="nav_categories"
+    )
+
+    WidgetProperty.objects.create(
+        widget=cat_item,
+        property_name="icon",
+        property_type="string",
+        string_value="category"
+    )
+
+    WidgetProperty.objects.create(
+        widget=cat_item,
+        property_name="label",
+        property_type="string",
+        string_value="Categories"
+    )
+
+    WidgetProperty.objects.create(
+        widget=cat_item,
+        property_name="onTap",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Categories"]
+    )
+
+    # Cart Tab
+    cart_item = Widget.objects.create(
+        screen=screen,
+        widget_type="BottomNavigationBarItem",
+        parent_widget=bottom_nav,
+        order=2,
+        widget_id="nav_cart"
+    )
+
+    WidgetProperty.objects.create(
+        widget=cart_item,
+        property_name="icon",
+        property_type="string",
+        string_value="shopping_cart"
+    )
+
+    WidgetProperty.objects.create(
+        widget=cart_item,
+        property_name="label",
+        property_type="string",
+        string_value="Cart"
+    )
+
+    WidgetProperty.objects.create(
+        widget=cart_item,
+        property_name="onTap",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Cart"]
+    )
+
+    # Profile Tab
+    profile_item = Widget.objects.create(
+        screen=screen,
+        widget_type="BottomNavigationBarItem",
+        parent_widget=bottom_nav,
+        order=3,
+        widget_id="nav_profile"
+    )
+
+    WidgetProperty.objects.create(
+        widget=profile_item,
+        property_name="icon",
+        property_type="string",
+        string_value="person"
+    )
+
+    WidgetProperty.objects.create(
+        widget=profile_item,
+        property_name="label",
+        property_type="string",
+        string_value="Profile"
+    )
+
+    WidgetProperty.objects.create(
+        widget=profile_item,
+        property_name="onTap",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Profile"]
+    )
 
 
-# Continue with all other screen UI creation functions...
+# Implement all other screen UI creation functions...
 
 def create_login_screen_ui(screen, actions):
     """Create login screen UI"""
+    # Main column
     main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="login_column"
+        screen=screen,
+        widget_type="Column",
+        order=0,
+        widget_id="login_column"
     )
 
-    # Logo
-    logo = Widget.objects.create(
-        screen=screen, widget_type="Image", parent_widget=main_column,
-        order=0, widget_id="app_logo"
+    WidgetProperty.objects.create(
+        widget=main_column,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="center"
     )
-    add_widget_property(logo, "imageUrl", "url",
-                        url_value="https://picsum.photos/200/200?random=logo")
 
-    # Welcome text
+    WidgetProperty.objects.create(
+        widget=main_column,
+        property_name="crossAxisAlignment",
+        property_type="string",
+        string_value="center"
+    )
+
+    # Logo/Title
     title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="welcome_text"
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0,
+        widget_id="login_title"
     )
-    add_widget_property(title, "text", "string", string_value="Welcome Back!")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=24)
 
-    # Email field
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value="Welcome Back!"
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=28
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="fontWeight",
+        property_type="string",
+        string_value="bold"
+    )
+
+    # Add spacing
+    spacer1 = Widget.objects.create(
+        screen=screen,
+        widget_type="SizedBox",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=spacer1,
+        property_name="height",
+        property_type="decimal",
+        decimal_value=40
+    )
+
+    # Email field container
+    email_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=email_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
     email_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=2, widget_id="email_field"
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=email_container,
+        order=0,
+        widget_id="email_field"
     )
-    add_widget_property(email_field, "hintText", "string", string_value="Email")
 
-    # Password field
-    password_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=3, widget_id="password_field"
+    WidgetProperty.objects.create(
+        widget=email_field,
+        property_name="hintText",
+        property_type="string",
+        string_value="Email"
     )
-    add_widget_property(password_field, "hintText", "string", string_value="Password")
-    add_widget_property(password_field, "obscureText", "boolean", boolean_value=True)
+
+    WidgetProperty.objects.create(
+        widget=email_field,
+        property_name="labelText",
+        property_type="string",
+        string_value="Email Address"
+    )
+
+    # Password field container
+    password_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=3
+    )
+
+    WidgetProperty.objects.create(
+        widget=password_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    password_field = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=password_container,
+        order=0,
+        widget_id="password_field"
+    )
+
+    WidgetProperty.objects.create(
+        widget=password_field,
+        property_name="hintText",
+        property_type="string",
+        string_value="Password"
+    )
+
+    WidgetProperty.objects.create(
+        widget=password_field,
+        property_name="labelText",
+        property_type="string",
+        string_value="Password"
+    )
+
+    WidgetProperty.objects.create(
+        widget=password_field,
+        property_name="obscureText",
+        property_type="boolean",
+        boolean_value=True
+    )
 
     # Forgot password link
-    forgot_btn = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=main_column,
-        order=4, widget_id="forgot_password"
+    forgot_button = Widget.objects.create(
+        screen=screen,
+        widget_type="TextButton",
+        parent_widget=main_column,
+        order=4
     )
-    add_widget_property(forgot_btn, "text", "string", string_value="Forgot Password?")
-    add_widget_property(forgot_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Forgot Password"])
+
+    WidgetProperty.objects.create(
+        widget=forgot_button,
+        property_name="text",
+        property_type="string",
+        string_value="Forgot Password?"
+    )
+
+    WidgetProperty.objects.create(
+        widget=forgot_button,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Forgot Password"]
+    )
+
+    # Add spacing
+    spacer2 = Widget.objects.create(
+        screen=screen,
+        widget_type="SizedBox",
+        parent_widget=main_column,
+        order=5
+    )
+
+    WidgetProperty.objects.create(
+        widget=spacer2,
+        property_name="height",
+        property_type="decimal",
+        decimal_value=20
+    )
 
     # Login button
     login_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=5, widget_id="login_button"
-    )
-    add_widget_property(login_btn, "text", "string", string_value="Login")
-    add_widget_property(login_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Home"])
-
-    # Social login options
-    social_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=6, widget_id="social_login"
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=6,
+        widget_id="login_button"
     )
 
-    # Google login
-    google_btn = Widget.objects.create(
-        screen=screen, widget_type="IconButton", parent_widget=social_row,
-        order=0, widget_id="google_login"
+    WidgetProperty.objects.create(
+        widget=login_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Login"
     )
-    add_widget_property(google_btn, "icon", "string", string_value="g_mobiledata")
 
-    # Facebook login
-    fb_btn = Widget.objects.create(
-        screen=screen, widget_type="IconButton", parent_widget=social_row,
-        order=1, widget_id="facebook_login"
+    WidgetProperty.objects.create(
+        widget=login_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Home"]
     )
-    add_widget_property(fb_btn, "icon", "string", string_value="facebook")
 
-    # Register link
+    # Register link row
     register_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=7, widget_id="register_row"
+        screen=screen,
+        widget_type="Row",
+        parent_widget=main_column,
+        order=7
+    )
+
+    WidgetProperty.objects.create(
+        widget=register_row,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="center"
     )
 
     register_text = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=register_row,
-        order=0, widget_id="register_text"
+        screen=screen,
+        widget_type="Text",
+        parent_widget=register_row,
+        order=0
     )
-    add_widget_property(register_text, "text", "string", string_value="Don't have an account?")
+
+    WidgetProperty.objects.create(
+        widget=register_text,
+        property_name="text",
+        property_type="string",
+        string_value="Don't have an account? "
+    )
 
     register_btn = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=register_row,
-        order=1, widget_id="register_button"
+        screen=screen,
+        widget_type="TextButton",
+        parent_widget=register_row,
+        order=1
     )
-    add_widget_property(register_btn, "text", "string", string_value="Sign Up")
-    add_widget_property(register_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Register"])
+
+    WidgetProperty.objects.create(
+        widget=register_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Sign Up"
+    )
+
+    WidgetProperty.objects.create(
+        widget=register_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Register"]
+    )
 
 
 def create_register_screen_ui(screen, actions):
     """Create registration screen UI"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="register_scroll"
+    # Similar to login but with additional fields
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0,
+        widget_id="register_column"
     )
 
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="register_column"
+    WidgetProperty.objects.create(
+        widget=main_column,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="center"
     )
 
     # Title
     title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=0, widget_id="register_title"
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
     )
-    add_widget_property(title, "text", "string", string_value="Create Account")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=24)
 
-    # Full name field
-    name_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=1, widget_id="name_field"
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value="Create Account"
     )
-    add_widget_property(name_field, "hintText", "string", string_value="Full Name")
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=28
+    )
+
+    # Name field
+    name_field = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=name_field,
+        property_name="hintText",
+        property_type="string",
+        string_value="Full Name"
+    )
 
     # Email field
     email_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=2, widget_id="email_field"
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=2
     )
-    add_widget_property(email_field, "hintText", "string", string_value="Email")
 
-    # Phone field
-    phone_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=3, widget_id="phone_field"
+    WidgetProperty.objects.create(
+        widget=email_field,
+        property_name="hintText",
+        property_type="string",
+        string_value="Email"
     )
-    add_widget_property(phone_field, "hintText", "string", string_value="Phone Number")
 
     # Password field
     password_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=4, widget_id="password_field"
-    )
-    add_widget_property(password_field, "hintText", "string", string_value="Password")
-    add_widget_property(password_field, "obscureText", "boolean", boolean_value=True)
-
-    # Confirm password field
-    confirm_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=5, widget_id="confirm_password"
-    )
-    add_widget_property(confirm_field, "hintText", "string", string_value="Confirm Password")
-    add_widget_property(confirm_field, "obscureText", "boolean", boolean_value=True)
-
-    # Terms checkbox
-    terms_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=6, widget_id="terms_row"
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=3
     )
 
-    terms_check = Widget.objects.create(
-        screen=screen, widget_type="Checkbox", parent_widget=terms_row,
-        order=0, widget_id="terms_checkbox"
+    WidgetProperty.objects.create(
+        widget=password_field,
+        property_name="hintText",
+        property_type="string",
+        string_value="Password"
     )
 
-    terms_text = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=terms_row,
-        order=1, widget_id="terms_text"
+    WidgetProperty.objects.create(
+        widget=password_field,
+        property_name="obscureText",
+        property_type="boolean",
+        boolean_value=True
     )
-    add_widget_property(terms_text, "text", "string",
-                        string_value="I agree to Terms & Conditions")
 
     # Register button
     register_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=7, widget_id="register_button"
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=4
     )
-    add_widget_property(register_btn, "text", "string", string_value="Create Account")
-    add_widget_property(register_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to OTP Verification"])
+
+    WidgetProperty.objects.create(
+        widget=register_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Sign Up"
+    )
+
+    WidgetProperty.objects.create(
+        widget=register_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Home"]
+    )
 
 
-# Add remaining screen UI creation functions...
-
-def create_forgot_password_ui(screen, actions):
-    """Create forgot password screen"""
+def create_forgot_password_screen_ui(screen, actions):
+    """Create forgot password screen UI"""
     main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="forgot_column"
+        screen=screen,
+        widget_type="Column",
+        order=0
     )
 
-    # Icon
-    icon = Widget.objects.create(
-        screen=screen, widget_type="Icon", parent_widget=main_column,
-        order=0, widget_id="lock_icon"
-    )
-    add_widget_property(icon, "icon", "string", string_value="lock_reset")
-    add_widget_property(icon, "size", "decimal", decimal_value=64)
-
-    # Title
     title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="forgot_title"
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
     )
-    add_widget_property(title, "text", "string", string_value="Forgot Password?")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=24)
 
-    # Description
-    desc = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=2, widget_id="forgot_desc"
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value="Reset Password"
     )
-    add_widget_property(desc, "text", "string",
-                        string_value="Enter your email and we'll send you a reset link")
 
-    # Email field
+    instruction = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=instruction,
+        property_name="text",
+        property_type="string",
+        string_value="Enter your email to receive reset instructions"
+    )
+
     email_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=3, widget_id="email_field"
-    )
-    add_widget_property(email_field, "hintText", "string", string_value="Email")
-
-    # Send button
-    send_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=4, widget_id="send_button"
-    )
-    add_widget_property(send_btn, "text", "string", string_value="Send Reset Link")
-    add_widget_property(send_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Reset Password"])
-
-
-def create_reset_password_ui(screen, actions):
-    """Create reset password screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="reset_column"
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=2
     )
 
-    # Icon
-    icon = Widget.objects.create(
-        screen=screen, widget_type="Icon", parent_widget=main_column,
-        order=0, widget_id="lock_icon"
+    WidgetProperty.objects.create(
+        widget=email_field,
+        property_name="hintText",
+        property_type="string",
+        string_value="Email"
     )
-    add_widget_property(icon, "icon", "string", string_value="lock_open")
-    add_widget_property(icon, "size", "decimal", decimal_value=64)
 
-    # Title
-    title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="reset_title"
-    )
-    add_widget_property(title, "text", "string", string_value="Create New Password")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=24)
-
-    # Instructions
-    instructions = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=2, widget_id="reset_instructions"
-    )
-    add_widget_property(instructions, "text", "string",
-                        string_value="Your new password must be different from previous passwords")
-
-    # New password field
-    new_password = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=3, widget_id="new_password_field"
-    )
-    add_widget_property(new_password, "hintText", "string", string_value="New Password")
-    add_widget_property(new_password, "obscureText", "boolean", boolean_value=True)
-
-    # Confirm password field
-    confirm_password = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=4, widget_id="confirm_password_field"
-    )
-    add_widget_property(confirm_password, "hintText", "string", string_value="Confirm Password")
-    add_widget_property(confirm_password, "obscureText", "boolean", boolean_value=True)
-
-    # Password requirements
-    requirements = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=5, widget_id="password_requirements"
-    )
-    add_widget_property(requirements, "text", "string",
-                        string_value="• At least 8 characters\n• One uppercase letter\n• One number\n• One special character")
-    add_widget_property(requirements, "fontSize", "decimal", decimal_value=12)
-
-    # Reset button
     reset_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=6, widget_id="reset_password_button"
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=3
     )
-    add_widget_property(reset_btn, "text", "string", string_value="Reset Password")
-    add_widget_property(reset_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Login"])
+
+    WidgetProperty.objects.create(
+        widget=reset_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Send Reset Link"
+    )
+
+    WidgetProperty.objects.create(
+        widget=reset_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Login"]
+    )
 
 
-def create_otp_verification_ui(screen, actions):
-    """Create OTP verification screen"""
+def create_reset_password_screen_ui(screen, actions):
+    """Create reset password screen UI"""
     main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="otp_column"
+        screen=screen,
+        widget_type="Column",
+        order=0
     )
 
-    # Title
     title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=0, widget_id="otp_title"
-    )
-    add_widget_property(title, "text", "string", string_value="Verify OTP")
-    add_widget_property(title, "fontSize", "decimal", decimal_value=24)
-
-    # OTP input fields (4 digits)
-    otp_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=1, widget_id="otp_row"
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
     )
 
-    for i in range(4):
-        otp_field = Widget.objects.create(
-            screen=screen, widget_type="TextField", parent_widget=otp_row,
-            order=i, widget_id=f"otp_{i}"
-        )
-        add_widget_property(otp_field, "hintText", "string", string_value="0")
-
-    # Verify button
-    verify_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=2, widget_id="verify_button"
-    )
-    add_widget_property(verify_btn, "text", "string", string_value="Verify")
-    add_widget_property(verify_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Home"])
-
-
-def create_onboarding_ui(screen, actions):
-    """Create onboarding tutorial screen"""
-    page_view = Widget.objects.create(
-        screen=screen, widget_type="PageView", order=0, widget_id="onboarding_pages"
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value="Set New Password"
     )
 
-    # Create 3 onboarding pages
-    onboarding_data = [
-        ("Welcome to MegaMart", "Your one-stop shop for everything", "shopping_cart"),
-        ("Amazing Deals", "Get exclusive offers and discounts", "local_offer"),
-        ("Fast Delivery", "Quick and reliable delivery to your doorstep", "local_shipping"),
-    ]
+    new_password = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=1
+    )
 
-    for i, (title_text, desc_text, icon_name) in enumerate(onboarding_data):
-        page_column = Widget.objects.create(
-            screen=screen, widget_type="Column", parent_widget=page_view,
-            order=i, widget_id=f"page_{i}"
+    WidgetProperty.objects.create(
+        widget=new_password,
+        property_name="hintText",
+        property_type="string",
+        string_value="New Password"
+    )
+
+    WidgetProperty.objects.create(
+        widget=new_password,
+        property_name="obscureText",
+        property_type="boolean",
+        boolean_value=True
+    )
+
+    confirm_password = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=confirm_password,
+        property_name="hintText",
+        property_type="string",
+        string_value="Confirm Password"
+    )
+
+    WidgetProperty.objects.create(
+        widget=confirm_password,
+        property_name="obscureText",
+        property_type="boolean",
+        boolean_value=True
+    )
+
+    reset_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=3
+    )
+
+    WidgetProperty.objects.create(
+        widget=reset_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Reset Password"
+    )
+
+    WidgetProperty.objects.create(
+        widget=reset_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Login"]
+    )
+
+
+def create_categories_screen_ui(screen, data_sources, actions):
+    """Create categories screen UI"""
+    # Categories grid
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value="All Categories"
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=24
+    )
+
+    categories_grid = Widget.objects.create(
+        screen=screen,
+        widget_type="GridView",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=categories_grid,
+        property_name="crossAxisCount",
+        property_type="integer",
+        integer_value=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=categories_grid,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['categories'],
+            field_name="name"
         )
+    )
 
-        # Icon
-        icon = Widget.objects.create(
-            screen=screen, widget_type="Icon", parent_widget=page_column,
-            order=0, widget_id=f"page_icon_{i}"
-        )
-        add_widget_property(icon, "icon", "string", string_value=icon_name)
-        add_widget_property(icon, "size", "decimal", decimal_value=100)
-
-        # Title
-        title = Widget.objects.create(
-            screen=screen, widget_type="Text", parent_widget=page_column,
-            order=1, widget_id=f"page_title_{i}"
-        )
-        add_widget_property(title, "text", "string", string_value=title_text)
-        add_widget_property(title, "fontSize", "decimal", decimal_value=24)
-
-        # Description
-        desc = Widget.objects.create(
-            screen=screen, widget_type="Text", parent_widget=page_column,
-            order=2, widget_id=f"page_desc_{i}"
-        )
-        add_widget_property(desc, "text", "string", string_value=desc_text)
-
-        # Get Started button (on last page)
-        if i == 2:
-            start_btn = Widget.objects.create(
-                screen=screen, widget_type="ElevatedButton", parent_widget=page_column,
-                order=3, widget_id="get_started"
-            )
-            add_widget_property(start_btn, "text", "string", string_value="Get Started")
-            add_widget_property(start_btn, "onPressed", "action_reference",
-                                action_reference=actions["Navigate to Home"])
+    # Bottom navigation
+    create_bottom_navigation(screen, actions)
 
 
 def create_search_screen_ui(screen, data_sources, actions):
-    """Create search screen with filters"""
+    """Create search screen UI with search bar and results"""
     main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="search_column"
-    )
-
-    # Search bar
-    search_container = create_search_bar(screen, main_column, 0, actions)
-
-    # Filter chips
-    filter_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=1, widget_id="filter_chips"
-    )
-
-    filters = ["All", "Electronics", "Fashion", "Home", "Sports", "Books"]
-    for i, filter_name in enumerate(filters):
-        chip = Widget.objects.create(
-            screen=screen, widget_type="ElevatedButton", parent_widget=filter_row,
-            order=i, widget_id=f"filter_{filter_name.lower()}"
-        )
-        add_widget_property(chip, "text", "string", string_value=filter_name)
-        add_widget_property(chip, "onPressed", "action_reference",
-                            action_reference=actions["Apply Filter"])
-
-    # Search results
-    results_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=2, widget_id="search_results"
-    )
-
-    add_widget_property(results_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Products"], "name"))
-
-
-def create_advanced_search_ui(screen, data_sources, actions):
-    """Create advanced search with multiple filters"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="adv_search_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="adv_search_column"
-    )
-
-    # Search field
-    search_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=0, widget_id="search_field"
-    )
-    add_widget_property(search_field, "hintText", "string", string_value="Search keywords...")
-
-    # Category dropdown
-    category_drop = Widget.objects.create(
-        screen=screen, widget_type="DropdownButton", parent_widget=main_column,
-        order=1, widget_id="category_dropdown"
-    )
-    add_widget_property(category_drop, "items", "string",
-                        string_value="All Categories,Electronics,Fashion,Home,Sports")
-
-    # Price range
-    price_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=2, widget_id="price_title"
-    )
-    add_widget_property(price_title, "text", "string", string_value="Price Range")
-
-    price_slider = Widget.objects.create(
-        screen=screen, widget_type="Slider", parent_widget=main_column,
-        order=3, widget_id="price_slider"
-    )
-    add_widget_property(price_slider, "min", "decimal", decimal_value=0)
-    add_widget_property(price_slider, "max", "decimal", decimal_value=1000)
-
-    # Brand selection
-    brand_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=4, widget_id="brand_title"
-    )
-    add_widget_property(brand_title, "text", "string", string_value="Brand")
-
-    # Rating filter
-    rating_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=5, widget_id="rating_title"
-    )
-    add_widget_property(rating_title, "text", "string", string_value="Minimum Rating")
-
-    rating_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=6, widget_id="rating_row"
-    )
-
-    for i in range(1, 6):
-        star_btn = Widget.objects.create(
-            screen=screen, widget_type="IconButton", parent_widget=rating_row,
-            order=i, widget_id=f"star_{i}"
-        )
-        add_widget_property(star_btn, "icon", "string", string_value="star")
-
-    # Search button
-    search_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=7, widget_id="search_button"
-    )
-    add_widget_property(search_btn, "text", "string", string_value="Search")
-    add_widget_property(search_btn, "onPressed", "action_reference",
-                        action_reference=actions["Search Products"])
-
-
-def create_barcode_scanner_ui(screen, actions):
-    """Create barcode scanner screen"""
-    stack = Widget.objects.create(
-        screen=screen, widget_type="Stack", order=0, widget_id="scanner_stack"
-    )
-
-    # Camera preview (simulated)
-    camera = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=stack,
-        order=0, widget_id="camera_preview"
-    )
-    add_widget_property(camera, "color", "color", color_value="#000000")
-
-    # Scanner overlay
-    overlay = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=stack,
-        order=1, widget_id="scanner_overlay"
-    )
-
-    # Scan button
-    scan_btn = Widget.objects.create(
-        screen=screen, widget_type="FloatingActionButton", parent_widget=stack,
-        order=2, widget_id="scan_button"
-    )
-    add_widget_property(scan_btn, "icon", "string", string_value="qr_code_scanner")
-    add_widget_property(scan_btn, "onPressed", "action_reference",
-                        action_reference=actions["Scan Barcode"])
-
-
-def create_voice_search_ui(screen, actions):
-    """Create voice search screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="voice_column"
-    )
-
-    # Microphone animation
-    mic_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=main_column,
-        order=0, widget_id="mic_container"
-    )
-
-    mic_icon = Widget.objects.create(
-        screen=screen, widget_type="Icon", parent_widget=mic_container,
-        order=0, widget_id="mic_icon"
-    )
-    add_widget_property(mic_icon, "icon", "string", string_value="mic")
-    add_widget_property(mic_icon, "size", "decimal", decimal_value=100)
-
-    # Status text
-    status = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="voice_status"
-    )
-    add_widget_property(status, "text", "string", string_value="Listening...")
-
-    # Cancel button
-    cancel_btn = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=main_column,
-        order=2, widget_id="cancel_voice"
-    )
-    add_widget_property(cancel_btn, "text", "string", string_value="Cancel")
-    add_widget_property(cancel_btn, "onPressed", "action_reference",
-                        action_reference=actions["Go Back"])
-
-
-def create_explore_ui(screen, data_sources, actions):
-    """Create explore/discover screen"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="explore_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="explore_column"
-    )
-
-    # Trending topics
-    trending_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=0, widget_id="trending_title"
-    )
-    add_widget_property(trending_title, "text", "string", string_value="Trending Topics")
-    add_widget_property(trending_title, "fontSize", "decimal", decimal_value=20)
-
-    # Featured collections
-    collections_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="collections_title"
-    )
-    add_widget_property(collections_title, "text", "string", string_value="Featured Collections")
-    add_widget_property(collections_title, "fontSize", "decimal", decimal_value=20)
-
-    # Seasonal offers
-    seasonal_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=2, widget_id="seasonal_title"
-    )
-    add_widget_property(seasonal_title, "text", "string", string_value="Seasonal Offers")
-    add_widget_property(seasonal_title, "fontSize", "decimal", decimal_value=20)
-
-
-def create_categories_ui(screen, data_sources, actions):
-    """Create all categories screen"""
-    grid = Widget.objects.create(
-        screen=screen, widget_type="GridView", order=0, widget_id="categories_grid"
-    )
-
-    add_widget_property(grid, "crossAxisCount", "integer", integer_value=2)
-    add_widget_property(grid, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Categories"], "name"))
-
-
-def create_category_screen_ui(screen, data_sources, actions, category_name):
-    """Create individual category screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id=f"{category_name.lower()}_column"
-    )
-
-    # Category banner
-    banner = Widget.objects.create(
-        screen=screen, widget_type="Image", parent_widget=main_column,
-        order=0, widget_id=f"{category_name.lower()}_banner"
-    )
-    add_widget_property(banner, "imageUrl", "url",
-                        url_value=f"https://picsum.photos/800/200?random={category_name}")
-
-    # Subcategories
-    subcat_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=1, widget_id="subcategories"
-    )
-
-    # Products grid
-    products_grid = Widget.objects.create(
-        screen=screen, widget_type="GridView", parent_widget=main_column,
-        order=2, widget_id=f"{category_name.lower()}_products"
-    )
-
-    add_widget_property(products_grid, "crossAxisCount", "integer", integer_value=2)
-    add_widget_property(products_grid, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Products"], "name"))
-
-
-def create_product_list_ui(screen, data_sources, actions):
-    """Create product list screen with filters"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="product_list_column"
-    )
-
-    # Filter and sort bar
-    filter_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=0, widget_id="filter_bar"
-    )
-
-    filter_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=filter_row,
-        order=0, widget_id="filter_button"
-    )
-    add_widget_property(filter_btn, "text", "string", string_value="Filter")
-    add_widget_property(filter_btn, "onPressed", "action_reference",
-                        action_reference=actions["Show Filter"])
-
-    sort_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=filter_row,
-        order=1, widget_id="sort_button"
-    )
-    add_widget_property(sort_btn, "text", "string", string_value="Sort")
-    add_widget_property(sort_btn, "onPressed", "action_reference",
-                        action_reference=actions["Show Sort Options"])
-
-    # Products grid
-    products_grid = Widget.objects.create(
-        screen=screen, widget_type="GridView", parent_widget=main_column,
-        order=1, widget_id="products_grid"
-    )
-
-    add_widget_property(products_grid, "crossAxisCount", "integer", integer_value=2)
-    add_widget_property(products_grid, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Products"], "name"))
-
-
-def create_product_details_ui(screen, data_sources, actions):
-    """Create product details screen"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="product_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="product_column"
-    )
-
-    # Product images carousel
-    image_carousel = Widget.objects.create(
-        screen=screen, widget_type="PageView", parent_widget=main_column,
-        order=0, widget_id="product_images"
-    )
-
-    # Product name
-    name = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="product_name"
-    )
-    add_widget_property(name, "text", "string", string_value="Product Name")
-    add_widget_property(name, "fontSize", "decimal", decimal_value=22)
-
-    # Rating and reviews
-    rating_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=2, widget_id="rating_row"
-    )
-
-    # Price
-    price_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=3, widget_id="price_row"
-    )
-
-    price = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=price_row,
-        order=0, widget_id="product_price"
-    )
-    add_widget_property(price, "text", "string", string_value="$99.99")
-    add_widget_property(price, "fontSize", "decimal", decimal_value=24)
-
-    # Variants (size, color)
-    variants_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=4, widget_id="variants_title"
-    )
-    add_widget_property(variants_title, "text", "string", string_value="Select Size")
-
-    size_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=5, widget_id="size_row"
-    )
-
-    # Description
-    desc_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=6, widget_id="desc_title"
-    )
-    add_widget_property(desc_title, "text", "string", string_value="Description")
-    add_widget_property(desc_title, "fontSize", "decimal", decimal_value=18)
-
-    desc_text = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=7, widget_id="desc_text"
-    )
-    add_widget_property(desc_text, "text", "string", string_value="Product description...")
-
-    # Specifications
-    specs_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=8, widget_id="specs_title"
-    )
-    add_widget_property(specs_title, "text", "string", string_value="Specifications")
-    add_widget_property(specs_title, "fontSize", "decimal", decimal_value=18)
-
-    # Add to cart button
-    add_cart_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=9, widget_id="add_to_cart"
-    )
-    add_widget_property(add_cart_btn, "text", "string", string_value="Add to Cart")
-    add_widget_property(add_cart_btn, "onPressed", "action_reference",
-                        action_reference=actions["Add to Cart"])
-
-    # Buy now button
-    buy_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=10, widget_id="buy_now"
-    )
-    add_widget_property(buy_btn, "text", "string", string_value="Buy Now")
-    add_widget_property(buy_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Checkout"])
-
-
-def create_product_gallery_ui(screen, data_sources, actions):
-    """Create product image gallery"""
-    page_view = Widget.objects.create(
-        screen=screen, widget_type="PageView", order=0, widget_id="gallery_view"
-    )
-
-    # Add multiple product images
-    for i in range(5):
-        img = Widget.objects.create(
-            screen=screen, widget_type="Image", parent_widget=page_view,
-            order=i, widget_id=f"gallery_img_{i}"
-        )
-        add_widget_property(img, "imageUrl", "url",
-                            url_value=f"https://picsum.photos/600/600?random=prod{i}")
-
-
-def create_product_reviews_ui(screen, data_sources, actions):
-    """Create product reviews screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="reviews_column"
-    )
-
-    # Overall rating
-    rating_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=0, widget_id="rating_card"
-    )
-
-    # Write review button
-    write_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=1, widget_id="write_review_btn"
-    )
-    add_widget_property(write_btn, "text", "string", string_value="Write a Review")
-    add_widget_property(write_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Write Review"])
-
-    # Reviews list
-    reviews_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=2, widget_id="reviews_list"
-    )
-
-    add_widget_property(reviews_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Reviews"], "comment"))
-
-
-def create_write_review_ui(screen, actions):
-    """Create write review screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="write_review_column"
-    )
-
-    # Rating stars
-    rating_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=0, widget_id="rating_title"
-    )
-    add_widget_property(rating_title, "text", "string", string_value="Rate this product")
-
-    stars_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=1, widget_id="stars_row"
-    )
-
-    for i in range(5):
-        star = Widget.objects.create(
-            screen=screen, widget_type="IconButton", parent_widget=stars_row,
-            order=i, widget_id=f"star_{i}"
-        )
-        add_widget_property(star, "icon", "string", string_value="star_border")
-
-    # Review title
-    title_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=2, widget_id="review_title"
-    )
-    add_widget_property(title_field, "hintText", "string", string_value="Review Title")
-
-    # Review text
-    review_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=3, widget_id="review_text"
-    )
-    add_widget_property(review_field, "hintText", "string", string_value="Write your review...")
-
-    # Submit button
-    submit_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=4, widget_id="submit_review"
-    )
-    add_widget_property(submit_btn, "text", "string", string_value="Submit Review")
-    add_widget_property(submit_btn, "onPressed", "action_reference",
-                        action_reference=actions["Write Review"])
-
-
-def create_product_qa_ui(screen, data_sources, actions):
-    """Create product Q&A screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="qa_column"
-    )
-
-    # Ask question button
-    ask_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=0, widget_id="ask_question_btn"
-    )
-    add_widget_property(ask_btn, "text", "string", string_value="Ask a Question")
-    add_widget_property(ask_btn, "onPressed", "action_reference",
-                        action_reference=actions["Ask Question"])
-
-    # Q&A list
-    qa_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=1, widget_id="qa_list"
-    )
-
-    add_widget_property(qa_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Questions"], "question"))
-
-
-def create_size_guide_ui(screen, actions):
-    """Create size guide screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="size_guide_column"
-    )
-
-    # Size chart image
-    chart_img = Widget.objects.create(
-        screen=screen, widget_type="Image", parent_widget=main_column,
-        order=0, widget_id="size_chart"
-    )
-    add_widget_property(chart_img, "imageUrl", "url",
-                        url_value="https://picsum.photos/600/400?random=size")
-
-    # Measurement tips
-    tips_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="tips_title"
-    )
-    add_widget_property(tips_title, "text", "string", string_value="How to Measure")
-    add_widget_property(tips_title, "fontSize", "decimal", decimal_value=18)
-
-
-def create_compare_ui(screen, data_sources, actions):
-    """Create product comparison screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="compare_column"
-    )
-
-    # Compare header
-    header = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=0, widget_id="compare_header"
-    )
-    add_widget_property(header, "text", "string", string_value="Compare Products")
-    add_widget_property(header, "fontSize", "decimal", decimal_value=20)
-
-    # Comparison table
-    table = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=main_column,
-        order=1, widget_id="compare_table"
-    )
-
-
-def create_ar_view_ui(screen, actions):
-    """Create AR view screen"""
-    stack = Widget.objects.create(
-        screen=screen, widget_type="Stack", order=0, widget_id="ar_stack"
-    )
-
-    # Camera background
-    camera = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=stack,
-        order=0, widget_id="ar_camera"
-    )
-    add_widget_property(camera, "color", "color", color_value="#000000")
-
-    # AR overlay
-    overlay = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=stack,
-        order=1, widget_id="ar_overlay"
-    )
-
-    # AR controls
-    controls = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=stack,
-        order=2, widget_id="ar_controls"
-    )
-
-
-def create_product_videos_ui(screen, data_sources, actions):
-    """Create product videos screen"""
-    videos_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", order=0, widget_id="videos_list"
-    )
-
-
-def create_cart_ui(screen, data_sources, actions):
-    """Create shopping cart screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="cart_column"
-    )
-
-    # Cart items list
-    cart_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=0, widget_id="cart_items"
-    )
-
-    add_widget_property(cart_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Cart"], "productName"))
-
-    # Price summary
-    summary_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=1, widget_id="price_summary"
-    )
-
-    # Checkout button
-    checkout_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=2, widget_id="checkout_btn"
-    )
-    add_widget_property(checkout_btn, "text", "string", string_value="Proceed to Checkout")
-    add_widget_property(checkout_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Checkout"])
-
-
-def create_checkout_ui(screen, data_sources, actions):
-    """Create checkout screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="checkout_column"
-    )
-
-    # Delivery address
-    address_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=0, widget_id="address_card"
-    )
-
-    # Payment method
-    payment_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=1, widget_id="payment_card"
-    )
-
-    # Order summary
-    summary_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=2, widget_id="order_summary"
-    )
-
-    # Place order button
-    place_order_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=3, widget_id="place_order_btn"
-    )
-    add_widget_property(place_order_btn, "text", "string", string_value="Place Order")
-    add_widget_property(place_order_btn, "onPressed", "action_reference",
-                        action_reference=actions["Place Order"])
-
-
-def create_shipping_ui(screen, data_sources, actions):
-    """Create shipping address screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="shipping_column"
-    )
-
-    # Saved addresses
-    addresses_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=0, widget_id="saved_addresses"
-    )
-
-    add_widget_property(addresses_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Addresses"], "name"))
-
-    # Add new address button
-    add_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=1, widget_id="add_address_btn"
-    )
-    add_widget_property(add_btn, "text", "string", string_value="Add New Address")
-    add_widget_property(add_btn, "onPressed", "action_reference",
-                        action_reference=actions["Save Address"])
-
-
-def create_payment_ui(screen, data_sources, actions):
-    """Create payment methods screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="payment_column"
-    )
-
-    # Payment options
-    options = ["Credit/Debit Card", "PayPal", "Google Pay", "Apple Pay", "Cash on Delivery"]
-
-    for i, option in enumerate(options):
-        option_tile = Widget.objects.create(
-            screen=screen, widget_type="ListTile", parent_widget=main_column,
-            order=i, widget_id=f"payment_{option.lower().replace(' ', '_')}"
-        )
-        add_widget_property(option_tile, "title", "string", string_value=option)
-
-
-def create_coupons_ui(screen, data_sources, actions):
-    """Create coupons screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="coupons_column"
-    )
-
-    # Enter coupon code
-    coupon_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=0, widget_id="coupon_field"
-    )
-    add_widget_property(coupon_field, "hintText", "string", string_value="Enter coupon code")
-
-    # Apply button
-    apply_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=1, widget_id="apply_coupon_btn"
-    )
-    add_widget_property(apply_btn, "text", "string", string_value="Apply")
-    add_widget_property(apply_btn, "onPressed", "action_reference",
-                        action_reference=actions["Apply Coupon"])
-
-    # Available coupons list
-    coupons_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=2, widget_id="available_coupons"
-    )
-
-    add_widget_property(coupons_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Coupons"], "code"))
-
-
-def create_order_review_ui(screen, data_sources, actions):
-    """Create order review screen"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="review_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="review_column"
-    )
-
-    # Order items
-    items_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=0, widget_id="order_items_card"
-    )
-
-    # Shipping details
-    shipping_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=1, widget_id="shipping_details_card"
-    )
-
-    # Payment details
-    payment_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=2, widget_id="payment_details_card"
-    )
-
-    # Price breakdown
-    price_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=3, widget_id="price_breakdown_card"
-    )
-
-    # Confirm button
-    confirm_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=4, widget_id="confirm_order_btn"
-    )
-    add_widget_property(confirm_btn, "text", "string", string_value="Confirm Order")
-    add_widget_property(confirm_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Order Success"])
-
-
-def create_order_success_ui(screen, actions):
-    """Create order success screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="success_column"
-    )
-
-    # Success icon
-    icon = Widget.objects.create(
-        screen=screen, widget_type="Icon", parent_widget=main_column,
-        order=0, widget_id="success_icon"
-    )
-    add_widget_property(icon, "icon", "string", string_value="check_circle")
-    add_widget_property(icon, "size", "decimal", decimal_value=100)
-    add_widget_property(icon, "color", "color", color_value="#4CAF50")
-
-    # Success message
-    message = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="success_message"
-    )
-    add_widget_property(message, "text", "string", string_value="Order Placed Successfully!")
-    add_widget_property(message, "fontSize", "decimal", decimal_value=24)
-
-    # Order number
-    order_num = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=2, widget_id="order_number"
-    )
-    add_widget_property(order_num, "text", "string", string_value="Order #123456")
-
-    # Track order button
-    track_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=3, widget_id="track_order_btn"
-    )
-    add_widget_property(track_btn, "text", "string", string_value="Track Order")
-    add_widget_property(track_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Order Tracking"])
-
-    # Continue shopping button
-    continue_btn = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=main_column,
-        order=4, widget_id="continue_shopping_btn"
-    )
-    add_widget_property(continue_btn, "text", "string", string_value="Continue Shopping")
-    add_widget_property(continue_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Home"])
-
-
-def create_orders_ui(screen, data_sources, actions):
-    """Create orders list screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="orders_column"
-    )
-
-    # Filter tabs
-    tabs = Widget.objects.create(
-        screen=screen, widget_type="TabBar", parent_widget=main_column,
-        order=0, widget_id="order_tabs"
-    )
-
-    # Orders list
-    orders_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=1, widget_id="orders_list"
-    )
-
-    add_widget_property(orders_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Orders"], "orderNumber"))
-
-
-def create_order_details_ui(screen, data_sources, actions):
-    """Create order details screen"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="order_detail_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="order_detail_column"
-    )
-
-    # Order status card
-    status_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=0, widget_id="order_status_card"
-    )
-
-    # Order items
-    items_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=1, widget_id="order_items"
-    )
-
-    # Action buttons
-    actions_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=2, widget_id="order_actions"
-    )
-
-    track_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=actions_row,
-        order=0, widget_id="track_btn"
-    )
-    add_widget_property(track_btn, "text", "string", string_value="Track")
-    add_widget_property(track_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Order Tracking"])
-
-    cancel_btn = Widget.objects.create(
-        screen=screen, widget_type="OutlinedButton", parent_widget=actions_row,
-        order=1, widget_id="cancel_btn"
-    )
-    add_widget_property(cancel_btn, "text", "string", string_value="Cancel")
-    add_widget_property(cancel_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Cancel Order"])
-
-
-def create_order_tracking_ui(screen, data_sources, actions):
-    """Create order tracking screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="tracking_column"
-    )
-
-    # Map view
-    map_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=main_column,
-        order=0, widget_id="map_view"
-    )
-    add_widget_property(map_container, "height", "decimal", decimal_value=300)
-
-    # Tracking timeline
-    timeline = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=1, widget_id="tracking_timeline"
-    )
-
-    add_widget_property(timeline, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Order Tracking"], "status"))
-
-
-def create_returns_ui(screen, data_sources, actions):
-    """Create returns and refunds screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="returns_column"
-    )
-
-    # Returns list
-    returns_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=0, widget_id="returns_list"
-    )
-
-    add_widget_property(returns_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Returns"], "orderId"))
-
-    # Request return button
-    request_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=1, widget_id="request_return_btn"
-    )
-    add_widget_property(request_btn, "text", "string", string_value="Request Return")
-    add_widget_property(request_btn, "onPressed", "action_reference",
-                        action_reference=actions["Request Return"])
-
-
-def create_cancel_order_ui(screen, data_sources, actions):
-    """Create cancel order screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="cancel_column"
-    )
-
-    # Cancellation reason
-    reason_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=0, widget_id="reason_title"
-    )
-    add_widget_property(reason_title, "text", "string", string_value="Select Cancellation Reason")
-
-    reason_dropdown = Widget.objects.create(
-        screen=screen, widget_type="DropdownButton", parent_widget=main_column,
-        order=1, widget_id="reason_dropdown"
-    )
-    add_widget_property(reason_dropdown, "items", "string",
-                        string_value="Changed my mind,Found better price,Wrong item ordered,Other")
-
-    # Additional comments
-    comments_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=2, widget_id="cancel_comments"
-    )
-    add_widget_property(comments_field, "hintText", "string", string_value="Additional comments...")
-
-    # Cancel button
-    cancel_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=3, widget_id="confirm_cancel_btn"
-    )
-    add_widget_property(cancel_btn, "text", "string", string_value="Cancel Order")
-    add_widget_property(cancel_btn, "onPressed", "action_reference",
-                        action_reference=actions["Cancel Order"])
-
-
-def create_rate_order_ui(screen, actions):
-    """Create rate order screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="rate_column"
-    )
-
-    # Order summary
-    order_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=0, widget_id="order_summary"
-    )
-
-    # Overall rating
-    overall_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="overall_title"
-    )
-    add_widget_property(overall_title, "text", "string", string_value="Rate your overall experience")
-
-    stars_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=2, widget_id="overall_stars"
-    )
-
-    for i in range(5):
-        star = Widget.objects.create(
-            screen=screen, widget_type="IconButton", parent_widget=stars_row,
-            order=i, widget_id=f"overall_star_{i}"
-        )
-        add_widget_property(star, "icon", "string", string_value="star_border")
-
-    # Delivery rating
-    delivery_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=3, widget_id="delivery_title"
-    )
-    add_widget_property(delivery_title, "text", "string", string_value="Rate delivery experience")
-
-    # Comments
-    comments_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=main_column,
-        order=4, widget_id="rating_comments"
-    )
-    add_widget_property(comments_field, "hintText", "string", string_value="Share your experience...")
-
-    # Submit button
-    submit_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=5, widget_id="submit_rating_btn"
-    )
-    add_widget_property(submit_btn, "text", "string", string_value="Submit Rating")
-    add_widget_property(submit_btn, "onPressed", "action_reference",
-                        action_reference=actions["Rate Product"])
-
-
-def create_profile_ui(screen, data_sources, actions):
-    """Create user profile screen"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="profile_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="profile_column"
-    )
-
-    # Profile header
-    header_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=0, widget_id="profile_header"
-    )
-
-    header_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=header_card,
-        order=0, widget_id="header_row"
-    )
-
-    # Avatar
-    avatar = Widget.objects.create(
-        screen=screen, widget_type="Image", parent_widget=header_row,
-        order=0, widget_id="profile_avatar"
-    )
-    add_widget_property(avatar, "imageUrl", "url",
-                        url_value="https://picsum.photos/100/100?random=avatar")
-
-    # User info
-    info_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=header_row,
-        order=1, widget_id="user_info"
-    )
-
-    name = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=info_column,
-        order=0, widget_id="user_name"
-    )
-    add_widget_property(name, "text", "string", string_value="John Doe")
-    add_widget_property(name, "fontSize", "decimal", decimal_value=20)
-
-    email = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=info_column,
-        order=1, widget_id="user_email"
-    )
-    add_widget_property(email, "text", "string", string_value="john.doe@example.com")
-
-    # Edit profile button
-    edit_btn = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=header_card,
-        order=1, widget_id="edit_profile_btn"
-    )
-    add_widget_property(edit_btn, "text", "string", string_value="Edit Profile")
-    add_widget_property(edit_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Edit Profile"])
-
-    # Menu items
-    menu_items = [
-        ("My Orders", "shopping_bag", actions["Navigate to Orders"]),
-        ("Addresses", "location_on", actions["Navigate to Addresses"]),
-        ("Payment Methods", "payment", actions["Navigate to Payment Cards"]),
-        ("Wishlist", "favorite", actions["Navigate to Wishlist"]),
-        ("Recently Viewed", "history", actions["Navigate to Recently Viewed"]),
-        ("Loyalty Program", "stars", actions["Navigate to Loyalty"]),
-        ("Refer & Earn", "card_giftcard", actions["Navigate to Referrals"]),
-        ("Wallet", "account_balance_wallet", actions["Navigate to Wallet"]),
-        ("Settings", "settings", actions["Navigate to Settings"]),
-        ("Help & Support", "help", actions["Navigate to Help"]),
-    ]
-
-    for i, (title_text, icon_name, action) in enumerate(menu_items):
-        tile = Widget.objects.create(
-            screen=screen, widget_type="ListTile", parent_widget=main_column,
-            order=i + 1, widget_id=f"menu_{title_text.lower().replace(' ', '_')}"
-        )
-        add_widget_property(tile, "title", "string", string_value=title_text)
-        add_widget_property(tile, "leading", "string", string_value=icon_name)
-        add_widget_property(tile, "trailing", "string", string_value="arrow_forward_ios")
-        add_widget_property(tile, "onTap", "action_reference", action_reference=action)
-
-    # Logout button
-    logout_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=len(menu_items) + 1, widget_id="logout_btn"
-    )
-    add_widget_property(logout_btn, "text", "string", string_value="Logout")
-    add_widget_property(logout_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Login"])
-
-
-def create_edit_profile_ui(screen, data_sources, actions):
-    """Create edit profile screen"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="edit_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="edit_column"
-    )
-
-    # Profile picture
-    avatar_container = Widget.objects.create(
-        screen=screen, widget_type="Center", parent_widget=main_column,
-        order=0, widget_id="avatar_container"
-    )
-
-    avatar = Widget.objects.create(
-        screen=screen, widget_type="Image", parent_widget=avatar_container,
-        order=0, widget_id="edit_avatar"
-    )
-    add_widget_property(avatar, "imageUrl", "url",
-                        url_value="https://picsum.photos/150/150?random=avatar")
-
-    # Change photo button
-    change_photo_btn = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=main_column,
-        order=1, widget_id="change_photo_btn"
-    )
-    add_widget_property(change_photo_btn, "text", "string", string_value="Change Photo")
-    add_widget_property(change_photo_btn, "onPressed", "action_reference",
-                        action_reference=actions["Upload Photo"])
-
-    # Form fields
-    fields = [
-        ("Full Name", "name_field"),
-        ("Email", "email_field"),
-        ("Phone", "phone_field"),
-        ("Date of Birth", "dob_field"),
-        ("Gender", "gender_field"),
-    ]
-
-    for i, (label, field_id) in enumerate(fields):
-        field = Widget.objects.create(
-            screen=screen, widget_type="TextField", parent_widget=main_column,
-            order=i + 2, widget_id=field_id
-        )
-        add_widget_property(field, "labelText", "string", string_value=label)
-
-    # Save button
-    save_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=len(fields) + 2, widget_id="save_profile_btn"
-    )
-    add_widget_property(save_btn, "text", "string", string_value="Save Changes")
-    add_widget_property(save_btn, "onPressed", "action_reference",
-                        action_reference=actions["Save Data"])
-
-
-def create_addresses_ui(screen, data_sources, actions):
-    """Create addresses management screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="addresses_column"
-    )
-
-    # Add new address button
-    add_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=0, widget_id="add_address_btn"
-    )
-    add_widget_property(add_btn, "text", "string", string_value="Add New Address")
-    add_widget_property(add_btn, "onPressed", "action_reference",
-                        action_reference=actions["Save Address"])
-
-    # Addresses list
-    addresses_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=1, widget_id="addresses_list"
-    )
-
-    add_widget_property(addresses_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Addresses"], "name"))
-
-
-def create_payment_cards_ui(screen, data_sources, actions):
-    """Create payment cards management screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="cards_column"
-    )
-
-    # Add new card button
-    add_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=0, widget_id="add_card_btn"
-    )
-    add_widget_property(add_btn, "text", "string", string_value="Add New Card")
-    add_widget_property(add_btn, "onPressed", "action_reference",
-                        action_reference=actions["Add Card"])
-
-    # Cards list
-    cards_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=1, widget_id="cards_list"
-    )
-
-    add_widget_property(cards_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Payment Cards"], "lastFour"))
-
-
-def create_wishlist_ui(screen, data_sources, actions):
-    """Create wishlist screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="wishlist_column"
-    )
-
-    # Wishlist count
-    count_text = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=0, widget_id="wishlist_count"
-    )
-    add_widget_property(count_text, "text", "string", string_value="12 items in wishlist")
-
-    # Wishlist grid
-    wishlist_grid = Widget.objects.create(
-        screen=screen, widget_type="GridView", parent_widget=main_column,
-        order=1, widget_id="wishlist_grid"
-    )
-
-    add_widget_property(wishlist_grid, "crossAxisCount", "integer", integer_value=2)
-    add_widget_property(wishlist_grid, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Wishlist"], "productName"))
-
-
-def create_recently_viewed_ui(screen, data_sources, actions):
-    """Create recently viewed screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="recent_column"
-    )
-
-    # Clear all button
-    clear_btn = Widget.objects.create(
-        screen=screen, widget_type="TextButton", parent_widget=main_column,
-        order=0, widget_id="clear_recent_btn"
-    )
-    add_widget_property(clear_btn, "text", "string", string_value="Clear All")
-    add_widget_property(clear_btn, "onPressed", "action_reference",
-                        action_reference=actions["Clear Form"])
-
-    # Recently viewed list
-    recent_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=1, widget_id="recent_list"
-    )
-
-    add_widget_property(recent_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Recently Viewed"], "productName"))
-
-
-def create_loyalty_ui(screen, data_sources, actions):
-    """Create loyalty program screen"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="loyalty_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="loyalty_column"
-    )
-
-    # Points balance card
-    balance_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=0, widget_id="points_balance"
-    )
-
-    balance_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=balance_card,
-        order=0, widget_id="balance_column"
-    )
-
-    points_text = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=balance_column,
-        order=0, widget_id="points_text"
-    )
-    add_widget_property(points_text, "text", "string", string_value="2,450")
-    add_widget_property(points_text, "fontSize", "decimal", decimal_value=36)
-
-    points_label = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=balance_column,
-        order=1, widget_id="points_label"
-    )
-    add_widget_property(points_label, "text", "string", string_value="Available Points")
-
-    # Tier status
-    tier_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=1, widget_id="tier_status"
-    )
-
-    # Rewards catalog
-    rewards_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=2, widget_id="rewards_title"
-    )
-    add_widget_property(rewards_title, "text", "string", string_value="Available Rewards")
-    add_widget_property(rewards_title, "fontSize", "decimal", decimal_value=18)
-
-    rewards_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=3, widget_id="rewards_list"
-    )
-
-    # Points history
-    history_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=4, widget_id="history_title"
-    )
-    add_widget_property(history_title, "text", "string", string_value="Points History")
-    add_widget_property(history_title, "fontSize", "decimal", decimal_value=18)
-
-
-def create_referrals_ui(screen, data_sources, actions):
-    """Create referral program screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="referral_column"
-    )
-
-    # Referral code card
-    code_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=0, widget_id="referral_code_card"
-    )
-
-    code_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=code_card,
-        order=0, widget_id="code_column"
-    )
-
-    code_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=code_column,
-        order=0, widget_id="code_title"
-    )
-    add_widget_property(code_title, "text", "string", string_value="Your Referral Code")
-
-    code_text = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=code_column,
-        order=1, widget_id="referral_code"
-    )
-    add_widget_property(code_text, "text", "string", string_value="MEGA2024")
-    add_widget_property(code_text, "fontSize", "decimal", decimal_value=24)
-
-    # Copy and share buttons
-    buttons_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=code_column,
-        order=2, widget_id="referral_buttons"
-    )
-
-    copy_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=buttons_row,
-        order=0, widget_id="copy_code_btn"
-    )
-    add_widget_property(copy_btn, "text", "string", string_value="Copy Code")
-    add_widget_property(copy_btn, "onPressed", "action_reference",
-                        action_reference=actions["Copy Code"])
-
-    share_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=buttons_row,
-        order=1, widget_id="share_code_btn"
-    )
-    add_widget_property(share_btn, "text", "string", string_value="Share")
-    add_widget_property(share_btn, "onPressed", "action_reference",
-                        action_reference=actions["Share Referral"])
-
-    # Earnings summary
-    earnings_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=1, widget_id="earnings_card"
-    )
-
-    # Referred friends list
-    friends_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=2, widget_id="friends_title"
-    )
-    add_widget_property(friends_title, "text", "string", string_value="Friends Referred")
-    add_widget_property(friends_title, "fontSize", "decimal", decimal_value=18)
-
-
-def create_wallet_ui(screen, data_sources, actions):
-    """Create wallet screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="wallet_column"
-    )
-
-    # Balance card
-    balance_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=main_column,
-        order=0, widget_id="wallet_balance_card"
-    )
-
-    balance_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=balance_card,
-        order=0, widget_id="wallet_balance_column"
-    )
-
-    balance_label = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=balance_column,
-        order=0, widget_id="balance_label"
-    )
-    add_widget_property(balance_label, "text", "string", string_value="Wallet Balance")
-
-    balance_amount = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=balance_column,
-        order=1, widget_id="balance_amount"
-    )
-    add_widget_property(balance_amount, "text", "string", string_value="$125.50")
-    add_widget_property(balance_amount, "fontSize", "decimal", decimal_value=32)
-
-    # Action buttons
-    actions_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=1, widget_id="wallet_actions"
-    )
-
-    add_money_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=actions_row,
-        order=0, widget_id="add_money_btn"
-    )
-    add_widget_property(add_money_btn, "text", "string", string_value="Add Money")
-    add_widget_property(add_money_btn, "onPressed", "action_reference",
-                        action_reference=actions["Add Money"])
-
-    withdraw_btn = Widget.objects.create(
-        screen=screen, widget_type="OutlinedButton", parent_widget=actions_row,
-        order=1, widget_id="withdraw_btn"
-    )
-    add_widget_property(withdraw_btn, "text", "string", string_value="Withdraw")
-    add_widget_property(withdraw_btn, "onPressed", "action_reference",
-                        action_reference=actions["Withdraw Money"])
-
-    # Transaction history
-    history_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=2, widget_id="transaction_title"
-    )
-    add_widget_property(history_title, "text", "string", string_value="Transaction History")
-    add_widget_property(history_title, "fontSize", "decimal", decimal_value=18)
-
-    transactions_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=3, widget_id="transactions_list"
-    )
-
-    add_widget_property(transactions_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Wallet"], "transactions"))
-
-
-# ============= HELPER FUNCTIONS =============
-
-def add_widget_property(widget, property_name, property_type, **kwargs):
-    """Helper function to add widget properties"""
-    return WidgetProperty.objects.create(
-        widget=widget,
-        property_name=property_name,
-        property_type=property_type,
-        **kwargs
-    )
-
-
-def get_field(data_source, field_name):
-    """Helper function to get data source field"""
-    if not data_source:
-        return None
-
-    try:
-        return DataSourceField.objects.get(
-            data_source=data_source,
-            field_name=field_name
-        )
-    except DataSourceField.DoesNotExist:
-        # Return first field if specific field not found
-        field = data_source.fields.first()
-        if not field:
-            # Create a default field if none exist
-            field = DataSourceField.objects.create(
-                data_source=data_source,
-                field_name=field_name,
-                field_type='string',
-                display_name=field_name.replace('_', ' ').title(),
-                is_required=False
-            )
-        return field
-
-
-# Add any additional helper functions needed
-def create_seller_dashboard_ui(screen, data_sources, actions):
-    """Create seller dashboard screen"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="seller_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="seller_column"
-    )
-
-    # Stats Cards Row
-    stats_row = Widget.objects.create(
-        screen=screen, widget_type="Row", parent_widget=main_column,
-        order=0, widget_id="stats_row"
-    )
-
-    # Today's Sales Card
-    sales_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=stats_row,
-        order=0, widget_id="sales_card"
-    )
-    add_widget_property(sales_card, "elevation", "decimal", decimal_value=4)
-
-    sales_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=sales_card,
-        order=0, widget_id="sales_column"
-    )
-
-    sales_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=sales_column,
-        order=0, widget_id="sales_title"
-    )
-    add_widget_property(sales_title, "text", "string", string_value="Today's Sales")
-
-    sales_value = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=sales_column,
-        order=1, widget_id="sales_value"
-    )
-    add_widget_property(sales_value, "text", "string", string_value="$2,456")
-    add_widget_property(sales_value, "fontSize", "decimal", decimal_value=28)
-
-    # Orders Card
-    orders_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=stats_row,
-        order=1, widget_id="orders_card"
-    )
-    add_widget_property(orders_card, "elevation", "decimal", decimal_value=4)
-
-    # Products Card
-    products_card = Widget.objects.create(
-        screen=screen, widget_type="Card", parent_widget=stats_row,
-        order=2, widget_id="products_card"
-    )
-    add_widget_property(products_card, "elevation", "decimal", decimal_value=4)
-
-    # Recent Orders Section
-    orders_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="recent_orders_title"
-    )
-    add_widget_property(orders_title, "text", "string", string_value="Recent Orders")
-    add_widget_property(orders_title, "fontSize", "decimal", decimal_value=20)
-
-    orders_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=2, widget_id="recent_orders_list"
-    )
-    add_widget_property(orders_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Seller Dashboard"], "orders"))
-
-
-def create_settings_ui(screen, actions):
-    """Create settings screen"""
-    scroll_view = Widget.objects.create(
-        screen=screen, widget_type="SingleChildScrollView", order=0, widget_id="settings_scroll"
-    )
-
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", parent_widget=scroll_view,
-        order=0, widget_id="settings_column"
-    )
-
-    # Settings sections
-    settings_sections = [
-        ("Account Settings", [
-            ("Edit Profile", "person", actions["Navigate to Edit Profile"]),
-            ("Change Password", "lock", None),
-            ("Two-Factor Authentication", "security", None),
-            ("Email Preferences", "email", None),
-        ]),
-        ("App Settings", [
-            ("Notifications", "notifications", actions["Navigate to Notifications Settings"]),
-            ("Language", "language", actions["Navigate to Language"]),
-            ("Country/Region", "public", actions["Navigate to Country"]),
-            ("Dark Mode", "dark_mode", None),
-        ]),
-        ("Privacy & Security", [
-            ("Privacy Policy", "privacy_tip", actions["Navigate to Privacy"]),
-            ("Terms of Service", "description", None),
-            ("Data & Storage", "storage", None),
-            ("Blocked Users", "block", None),
-        ]),
-        ("Support", [
-            ("Help Center", "help", actions["Navigate to Help"]),
-            ("Contact Us", "contact_support", actions["Navigate to Contact Support"]),
-            ("Report a Problem", "report_problem", None),
-            ("Rate App", "star_rate", None),
-        ]),
-    ]
-
-    for section_title, items in settings_sections:
-        # Section header
-        section_header = Widget.objects.create(
-            screen=screen, widget_type="Text", parent_widget=main_column,
-            order=len(main_column.child_widgets.all()), widget_id=f"section_{section_title.lower().replace(' ', '_')}"
-        )
-        add_widget_property(section_header, "text", "string", string_value=section_title)
-        add_widget_property(section_header, "fontSize", "decimal", decimal_value=18)
-
-        # Section items
-        for item_text, icon, action in items:
-            tile = Widget.objects.create(
-                screen=screen, widget_type="ListTile", parent_widget=main_column,
-                order=len(main_column.child_widgets.all()),
-                widget_id=f"setting_{item_text.lower().replace(' ', '_')}"
-            )
-            add_widget_property(tile, "title", "string", string_value=item_text)
-            add_widget_property(tile, "leading", "string", string_value=icon)
-            add_widget_property(tile, "trailing", "string", string_value="arrow_forward_ios")
-            if action:
-                add_widget_property(tile, "onTap", "action_reference", action_reference=action)
-
-    # Logout button
-    logout_btn = Widget.objects.create(
-        screen=screen, widget_type="ElevatedButton", parent_widget=main_column,
-        order=99, widget_id="logout_button"
-    )
-    add_widget_property(logout_btn, "text", "string", string_value="Logout")
-    add_widget_property(logout_btn, "onPressed", "action_reference",
-                        action_reference=actions["Navigate to Login"])
-
-    # App version
-    version_text = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=100, widget_id="app_version"
-    )
-    add_widget_property(version_text, "text", "string", string_value="Version 1.0.0")
-    add_widget_property(version_text, "fontSize", "decimal", decimal_value=12)
-
-
-def create_help_ui(screen, data_sources, actions):
-    """Create help center screen"""
-    main_column = Widget.objects.create(
-        screen=screen, widget_type="Column", order=0, widget_id="help_column"
+        screen=screen,
+        widget_type="Column",
+        order=0
     )
 
     # Search bar
     search_container = Widget.objects.create(
-        screen=screen, widget_type="Container", parent_widget=main_column,
-        order=0, widget_id="help_search_container"
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=0
     )
-    add_widget_property(search_container, "padding", "decimal", decimal_value=16)
+
+    WidgetProperty.objects.create(
+        widget=search_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
 
     search_field = Widget.objects.create(
-        screen=screen, widget_type="TextField", parent_widget=search_container,
-        order=0, widget_id="help_search"
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=search_container,
+        order=0
     )
-    add_widget_property(search_field, "hintText", "string", string_value="Search for help...")
 
-    # Quick Links
-    quick_links_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=1, widget_id="quick_links_title"
+    WidgetProperty.objects.create(
+        widget=search_field,
+        property_name="hintText",
+        property_type="string",
+        string_value="Search for products..."
     )
-    add_widget_property(quick_links_title, "text", "string", string_value="Quick Links")
-    add_widget_property(quick_links_title, "fontSize", "decimal", decimal_value=18)
 
-    # Quick link buttons grid
-    links_grid = Widget.objects.create(
-        screen=screen, widget_type="GridView", parent_widget=main_column,
-        order=2, widget_id="quick_links_grid"
+    # Search results
+    results_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=1
     )
-    add_widget_property(links_grid, "crossAxisCount", "integer", integer_value=2)
 
-    quick_links = [
-        ("FAQs", "help_outline", actions["Navigate to FAQs"]),
-        ("Contact Support", "support_agent", actions["Navigate to Contact Support"]),
-        ("Live Chat", "chat", actions["Navigate to Live Chat"]),
-        ("Call Us", "phone", actions["Call Support"]),
-        ("Email Us", "email", actions["Send Email"]),
-        ("Tickets", "confirmation_number", actions["Navigate to Tickets"]),
+    WidgetProperty.objects.create(
+        widget=results_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['products'],
+            field_name="name"
+        )
+    )
+
+    # Bottom navigation
+    create_bottom_navigation(screen, actions)
+
+
+def create_cart_screen_ui(screen, data_sources, actions):
+    """Create shopping cart screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Cart items list
+    cart_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=cart_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['cart'],
+            field_name="productName"
+        )
+    )
+
+    # Total section
+    total_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=total_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    total_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=total_container,
+        order=0
+    )
+
+    total_label = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=total_row,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=total_label,
+        property_name="text",
+        property_type="string",
+        string_value="Total:"
+    )
+
+    total_amount = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=total_row,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=total_amount,
+        property_name="text",
+        property_type="string",
+        string_value="$0.00"
+    )
+
+    # Checkout button
+    checkout_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=checkout_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Proceed to Checkout"
+    )
+
+    WidgetProperty.objects.create(
+        widget=checkout_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Checkout"]
+    )
+
+    # Bottom navigation
+    create_bottom_navigation(screen, actions)
+
+
+def create_profile_screen_ui(screen, data_sources, actions):
+    """Create user profile screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Profile header
+    profile_header = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=profile_header,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    avatar = Widget.objects.create(
+        screen=screen,
+        widget_type="Icon",
+        parent_widget=profile_header,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=avatar,
+        property_name="icon",
+        property_type="string",
+        string_value="account_circle"
+    )
+
+    WidgetProperty.objects.create(
+        widget=avatar,
+        property_name="size",
+        property_type="decimal",
+        decimal_value=80
+    )
+
+    # Menu items
+    menu_items = [
+        ("My Orders", "Navigate to Orders", "shopping_bag"),
+        ("Wishlist", "Navigate to Wishlist", "favorite"),
+        ("Addresses", "Navigate to Addresses", "location_on"),
+        ("Payment Methods", "Navigate to Payment Methods", "credit_card"),
+        ("Settings", "Navigate to Account Settings", "settings"),
+        ("Help", "Navigate to Help Center", "help"),
     ]
 
-    for i, (text, icon, action) in enumerate(quick_links):
-        link_card = Widget.objects.create(
-            screen=screen, widget_type="Card", parent_widget=links_grid,
-            order=i, widget_id=f"link_{text.lower().replace(' ', '_')}"
+    for i, (label, action_name, icon) in enumerate(menu_items):
+        list_tile = Widget.objects.create(
+            screen=screen,
+            widget_type="ListTile",
+            parent_widget=main_column,
+            order=i + 1
         )
 
-        link_column = Widget.objects.create(
-            screen=screen, widget_type="Column", parent_widget=link_card,
-            order=0, widget_id=f"link_column_{i}"
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="title",
+            property_type="string",
+            string_value=label
         )
 
-        link_icon = Widget.objects.create(
-            screen=screen, widget_type="Icon", parent_widget=link_column,
-            order=0, widget_id=f"link_icon_{i}"
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="leading",
+            property_type="string",
+            string_value=icon
         )
-        add_widget_property(link_icon, "icon", "string", string_value=icon)
-        add_widget_property(link_icon, "size", "decimal", decimal_value=40)
 
-        link_text = Widget.objects.create(
-            screen=screen, widget_type="Text", parent_widget=link_column,
-            order=1, widget_id=f"link_text_{i}"
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="trailing",
+            property_type="string",
+            string_value="arrow_forward_ios"
         )
-        add_widget_property(link_text, "text", "string", string_value=text)
 
-    # Help Articles
-    articles_title = Widget.objects.create(
-        screen=screen, widget_type="Text", parent_widget=main_column,
-        order=3, widget_id="articles_title"
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="onTap",
+            property_type="action_reference",
+            action_reference=actions[action_name]
+        )
+
+    # Bottom navigation
+    create_bottom_navigation(screen, actions)
+
+
+def create_product_list_screen_ui(screen, data_sources, actions):
+    """Create product list screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
     )
-    add_widget_property(articles_title, "text", "string", string_value="Popular Articles")
-    add_widget_property(articles_title, "fontSize", "decimal", decimal_value=18)
 
-    articles_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=main_column,
-        order=4, widget_id="help_articles"
+    # Filter bar
+    filter_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=main_column,
+        order=0
     )
-    add_widget_property(articles_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Help Articles"], "title"))
+
+    filter_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="TextButton",
+        parent_widget=filter_row,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=filter_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Filter"
+    )
+
+    sort_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="TextButton",
+        parent_widget=filter_row,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=sort_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Sort"
+    )
+
+    # Products grid
+    products_grid = Widget.objects.create(
+        screen=screen,
+        widget_type="GridView",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=products_grid,
+        property_name="crossAxisCount",
+        property_type="integer",
+        integer_value=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=products_grid,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['products'],
+            field_name="name"
+        )
+    )
+
+
+def create_product_details_screen_ui(screen, data_sources, actions):
+    """Create product details screen UI"""
+    scroll_view = Widget.objects.create(
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=scroll_view,
+        order=0
+    )
+
+    # Product image
+    product_image = Widget.objects.create(
+        screen=screen,
+        widget_type="Image",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=product_image,
+        property_name="imageUrl",
+        property_type="url",
+        url_value="https://picsum.photos/400/400"
+    )
+
+    # Product info
+    info_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=info_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    product_name = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=info_container,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=product_name,
+        property_name="text",
+        property_type="string",
+        string_value="Product Name"
+    )
+
+    WidgetProperty.objects.create(
+        widget=product_name,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=24
+    )
+
+    price = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=info_container,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=price,
+        property_name="text",
+        property_type="string",
+        string_value="$99.99"
+    )
+
+    WidgetProperty.objects.create(
+        widget=price,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=20
+    )
+
+    # Add to cart button
+    add_cart_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=add_cart_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Add to Cart"
+    )
+
+    WidgetProperty.objects.create(
+        widget=add_cart_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Add to Cart"]
+    )
+
+
+def create_product_reviews_screen_ui(screen, data_sources, actions):
+    """Create product reviews screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Reviews list
+    reviews_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=reviews_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['reviews'],
+            field_name="comment"
+        )
+    )
+
+    # Write review button
+    write_review_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="FloatingActionButton",
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=write_review_btn,
+        property_name="icon",
+        property_type="string",
+        string_value="edit"
+    )
+
+    WidgetProperty.objects.create(
+        widget=write_review_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Write Review"]
+    )
+
+
+def create_compare_products_screen_ui(screen, data_sources, actions):
+    """Create compare products screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value="Compare Products"
+    )
+
+    # Comparison table would go here
+    comparison_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=comparison_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+
+def create_category_screen_ui(screen, data_sources, actions, category_name):
+    """Create category-specific screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Category header
+    header = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=header,
+        property_name="text",
+        property_type="string",
+        string_value=f"Shop {category_name}"
+    )
+
+    WidgetProperty.objects.create(
+        widget=header,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=24
+    )
+
+    # Products grid for this category
+    products_grid = Widget.objects.create(
+        screen=screen,
+        widget_type="GridView",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=products_grid,
+        property_name="crossAxisCount",
+        property_type="integer",
+        integer_value=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=products_grid,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['products'],
+            field_name="name"
+        )
+    )
+
+
+def create_orders_screen_ui(screen, data_sources, actions):
+    """Create orders list screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Orders list
+    orders_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=orders_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['orders'],
+            field_name="orderNumber"
+        )
+    )
+
+
+def create_order_details_screen_ui(screen, data_sources, actions):
+    """Create order details screen UI"""
+    scroll_view = Widget.objects.create(
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=scroll_view,
+        order=0
+    )
+
+    # Order info
+    order_card = Widget.objects.create(
+        screen=screen,
+        widget_type="Card",
+        parent_widget=main_column,
+        order=0
+    )
+
+    order_info = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=order_card,
+        order=0
+    )
+
+    order_number = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=order_info,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=order_number,
+        property_name="text",
+        property_type="string",
+        string_value="Order #12345"
+    )
+
+    # Track order button
+    track_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=track_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Track Order"
+    )
+
+    WidgetProperty.objects.create(
+        widget=track_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Order Tracking"]
+    )
+
+
+def create_order_tracking_screen_ui(screen, data_sources, actions):
+    """Create order tracking screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Tracking progress indicator
+    progress_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=progress_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    status_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=progress_container,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=status_text,
+        property_name="text",
+        property_type="string",
+        string_value="Your order is on the way!"
+    )
+
+
+def create_wishlist_screen_ui(screen, data_sources, actions):
+    """Create wishlist screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Wishlist items
+    wishlist_grid = Widget.objects.create(
+        screen=screen,
+        widget_type="GridView",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=wishlist_grid,
+        property_name="crossAxisCount",
+        property_type="integer",
+        integer_value=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=wishlist_grid,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['wishlist'],
+            field_name="productName"
+        )
+    )
+
+
+def create_recently_viewed_screen_ui(screen, data_sources, actions):
+    """Create recently viewed screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value="Recently Viewed"
+    )
+
+    # Recently viewed list
+    recently_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=recently_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['recently_viewed'],
+            field_name="productName"
+        )
+    )
+
+
+def create_recommendations_screen_ui(screen, data_sources, actions):
+    """Create recommendations screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value="Recommended For You"
+    )
+
+    # Recommendations grid
+    recommendations_grid = Widget.objects.create(
+        screen=screen,
+        widget_type="GridView",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=recommendations_grid,
+        property_name="crossAxisCount",
+        property_type="integer",
+        integer_value=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=recommendations_grid,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['products'],
+            field_name="name"
+        )
+    )
+
+
+def create_account_settings_screen_ui(screen, actions):
+    """Create account settings screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    settings_items = [
+        ("Personal Information", "Navigate to Personal Info", "person"),
+        ("Addresses", "Navigate to Addresses", "location_on"),
+        ("Payment Methods", "Navigate to Payment Methods", "payment"),
+        ("Security", "Navigate to Security", "security"),
+        ("Notifications", "Navigate to Notifications Settings", "notifications"),
+    ]
+
+    for i, (label, action_name, icon) in enumerate(settings_items):
+        list_tile = Widget.objects.create(
+            screen=screen,
+            widget_type="ListTile",
+            parent_widget=main_column,
+            order=i
+        )
+
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="title",
+            property_type="string",
+            string_value=label
+        )
+
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="leading",
+            property_type="string",
+            string_value=icon
+        )
+
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="onTap",
+            property_type="action_reference",
+            action_reference=actions[action_name]
+        )
+
+
+def create_personal_info_screen_ui(screen, data_sources, actions):
+    """Create personal info screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Form fields
+    name_field = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=name_field,
+        property_name="labelText",
+        property_type="string",
+        string_value="Full Name"
+    )
+
+    email_field = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=email_field,
+        property_name="labelText",
+        property_type="string",
+        string_value="Email"
+    )
+
+    phone_field = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=phone_field,
+        property_name="labelText",
+        property_type="string",
+        string_value="Phone"
+    )
+
+    save_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=3
+    )
+
+    WidgetProperty.objects.create(
+        widget=save_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Save Changes"
+    )
+
+
+def create_addresses_screen_ui(screen, data_sources, actions):
+    """Create addresses screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Addresses list
+    addresses_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=addresses_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['addresses'],
+            field_name="name"
+        )
+    )
+
+    # Add address button
+    add_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="FloatingActionButton",
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=add_btn,
+        property_name="icon",
+        property_type="string",
+        string_value="add"
+    )
+
+
+def create_payment_methods_screen_ui(screen, data_sources, actions):
+    """Create payment methods screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Payment methods list
+    title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value="Payment Methods"
+    )
+
+    # Add card button
+    add_card_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=add_card_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Add New Card"
+    )
+
+
+def create_security_screen_ui(screen, actions):
+    """Create security settings screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Change password button
+    change_password_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ListTile",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=change_password_btn,
+        property_name="title",
+        property_type="string",
+        string_value="Change Password"
+    )
+
+    WidgetProperty.objects.create(
+        widget=change_password_btn,
+        property_name="leading",
+        property_type="string",
+        string_value="lock"
+    )
+
+    # Two-factor auth toggle
+    two_factor = Widget.objects.create(
+        screen=screen,
+        widget_type="ListTile",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=two_factor,
+        property_name="title",
+        property_type="string",
+        string_value="Two-Factor Authentication"
+    )
+
+    two_factor_switch = Widget.objects.create(
+        screen=screen,
+        widget_type="Switch",
+        parent_widget=two_factor,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=two_factor_switch,
+        property_name="value",
+        property_type="boolean",
+        boolean_value=False
+    )
+
+
+def create_notifications_settings_screen_ui(screen, actions):
+    """Create notifications settings screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    notification_types = [
+        "Order Updates",
+        "Promotions",
+        "New Products",
+        "Price Drops",
+    ]
+
+    for i, notif_type in enumerate(notification_types):
+        list_tile = Widget.objects.create(
+            screen=screen,
+            widget_type="ListTile",
+            parent_widget=main_column,
+            order=i
+        )
+
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="title",
+            property_type="string",
+            string_value=notif_type
+        )
+
+        switch = Widget.objects.create(
+            screen=screen,
+            widget_type="Switch",
+            parent_widget=list_tile,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=switch,
+            property_name="value",
+            property_type="boolean",
+            boolean_value=True
+        )
+
+
+def create_checkout_screen_ui(screen, data_sources, actions):
+    """Create checkout screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Order summary
+    summary_card = Widget.objects.create(
+        screen=screen,
+        widget_type="Card",
+        parent_widget=main_column,
+        order=0
+    )
+
+    summary_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=summary_card,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=summary_text,
+        property_name="text",
+        property_type="string",
+        string_value="Order Summary"
+    )
+
+    # Continue button
+    continue_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=continue_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Continue to Shipping"
+    )
+
+    WidgetProperty.objects.create(
+        widget=continue_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Shipping"]
+    )
+
+
+def create_shipping_screen_ui(screen, data_sources, actions):
+    """Create shipping screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Address selection
+    address_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=address_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['addresses'],
+            field_name="name"
+        )
+    )
+
+    # Continue button
+    continue_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=continue_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Continue to Payment"
+    )
+
+    WidgetProperty.objects.create(
+        widget=continue_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Payment"]
+    )
+
+
+def create_payment_screen_ui(screen, data_sources, actions):
+    """Create payment screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Payment method selection
+    payment_title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=payment_title,
+        property_name="text",
+        property_type="string",
+        string_value="Select Payment Method"
+    )
+
+    # Place order button
+    place_order_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=place_order_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Place Order"
+    )
+
+    WidgetProperty.objects.create(
+        widget=place_order_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Order Confirmation"]
+    )
+
+
+def create_order_confirmation_screen_ui(screen, data_sources, actions):
+    """Create order confirmation screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=main_column,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="center"
+    )
+
+    # Success icon
+    success_icon = Widget.objects.create(
+        screen=screen,
+        widget_type="Icon",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=success_icon,
+        property_name="icon",
+        property_type="string",
+        string_value="check_circle"
+    )
+
+    WidgetProperty.objects.create(
+        widget=success_icon,
+        property_name="size",
+        property_type="decimal",
+        decimal_value=100
+    )
+
+    WidgetProperty.objects.create(
+        widget=success_icon,
+        property_name="color",
+        property_type="color",
+        color_value="#4CAF50"
+    )
+
+    # Success message
+    success_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=success_text,
+        property_name="text",
+        property_type="string",
+        string_value="Order Placed Successfully!"
+    )
+
+    WidgetProperty.objects.create(
+        widget=success_text,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=24
+    )
+
+    # Continue shopping button
+    continue_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=continue_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Continue Shopping"
+    )
+
+    WidgetProperty.objects.create(
+        widget=continue_btn,
+        property_name="onPressed",
+        property_type="action_reference",
+        action_reference=actions["Navigate to Home"]
+    )
+
+
+def create_seller_dashboard_screen_ui(screen, data_sources, actions):
+    """Create seller dashboard screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Dashboard stats
+    stats_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=main_column,
+        order=0
+    )
+
+    # Sales card
+    sales_card = Widget.objects.create(
+        screen=screen,
+        widget_type="Card",
+        parent_widget=stats_row,
+        order=0
+    )
+
+    sales_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=sales_card,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=sales_text,
+        property_name="text",
+        property_type="string",
+        string_value="Total Sales: $10,000"
+    )
+
+    # Menu items
+    menu_items = [
+        ("My Products", "Navigate to Seller Products"),
+        ("Orders", "Navigate to Seller Orders"),
+        ("Analytics", "Navigate to Seller Analytics"),
+    ]
+
+    for i, (label, action_name) in enumerate(menu_items):
+        list_tile = Widget.objects.create(
+            screen=screen,
+            widget_type="ListTile",
+            parent_widget=main_column,
+            order=i + 1
+        )
+
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="title",
+            property_type="string",
+            string_value=label
+        )
+
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="onTap",
+            property_type="action_reference",
+            action_reference=actions[action_name]
+        )
+
+
+def create_seller_products_screen_ui(screen, data_sources, actions):
+    """Create seller products screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Products list
+    products_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=products_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['products'],
+            field_name="name"
+        )
+    )
+
+    # Add product FAB
+    add_product_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="FloatingActionButton",
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=add_product_btn,
+        property_name="icon",
+        property_type="string",
+        string_value="add"
+    )
+
+
+def create_seller_orders_screen_ui(screen, data_sources, actions):
+    """Create seller orders screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Orders list
+    orders_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=orders_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['orders'],
+            field_name="orderNumber"
+        )
+    )
+
+
+def create_seller_analytics_screen_ui(screen, data_sources, actions):
+    """Create seller analytics screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Analytics charts placeholder
+    chart_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=chart_container,
+        property_name="height",
+        property_type="decimal",
+        decimal_value=200
+    )
+
+    chart_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=chart_container,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=chart_text,
+        property_name="text",
+        property_type="string",
+        string_value="Sales Analytics Chart"
+    )
+
+
+def create_seller_profile_screen_ui(screen, data_sources, actions):
+    """Create seller profile screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Profile info
+    profile_card = Widget.objects.create(
+        screen=screen,
+        widget_type="Card",
+        parent_widget=main_column,
+        order=0
+    )
+
+    seller_name = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=profile_card,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=seller_name,
+        property_name="text",
+        property_type="string",
+        string_value="Seller Name"
+    )
+
+
+def create_help_center_screen_ui(screen, actions):
+    """Create help center screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    help_items = [
+        ("FAQs", "Navigate to FAQs"),
+        ("Contact Support", "Navigate to Contact Support"),
+        ("Return Policy", "Navigate to Return Policy"),
+        ("Terms of Service", "Navigate to Terms of Service"),
+    ]
+
+    for i, (label, action_name) in enumerate(help_items):
+        list_tile = Widget.objects.create(
+            screen=screen,
+            widget_type="ListTile",
+            parent_widget=main_column,
+            order=i
+        )
+
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="title",
+            property_type="string",
+            string_value=label
+        )
+
+        WidgetProperty.objects.create(
+            widget=list_tile,
+            property_name="onTap",
+            property_type="action_reference",
+            action_reference=actions[action_name]
+        )
+
+
+def create_contact_support_screen_ui(screen, actions):
+    """Create contact support screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    # Contact form
+    subject_field = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=subject_field,
+        property_name="labelText",
+        property_type="string",
+        string_value="Subject"
+    )
+
+    message_field = Widget.objects.create(
+        screen=screen,
+        widget_type="TextField",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=message_field,
+        property_name="labelText",
+        property_type="string",
+        string_value="Message"
+    )
+
+    send_btn = Widget.objects.create(
+        screen=screen,
+        widget_type="ElevatedButton",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=send_btn,
+        property_name="text",
+        property_type="string",
+        string_value="Send Message"
+    )
+
+
+def create_faqs_screen_ui(screen, actions):
+    """Create FAQs screen UI"""
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        order=0
+    )
+
+    faqs = [
+        "How do I track my order?",
+        "What is your return policy?",
+        "How long does shipping take?",
+        "Do you ship internationally?",
+    ]
+
+    for i, question in enumerate(faqs):
+        faq_tile = Widget.objects.create(
+            screen=screen,
+            widget_type="ListTile",
+            parent_widget=main_column,
+            order=i
+        )
+
+        WidgetProperty.objects.create(
+            widget=faq_tile,
+            property_name="title",
+            property_type="string",
+            string_value=question
+        )
+
+
+def create_return_policy_screen_ui(screen, actions):
+    """Create return policy screen UI"""
+    scroll_view = Widget.objects.create(
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=scroll_view,
+        order=0
+    )
+
+    policy_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=policy_text,
+        property_name="text",
+        property_type="string",
+        string_value="Return Policy\n\nYou can return items within 30 days..."
+    )
+
+
+def create_terms_screen_ui(screen, actions):
+    """Create terms of service screen UI"""
+    scroll_view = Widget.objects.create(
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=scroll_view,
+        order=0
+    )
+
+    terms_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=terms_text,
+        property_name="text",
+        property_type="string",
+        string_value="Terms of Service\n\nBy using this app, you agree to..."
+    )
+
+
+def create_privacy_screen_ui(screen, actions):
+    """Create privacy policy screen UI"""
+    scroll_view = Widget.objects.create(
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=scroll_view,
+        order=0
+    )
+
+    privacy_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=privacy_text,
+        property_name="text",
+        property_type="string",
+        string_value="Privacy Policy\n\nWe value your privacy and protect your personal information..."
+    )
+
+
+def create_deals_screen_ui(screen, data_sources, actions):
+    """Create deals screen UI with special offers"""
+    # Main ScrollView
+    scroll_view = Widget.objects.create(
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=scroll_view,
+        order=0
+    )
+
+    # Deals header with countdown timer
+    header_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=header_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    WidgetProperty.objects.create(
+        widget=header_container,
+        property_name="color",
+        property_type="color",
+        color_value="#FFF3E0"
+    )
+
+    header_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=header_container,
+        order=0
+    )
+
+    deals_title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=header_row,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=deals_title,
+        property_name="text",
+        property_type="string",
+        string_value="🔥 Today's Hot Deals"
+    )
+
+    WidgetProperty.objects.create(
+        widget=deals_title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=24
+    )
+
+    WidgetProperty.objects.create(
+        widget=deals_title,
+        property_name="fontWeight",
+        property_type="string",
+        string_value="bold"
+    )
+
+    # Timer container
+    timer_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=header_row,
+        order=1
+    )
+
+    timer_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=timer_container,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=timer_text,
+        property_name="text",
+        property_type="string",
+        string_value="Ends in: 23:59:59"
+    )
+
+    WidgetProperty.objects.create(
+        widget=timer_text,
+        property_name="color",
+        property_type="color",
+        color_value="#FF0000"
+    )
+
+    # Deals grid
+    deals_grid = Widget.objects.create(
+        screen=screen,
+        widget_type="GridView",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=deals_grid,
+        property_name="crossAxisCount",
+        property_type="integer",
+        integer_value=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=deals_grid,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['products'],
+            field_name="name"
+        )
+    )
+
+    # Bottom navigation
+    create_bottom_navigation(screen, actions)
+
+
+def create_flash_sale_screen_ui(screen, data_sources, actions):
+    """Create flash sale screen UI with urgency elements"""
+    # Main ScrollView
+    scroll_view = Widget.objects.create(
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=scroll_view,
+        order=0
+    )
+
+    # Flash sale banner
+    banner_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=banner_container,
+        property_name="height",
+        property_type="decimal",
+        decimal_value=150
+    )
+
+    WidgetProperty.objects.create(
+        widget=banner_container,
+        property_name="color",
+        property_type="color",
+        color_value="#FF1744"
+    )
+
+    banner_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=banner_container,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=banner_column,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="center"
+    )
+
+    flash_icon = Widget.objects.create(
+        screen=screen,
+        widget_type="Icon",
+        parent_widget=banner_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_icon,
+        property_name="icon",
+        property_type="string",
+        string_value="flash_on"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_icon,
+        property_name="size",
+        property_type="decimal",
+        decimal_value=50
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_icon,
+        property_name="color",
+        property_type="color",
+        color_value="#FFFFFF"
+    )
+
+    flash_title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=banner_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_title,
+        property_name="text",
+        property_type="string",
+        string_value="⚡ FLASH SALE ⚡"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=28
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_title,
+        property_name="fontWeight",
+        property_type="string",
+        string_value="bold"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_title,
+        property_name="color",
+        property_type="color",
+        color_value="#FFFFFF"
+    )
+
+    countdown_text = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=banner_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=countdown_text,
+        property_name="text",
+        property_type="string",
+        string_value="Ends in: 02:45:30"
+    )
+
+    WidgetProperty.objects.create(
+        widget=countdown_text,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=20
+    )
+
+    WidgetProperty.objects.create(
+        widget=countdown_text,
+        property_name="color",
+        property_type="color",
+        color_value="#FFEB3B"
+    )
+
+    # Flash sale items list (horizontal)
+    flash_items_header = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_items_header,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    flash_items_title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=flash_items_header,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_items_title,
+        property_name="text",
+        property_type="string",
+        string_value="Limited Stock - Hurry Up!"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_items_title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=18
+    )
+
+    # Flash sale products list
+    flash_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_list,
+        property_name="scrollDirection",
+        property_type="string",
+        string_value="horizontal"
+    )
+
+    WidgetProperty.objects.create(
+        widget=flash_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['flash_sales'],
+            field_name="salePrice"
+        )
+    )
+
+    # Bottom navigation
+    create_bottom_navigation(screen, actions)
+
+
+def create_new_arrivals_screen_ui(screen, data_sources, actions):
+    """Create new arrivals screen UI"""
+    # Main ScrollView
+    scroll_view = Widget.objects.create(
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=scroll_view,
+        order=0
+    )
+
+    # Header with "NEW" badge
+    header_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=header_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    header_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=header_container,
+        order=0
+    )
+
+    # NEW badge
+    badge_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=header_row,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=badge_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=8
+    )
+
+    WidgetProperty.objects.create(
+        widget=badge_container,
+        property_name="color",
+        property_type="color",
+        color_value="#4CAF50"
+    )
+
+    new_badge = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=badge_container,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=new_badge,
+        property_name="text",
+        property_type="string",
+        string_value="NEW"
+    )
+
+    WidgetProperty.objects.create(
+        widget=new_badge,
+        property_name="color",
+        property_type="color",
+        color_value="#FFFFFF"
+    )
+
+    WidgetProperty.objects.create(
+        widget=new_badge,
+        property_name="fontWeight",
+        property_type="string",
+        string_value="bold"
+    )
+
+    # Title
+    title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=header_row,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value=" Fresh Arrivals"
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=24
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="fontWeight",
+        property_type="string",
+        string_value="bold"
+    )
+
+    # Subtitle
+    subtitle = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=subtitle,
+        property_name="text",
+        property_type="string",
+        string_value="Check out what's new this week!"
+    )
+
+    WidgetProperty.objects.create(
+        widget=subtitle,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=14
+    )
+
+    WidgetProperty.objects.create(
+        widget=subtitle,
+        property_name="color",
+        property_type="color",
+        color_value="#757575"
+    )
+
+    # New arrivals grid
+    new_arrivals_grid = Widget.objects.create(
+        screen=screen,
+        widget_type="GridView",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=new_arrivals_grid,
+        property_name="crossAxisCount",
+        property_type="integer",
+        integer_value=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=new_arrivals_grid,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['new_arrivals'],
+            field_name="name"
+        )
+    )
+
+    # Bottom navigation
+    create_bottom_navigation(screen, actions)
+
+
+def create_best_sellers_screen_ui(screen, data_sources, actions):
+    """Create best sellers screen UI with ranking"""
+    # Main ScrollView
+    scroll_view = Widget.objects.create(
+        screen=screen,
+        widget_type="SingleChildScrollView",
+        order=0
+    )
+
+    main_column = Widget.objects.create(
+        screen=screen,
+        widget_type="Column",
+        parent_widget=scroll_view,
+        order=0
+    )
+
+    # Header with trophy icon
+    header_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=header_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    WidgetProperty.objects.create(
+        widget=header_container,
+        property_name="color",
+        property_type="color",
+        color_value="#FFD700"
+    )
+
+    header_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=header_container,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=header_row,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="center"
+    )
+
+    trophy_icon = Widget.objects.create(
+        screen=screen,
+        widget_type="Icon",
+        parent_widget=header_row,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=trophy_icon,
+        property_name="icon",
+        property_type="string",
+        string_value="emoji_events"
+    )
+
+    WidgetProperty.objects.create(
+        widget=trophy_icon,
+        property_name="size",
+        property_type="decimal",
+        decimal_value=30
+    )
+
+    WidgetProperty.objects.create(
+        widget=trophy_icon,
+        property_name="color",
+        property_type="color",
+        color_value="#B8860B"
+    )
+
+    title = Widget.objects.create(
+        screen=screen,
+        widget_type="Text",
+        parent_widget=header_row,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="text",
+        property_type="string",
+        string_value=" Best Sellers"
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="fontSize",
+        property_type="decimal",
+        decimal_value=26
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="fontWeight",
+        property_type="string",
+        string_value="bold"
+    )
+
+    WidgetProperty.objects.create(
+        widget=title,
+        property_name="color",
+        property_type="color",
+        color_value="#B8860B"
+    )
+
+    # Tabs for different periods
+    tabs_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=1
+    )
+
+    WidgetProperty.objects.create(
+        widget=tabs_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    tabs_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=tabs_container,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=tabs_row,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="spaceEvenly"
+    )
+
+    # Tab buttons
+    tab_periods = ["Today", "This Week", "This Month", "All Time"]
+
+    for i, period in enumerate(tab_periods):
+        tab_btn = Widget.objects.create(
+            screen=screen,
+            widget_type="TextButton",
+            parent_widget=tabs_row,
+            order=i
+        )
+
+        WidgetProperty.objects.create(
+            widget=tab_btn,
+            property_name="text",
+            property_type="string",
+            string_value=period
+        )
+
+    # Top 3 Winners podium
+    podium_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=main_column,
+        order=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=podium_container,
+        property_name="height",
+        property_type="decimal",
+        decimal_value=200
+    )
+
+    WidgetProperty.objects.create(
+        widget=podium_container,
+        property_name="padding",
+        property_type="decimal",
+        decimal_value=16
+    )
+
+    podium_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=podium_container,
+        order=0
+    )
+
+    WidgetProperty.objects.create(
+        widget=podium_row,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="spaceEvenly"
+    )
+
+    # Create podium cards for top 3
+    medals = ["🥈", "🥇", "🥉"]
+    positions = [2, 1, 3]
+
+    for i, (medal, position) in enumerate(zip(medals, positions)):
+        podium_card = Widget.objects.create(
+            screen=screen,
+            widget_type="Card",
+            parent_widget=podium_row,
+            order=i
+        )
+
+        podium_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            parent_widget=podium_card,
+            order=0
+        )
+
+        medal_text = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=podium_column,
+            order=0
+        )
+
+        WidgetProperty.objects.create(
+            widget=medal_text,
+            property_name="text",
+            property_type="string",
+            string_value=medal
+        )
+
+        WidgetProperty.objects.create(
+            widget=medal_text,
+            property_name="fontSize",
+            property_type="decimal",
+            decimal_value=40
+        )
+
+        position_text = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=podium_column,
+            order=1
+        )
+
+        WidgetProperty.objects.create(
+            widget=position_text,
+            property_name="text",
+            property_type="string",
+            string_value=f"#{position}"
+        )
+
+        WidgetProperty.objects.create(
+            widget=position_text,
+            property_name="fontSize",
+            property_type="decimal",
+            decimal_value=18
+        )
+
+        WidgetProperty.objects.create(
+            widget=position_text,
+            property_name="fontWeight",
+            property_type="string",
+            string_value="bold"
+        )
+
+    # Best sellers list
+    best_sellers_list = Widget.objects.create(
+        screen=screen,
+        widget_type="ListView",
+        parent_widget=main_column,
+        order=3
+    )
+
+    WidgetProperty.objects.create(
+        widget=best_sellers_list,
+        property_name="dataSource",
+        property_type="data_source_field_reference",
+        data_source_field_reference=DataSourceField.objects.get(
+            data_source=data_sources['best_sellers'],
+            field_name="name"
+        )
+    )
+
+    # Bottom navigation
+    create_bottom_navigation(screen, actions)
