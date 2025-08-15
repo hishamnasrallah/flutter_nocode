@@ -119,7 +119,7 @@ def create_marketplace_theme():
 def create_all_data_sources(app):
     """Create all 30+ data sources for the marketplace"""
     data_sources = {}
-    base_url = "https://heard-war-lesson-buy.trycloudflare.com"  # Changed to remove /api/marketplace
+    base_url = "https://ericsson-hill-ten-cats.trycloudflare.com"  # Changed to remove /api/marketplace
 
     # Product Management Data Sources
     sources_config = [

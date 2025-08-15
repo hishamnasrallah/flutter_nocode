@@ -1,3 +1,5 @@
+import os
+
 from django.contrib import admin
 from django.http import HttpResponse, JsonResponse
 from django.urls import path
@@ -5,6 +7,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+
+from flutter_nocode import settings
 from .models import (
     Theme, Application, DataSource, DataSourceField, Screen, 
     Widget, WidgetProperty, Action, BuildHistory, CustomPubDevWidget
@@ -151,9 +155,10 @@ class ApplicationAdmin(admin.ModelAdmin):
     )
     
     inlines = [ScreenInline, ActionInline, CustomPubDevWidgetInline, BuildHistoryInline]
-    
-    actions = ['generate_flutter_code', 'build_apk', 'create_sample_ecommerce', 'create_sample_social_media', 'create_sample_news']
-    
+
+    actions = ['generate_flutter_code', 'build_apk', 'clean_project_directory', 'create_sample_ecommerce',
+               'create_sample_social_media', 'create_sample_news']
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -162,7 +167,35 @@ class ApplicationAdmin(admin.ModelAdmin):
             path('<int:app_id>/build-status/', self.admin_site.admin_view(self.build_status), name='build_status'),
         ]
         return custom_urls + urls
-    
+
+    def clean_project_directory(self, request, queryset):
+        """Manually clean project directories"""
+        import subprocess
+        import shutil
+        import time
+
+        for app in queryset:
+            project_path = settings.GENERATED_CODE_PATH / f"{app.package_name.replace('.', '_')}"
+
+            if project_path.exists():
+                try:
+                    # Kill processes on Windows
+                    if os.name == 'nt':
+                        subprocess.run(['taskkill', '/F', '/IM', 'java.exe'], capture_output=True, shell=True)
+                        subprocess.run(['taskkill', '/F', '/IM', 'gradle.exe'], capture_output=True, shell=True)
+                        subprocess.run(['taskkill', '/F', '/IM', 'dart.exe'], capture_output=True, shell=True)
+                        time.sleep(2)
+
+                    # Remove directory
+                    shutil.rmtree(project_path, ignore_errors=True)
+                    self.message_user(request, f"Cleaned project directory for {app.name}")
+                except Exception as e:
+                    self.message_user(request, f"Error cleaning {app.name}: {str(e)}", level=messages.ERROR)
+            else:
+                self.message_user(request, f"No project directory found for {app.name}")
+
+    clean_project_directory.short_description = "🧹 Clean Project Directory"
+
     def generate_flutter_code(self, request, queryset):
         """Generate Flutter source code for selected applications"""
         for app in queryset:

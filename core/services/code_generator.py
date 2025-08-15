@@ -28,86 +28,139 @@ class FlutterCodeGenerator:
     def generate_project(self):
         """Generate complete Flutter project"""
         try:
-            # Clean and create project directory with retry logic for Windows file locks
+            # Clean and create project directory with enhanced retry logic for Windows
             if self.project_path.exists():
-                # Try to remove the directory with retries
+                import subprocess
+                import time
+                import shutil
+
+                # First, try to kill all Flutter/Java/Gradle processes that might be locking files
+                if os.name == 'nt':
+                    print("Cleaning up locked processes...")
+
+                    # Kill all potentially locking processes
+                    processes_to_kill = [
+                        'java.exe', 'javaw.exe', 'gradle.exe', 'dart.exe',
+                        'flutter_tester.exe', 'flutter.bat', 'adb.exe',
+                        'kotlin-compiler-daemon'
+                    ]
+
+                    for process in processes_to_kill:
+                        try:
+                            subprocess.run(['taskkill', '/F', '/IM', process],
+                                           capture_output=True, shell=True, timeout=5)
+                        except:
+                            pass
+
+                    # Also try to kill processes by window title
+                    try:
+                        subprocess.run(['taskkill', '/F', '/FI', 'WINDOWTITLE eq Gradle*'],
+                                       capture_output=True, shell=True, timeout=5)
+                    except:
+                        pass
+
+                    # Wait for processes to fully terminate
+                    time.sleep(3)
+
+                    # Remove read-only attributes from all files
+                    try:
+                        subprocess.run(['attrib', '-R', '-S', '-H', f'{self.project_path}\\*', '/S', '/D'],
+                                       capture_output=True, shell=True, timeout=10)
+                    except:
+                        pass
+
+                # Try multiple strategies to remove the directory
                 max_retries = 5
                 for attempt in range(max_retries):
                     try:
-                        # First, try to clean build artifacts that might be locked
-                        build_path = self.project_path / 'build'
-                        gradle_path = self.project_path / '.gradle'
-                        dart_tool_path = self.project_path / '.dart_tool'
+                        print(f"Attempt {attempt + 1} to clean project directory...")
 
-                        if os.name == 'nt':
-                            import subprocess
-                            import time
-
-                            # Kill all potentially locking processes
-                            subprocess.run(['taskkill', '/F', '/IM', 'java.exe'],
-                                           capture_output=True, shell=True)
-                            subprocess.run(['taskkill', '/F', '/IM', 'gradle.exe'],
-                                           capture_output=True, shell=True)
-                            subprocess.run(['taskkill', '/F', '/IM', 'dart.exe'],
-                                           capture_output=True, shell=True)
-                            subprocess.run(['taskkill', '/F', '/IM', 'flutter_tester.exe'],
-                                           capture_output=True, shell=True)
-
-                            time.sleep(2)  # Increased delay
-
-                            # Remove read-only attributes from entire project
-                            subprocess.run(['attrib', '-R', '-S', f'{self.project_path}\\*', '/S', '/D'],
-                                           capture_output=True, shell=True)
-
-                            # Try to delete specific problematic directories first
-                            for prob_path in [build_path, gradle_path, dart_tool_path]:
-                                if prob_path.exists():
-                                    try:
-                                        subprocess.run(['rd', '/S', '/Q', str(prob_path)],
-                                                       capture_output=True, shell=True)
-                                    except:
-                                        pass
-
-                            time.sleep(1)
-
-                        # If deletion fails, rename the old directory instead
-                        try:
+                        # Strategy 1: Normal removal
+                        if self.project_path.exists():
                             shutil.rmtree(self.project_path, ignore_errors=False)
-                            break  # Success, exit the retry loop
-                        except Exception as e:
-                            if attempt == max_retries - 1:
-                                # Last attempt - rename instead of delete
-                                import datetime
-                                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                                backup_path = self.project_path.parent / f"{self.project_path.name}_backup_{timestamp}"
-                                self.project_path.rename(backup_path)
-                                print(f"Renamed old project to {backup_path}")
-                                break
-                            else:
-                                raise  # Re-raise to continue retry loop
-                        break  # Success, exit the retry loop
+                            print("Successfully cleaned project directory")
+                            break
 
                     except PermissionError as e:
                         if attempt < max_retries - 1:
-                            print(f"Attempt {attempt + 1} failed to clean directory, retrying...")
-                            import time
-                            time.sleep(2)  # Wait before retry
-                        else:
-                            # Last attempt - try to at least clean the build directory
-                            print(f"Cannot fully clean project directory, attempting partial cleanup")
-                            build_path = self.project_path / 'build'
-                            if build_path.exists():
+                            print(f"Permission error, trying alternative approach...")
+
+                            # Strategy 2: Remove specific problematic directories first
+                            problematic_dirs = [
+                                self.project_path / 'build',
+                                self.project_path / '.gradle',
+                                self.project_path / '.dart_tool',
+                                self.project_path / 'android' / '.gradle',
+                                self.project_path / 'android' / 'build',
+                            ]
+
+                            for prob_dir in problematic_dirs:
+                                if prob_dir.exists():
+                                    try:
+                                        if os.name == 'nt':
+                                            # Use Windows rmdir command
+                                            subprocess.run(['cmd', '/c', 'rmdir', '/S', '/Q', str(prob_dir)],
+                                                           capture_output=True, shell=False, timeout=10)
+                                        else:
+                                            shutil.rmtree(prob_dir, ignore_errors=True)
+                                    except:
+                                        pass
+
+                            time.sleep(2)
+
+                            # Strategy 3: Rename the directory instead of deleting
+                            if attempt == max_retries - 2 and self.project_path.exists():
                                 try:
-                                    shutil.rmtree(build_path, ignore_errors=True)
+                                    import datetime
+                                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                                    backup_path = self.project_path.parent / f"{self.project_path.name}_old_{timestamp}"
+
+                                    print(f"Renaming old project to {backup_path}")
+                                    self.project_path.rename(backup_path)
+
+                                    # Schedule deletion of renamed directory (optional)
+                                    if os.name == 'nt':
+                                        try:
+                                            # Try to delete the backup in background
+                                            subprocess.Popen(['cmd', '/c', 'timeout', '/t', '10', '&&',
+                                                              'rmdir', '/S', '/Q', str(backup_path)],
+                                                             shell=True, stdout=subprocess.DEVNULL,
+                                                             stderr=subprocess.DEVNULL)
+                                        except:
+                                            pass
+                                    break
+                                except Exception as rename_error:
+                                    print(f"Could not rename: {rename_error}")
+                        else:
+                            # Last attempt failed
+                            print(f"ERROR: Could not clean project directory after {max_retries} attempts")
+                            print("Try these manual steps:")
+                            print("1. Close any IDEs (VS Code, Android Studio, IntelliJ)")
+                            print("2. Close any terminal/command windows")
+                            print("3. Open Task Manager and end any Java/Gradle processes")
+                            print(f"4. Manually delete: {self.project_path}")
+                            print("5. Try building again")
+
+                            # Try one more time with ignore_errors=True
+                            if self.project_path.exists():
+                                try:
+                                    shutil.rmtree(self.project_path, ignore_errors=True)
                                 except:
                                     pass
-                            # Continue without full cleanup
-                            break
-                    except Exception as e:
-                        print(f"Unexpected error during cleanup: {e}")
-                        break
 
-            # Create project directory
+                            # Even if we couldn't fully clean, try to proceed
+                            # The Flutter create command might handle it
+                            break
+
+                    except Exception as e:
+                        print(f"Unexpected error during cleanup attempt {attempt + 1}: {e}")
+                        if attempt < max_retries - 1:
+                            time.sleep(2)
+                        else:
+                            # Continue anyway on last attempt
+                            break
+
+            # Create project directory (even if cleanup wasn't perfect)
             self.project_path.mkdir(parents=True, exist_ok=True)
 
             # Generate project structure
@@ -132,6 +185,9 @@ class FlutterCodeGenerator:
             return True, f"Flutter project generated successfully at {self.project_path}"
 
         except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error details:\n{error_details}")
             return False, f"Error generating Flutter project: {str(e)}"
 
     def _create_project_structure(self):
@@ -523,8 +579,9 @@ class AppRoutes {
         screen_file_name = self._to_snake_case(screen.name) + '_screen.dart'
         screen_class_name = self._to_pascal_case(screen.name) + 'Screen'
 
-        # Check if this is home screen
+        # Check if this is home screen or needs helper methods
         is_home_screen = screen.name.lower() == 'home' or screen.is_home_screen
+        needs_helpers = is_home_screen or 'categories' in screen.name.lower() or 'recently' in screen.name.lower()
 
         # Get root widgets for this screen
         root_widgets = Widget.objects.filter(
@@ -542,69 +599,9 @@ class AppRoutes {
     }}
 
     class _{screen_class_name}State extends State<{screen_class_name}> {{
-      final ApiService _apiService = ApiService();
-      
-      IconData _getCategoryIcon(String categoryName) {{
-        switch (categoryName.toLowerCase()) {{
-          case 'electronics':
-            return Icons.devices;
-          case 'fashion':
-            return Icons.shopping_bag;
-          case 'home & garden':
-          case 'home garden':
-            return Icons.home;
-          case 'sports':
-          case 'sports & outdoors':
-            return Icons.sports_soccer;
-          case 'books':
-          case 'books & media':
-            return Icons.menu_book;
-          case 'beauty':
-          case 'beauty & personal care':
-            return Icons.face;
-          case 'food':
-          case 'food & groceries':
-            return Icons.restaurant;
-          case 'health':
-          case 'health & wellness':
-            return Icons.favorite;
-          case 'automotive':
-            return Icons.directions_car;
-          case 'toys':
-          case 'toys & games':
-            return Icons.toys;
-          case 'pets':
-          case 'pet supplies':
-            return Icons.pets;
-          default:
-            return Icons.category;
-        }}
-      }}
+      final ApiService _apiService = ApiService();'''
 
-      String _getTimeAgo(String? dateString) {{
-        if (dateString == null) return 'recently';
-        try {{
-          final date = DateTime.parse(dateString);
-          final now = DateTime.now();
-          final difference = now.difference(date);
-
-          if (difference.inDays > 0) {{
-            return '${{difference.inDays}} day${{difference.inDays > 1 ? 's' : ''}} ago';
-          }} else if (difference.inHours > 0) {{
-            return '${{difference.inHours}} hour${{difference.inHours > 1 ? 's' : ''}} ago';
-          }} else if (difference.inMinutes > 0) {{
-            return '${{difference.inMinutes}} min${{difference.inMinutes > 1 ? 's' : ''}} ago';
-          }} else {{
-            return 'just now';
-          }}
-        }} catch (e) {{
-          return 'recently';
-        }}
-      }}'''
-
-        # Add helper methods for screens that need them
-        needs_helpers = is_home_screen or 'categories' in screen.name.lower() or 'recently' in screen.name.lower()
-
+        # Add helper methods for screens that need them (ONLY ONCE)
         if needs_helpers:
             screen_content += '''
       final TextEditingController _searchController = TextEditingController();
