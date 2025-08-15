@@ -13,6 +13,7 @@ from core.marketplace_api_views import marketplace_products, marketplace_product
     marketplace_orders, marketplace_order_detail, marketplace_order_tracking, marketplace_sellers, \
     marketplace_seller_detail, marketplace_seller_dashboard, marketplace_reviews, marketplace_product_reviews, \
     marketplace_add_review, marketplace_faqs, marketplace_notifications, marketplace_coupons
+from core import auth_mock_views, chat_mock_views, stripe_mock_views, media_mock_views, seller_mock_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -145,7 +146,43 @@ urlpatterns += [
     # Offers & Promotions
     path('api/marketplace/coupons', marketplace_coupons, name='marketplace_coupons'),
 ]
+urlpatterns += [
+    # Authentication Mock Endpoints
+    path('api/mock/auth/register', auth_mock_views.mock_register, name='mock_register'),
+    path('api/mock/auth/login', auth_mock_views.mock_login, name='mock_login'),
+    path('api/mock/auth/logout', auth_mock_views.mock_logout, name='mock_logout'),
+    path('api/mock/auth/forgot-password', auth_mock_views.mock_forgot_password, name='mock_forgot_password'),
+    path('api/mock/auth/reset-password', auth_mock_views.mock_reset_password, name='mock_reset_password'),
+    path('api/mock/auth/profile', auth_mock_views.mock_user_profile, name='mock_user_profile'),
 
+    # Chat Mock Endpoints
+    path('api/mock/chat/conversations', chat_mock_views.mock_conversations, name='mock_conversations'),
+    path('api/mock/chat/conversations/<str:conversation_id>/messages', chat_mock_views.mock_messages,
+         name='mock_messages'),
+    path('api/mock/chat/send', chat_mock_views.mock_send_message, name='mock_send_message'),
+
+    # Payment Mock Endpoints
+    path('api/mock/stripe/payment-intent', stripe_mock_views.mock_create_payment_intent, name='mock_payment_intent'),
+    path('api/mock/stripe/confirm', stripe_mock_views.mock_confirm_payment, name='mock_confirm_payment'),
+    path('api/mock/stripe/webhook', stripe_mock_views.mock_stripe_webhook, name='mock_stripe_webhook'),
+    path('api/mock/stripe/payment-methods', stripe_mock_views.mock_payment_methods, name='mock_payment_methods'),
+    path('api/mock/stripe/payment-methods/add', stripe_mock_views.mock_add_payment_method,
+         name='mock_add_payment_method'),
+
+    # Media Upload Mock Endpoints
+    path('api/mock/media/upload', media_mock_views.mock_upload_file, name='mock_upload_file'),
+    path('api/mock/media/upload-multiple', media_mock_views.mock_upload_multiple, name='mock_upload_multiple'),
+    path('api/mock/media/delete/<str:file_id>', media_mock_views.mock_delete_file, name='mock_delete_file'),
+
+    # Seller Mock Endpoints
+    path('api/mock/seller/dashboard', seller_mock_views.mock_seller_dashboard, name='mock_seller_dashboard'),
+    path('api/mock/seller/products', seller_mock_views.mock_seller_products, name='mock_seller_products'),
+    path('api/mock/seller/orders', seller_mock_views.mock_seller_orders, name='mock_seller_orders'),
+    path('api/mock/seller/analytics', seller_mock_views.mock_seller_analytics, name='mock_seller_analytics'),
+    path('api/mock/seller/products/create', seller_mock_views.mock_create_product, name='mock_create_product'),
+    path('api/mock/seller/products/<str:product_id>/update', seller_mock_views.mock_update_product,
+         name='mock_update_product'),
+]
 # Serve media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

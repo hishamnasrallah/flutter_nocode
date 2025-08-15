@@ -409,7 +409,7 @@ class Widget(models.Model):
 
 class WidgetProperty(models.Model):
     """Properties/attributes for widgets"""
-    
+
     PROPERTY_TYPES = [
         ('string', 'Text'),
         ('integer', 'Number (Whole)'),
@@ -424,6 +424,12 @@ class WidgetProperty(models.Model):
         ('asset_reference', 'Image/File'),
         ('url', 'Web Address'),
         ('json', 'Complex Data'),
+        # New property types for marketplace
+        ('file_upload', 'File Upload'),
+        ('date_picker', 'Date Picker'),
+        ('time_picker', 'Time Picker'),
+        ('map_location', 'Map Location'),
+        ('rich_text', 'Rich Text Editor'),
     ]
     
     ALIGNMENT_CHOICES = [

@@ -840,7 +840,38 @@ class AppRoutes {
             widget_code += f'''),
 {indent}  onPressed: {action_code},
 {indent})'''
+        elif widget.widget_type == 'DatePicker':
+            widget_code = f'''TextButton(
+        {indent}  onPressed: () async {{
+        {indent}    final date = await showDatePicker(
+        {indent}      context: context,
+        {indent}      initialDate: DateTime.now(),
+        {indent}      firstDate: DateTime(2020),
+        {indent}      lastDate: DateTime(2030),
+        {indent}    );
+        {indent}  }},
+        {indent}  child: Text('Select Date'),
+        {indent})'''
 
+        elif widget.widget_type == 'TimePicker':
+            widget_code = f'''TextButton(
+        {indent}  onPressed: () async {{
+        {indent}    final time = await showTimePicker(
+        {indent}      context: context,
+        {indent}      initialTime: TimeOfDay.now(),
+        {indent}    );
+        {indent}  }},
+        {indent}  child: Text('Select Time'),
+        {indent})'''
+
+        elif widget.widget_type == 'FileUpload':
+            widget_code = f'''ElevatedButton.icon(
+        {indent}  onPressed: () async {{
+        {indent}    // File upload logic
+        {indent}  }},
+        {indent}  icon: Icon(Icons.upload_file),
+        {indent}  label: Text('Upload File'),
+        {indent})'''
         elif widget.widget_type == 'FloatingActionButton':
             icon = self._get_property_value(prop_dict, 'icon', 'add')
             action_code = self._generate_action_from_property(prop_dict.get('onPressed'))
