@@ -119,33 +119,33 @@ def create_marketplace_theme():
 def create_all_data_sources(app):
     """Create all 30+ data sources for the marketplace"""
     data_sources = {}
-    base_url = "http://localhost:8000/api/marketplace"
+    base_url = "https://jury-approaches-extensions-mats.trycloudflare.com/"  # Changed to remove /api/marketplace
 
     # Product Management Data Sources
     sources_config = [
-        ("Products", "/products", ["id", "name", "price", "image", "rating", "seller", "category", "discount"]),
-        ("Product Details", "/products/{id}",
+        ("Products", "/api/marketplace/products", ["id", "name", "price", "image", "rating", "seller", "category", "discount"]),
+        ("Product Details", "/api/marketplace/products/{id}",
          ["id", "name", "description", "price", "images", "specifications", "reviews"]),
-        ("Categories", "/categories", ["id", "name", "icon", "image", "productCount", "subcategories"]),
-        ("Trending Products", "/products/trending", ["id", "name", "price", "image", "trendScore"]),
-        ("Flash Sales", "/flash-sales", ["id", "productId", "discountPercent", "endTime", "stock"]),
-        ("New Arrivals", "/products/new-arrivals", ["id", "name", "price", "image", "arrivalDate"]),
-        ("Best Sellers", "/products/best-sellers", ["id", "name", "price", "soldCount", "image"]),
-        ("Deals", "/deals", ["id", "title", "discount", "validUntil", "products"]),
+        ("Categories", "/api/marketplace/categories", ["id", "name", "icon", "image", "productCount", "subcategories"]),
+        ("Trending Products", "/api/marketplace/products/trending", ["id", "name", "price", "image", "trendScore"]),
+        ("Flash Sales", "/api/marketplace/flash-sales", ["id", "productId", "discountPercent", "endTime", "stock"]),
+        ("New Arrivals", "/api/marketplace/products/new-arrivals", ["id", "name", "price", "image", "arrivalDate"]),
+        ("Best Sellers", "/api/marketplace/best-sellers", ["id", "name", "price", "soldCount", "image"]),
+        ("Deals", "/api/marketplace/products/deals", ["id", "title", "discount", "validUntil", "products"]),
 
         # User Account Data Sources
-        ("User Profile", "/user/profile", ["id", "name", "email", "avatar", "memberSince", "tier"]),
-        ("Addresses", "/user/addresses", ["id", "name", "street", "city", "state", "zipCode", "isDefault"]),
-        ("Payment Cards", "/user/cards", ["id", "lastFour", "brand", "expiryMonth", "expiryYear", "isDefault"]),
-        ("Wishlist", "/user/wishlist", ["id", "productId", "productName", "price", "image", "addedDate"]),
-        ("Recently Viewed", "/user/recently-viewed", ["id", "productId", "viewedAt", "productName", "price"]),
-        ("Loyalty Points", "/user/loyalty-points", ["totalPoints", "availablePoints", "history", "rewards"]),
-        ("Wallet", "/user/wallet", ["balance", "transactions", "pendingAmount"]),
-        ("Referrals", "/user/referrals", ["referralCode", "referredUsers", "earnings", "pendingEarnings"]),
+        ("User Profile", "/api/marketplace/user/profile", ["id", "name", "email", "avatar", "memberSince", "tier"]),
+        ("Addresses", "/api/marketplace/user/addresses", ["id", "name", "street", "city", "state", "zipCode", "isDefault"]),
+        ("Payment Cards", "/api/marketplace/user/cards", ["id", "lastFour", "brand", "expiryMonth", "expiryYear", "isDefault"]),
+        ("Wishlist", "/api/marketplace/user/wishlist", ["id", "productId", "productName", "price", "image", "addedDate"]),
+        ("Recently Viewed", "/api/marketplace/user/recently-viewed", ["id", "productId", "viewedAt", "productName", "price"]),
+        ("Loyalty Points", "/api/marketplace/user/loyalty-points", ["totalPoints", "availablePoints", "history", "rewards"]),
+        ("Wallet", "/api/marketplace/user/wallet", ["balance", "transactions", "pendingAmount"]),
+        ("Referrals", "/api/marketplace/user/referrals", ["referralCode", "referredUsers", "earnings", "pendingEarnings"]),
 
         # Cart & Orders
-        ("Cart", "/cart", ["id", "productId", "productName", "price", "quantity", "image", "subtotal"]),
-        ("Orders", "/orders", ["id", "orderNumber", "date", "status", "total", "items"]),
+        ("Cart", "/api/marketplace/cart", ["id", "productId", "productName", "price", "quantity", "image", "subtotal"]),
+        ("Orders", "/api/marketplace/orders", ["id", "orderNumber", "date", "status", "total", "items"]),
         ("Order Details", "/orders/{id}", ["id", "products", "shipping", "payment", "timeline"]),
         ("Order Tracking", "/orders/{id}/tracking", ["status", "location", "estimatedDelivery", "updates"]),
         ("Returns", "/returns", ["id", "orderId", "reason", "status", "refundAmount"]),
@@ -777,6 +777,54 @@ def create_quick_actions(screen, parent, order, actions):
         add_widget_property(text, "text", "string", string_value=label)
 
 
+def create_product_card(screen, parent, order, actions, name="Product", price="$99", original_price="$199"):
+    """Helper function to create a product card widget"""
+    card = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=parent,
+        order=order, widget_id=f"product_card_{order}"
+    )
+    add_widget_property(card, "width", "decimal", decimal_value=150)
+    add_widget_property(card, "margin", "decimal", decimal_value=4)
+
+    card_content = Widget.objects.create(
+        screen=screen, widget_type="Card", parent_widget=card,
+        order=0, widget_id=f"product_card_content_{order}"
+    )
+
+    column = Widget.objects.create(
+        screen=screen, widget_type="Column", parent_widget=card_content,
+        order=0, widget_id=f"product_column_{order}"
+    )
+
+    # Product image placeholder
+    image_container = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=column,
+        order=0, widget_id=f"product_image_{order}"
+    )
+    add_widget_property(image_container, "height", "decimal", decimal_value=120)
+    add_widget_property(image_container, "color", "color", color_value="#E0E0E0")
+
+    # Product name
+    name_text = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=column,
+        order=1, widget_id=f"product_name_{order}"
+    )
+    add_widget_property(name_text, "text", "string", string_value=name)
+
+    # Product price
+    price_text = Widget.objects.create(
+        screen=screen, widget_type="Text", parent_widget=column,
+        order=2, widget_id=f"product_price_{order}"
+    )
+    add_widget_property(price_text, "text", "string", string_value=price)
+    add_widget_property(price_text, "color", "color", color_value="#FF6B35")
+
+    # Make card clickable
+    if "Navigate to Product Details" in actions:
+        add_widget_property(card_content, "onTap", "action_reference",
+                            action_reference=actions["Navigate to Product Details"])
+
+
 def create_flash_sale_section(screen, parent, order, data_sources, actions):
     """Create flash sale section with countdown"""
     container = Widget.objects.create(
@@ -797,7 +845,7 @@ def create_flash_sale_section(screen, parent, order, data_sources, actions):
         screen=screen, widget_type="Text", parent_widget=header_row,
         order=0, widget_id="flash_title"
     )
-    add_widget_property(title, "text", "string", string_value="⚡ Flash Sale")
+    add_widget_property(title, "text", "string", string_value="Flash Sale")
     add_widget_property(title, "fontSize", "decimal", decimal_value=20)
 
     countdown = Widget.objects.create(
@@ -807,14 +855,29 @@ def create_flash_sale_section(screen, parent, order, data_sources, actions):
     add_widget_property(countdown, "text", "string", string_value="Ends in: 02:45:30")
     add_widget_property(countdown, "color", "color", color_value="#FF0000")
 
-    # Flash sale products list
-    products_list = Widget.objects.create(
-        screen=screen, widget_type="ListView", parent_widget=container,
-        order=1, widget_id="flash_products"
+    # Flash sale products - horizontal scroll
+    products_scroll = Widget.objects.create(
+        screen=screen, widget_type="Container", parent_widget=container,
+        order=1, widget_id="flash_products_container"
+    )
+    add_widget_property(products_scroll, "height", "decimal", decimal_value=250)
+
+    # Using a Row for horizontal layout of products
+    products_row = Widget.objects.create(
+        screen=screen, widget_type="SingleChildScrollView", parent_widget=products_scroll,
+        order=0, widget_id="flash_products_scroll"
+    )
+    add_widget_property(products_row, "scrollDirection", "string", string_value="horizontal")
+
+    # Create sample product cards
+    products_inner_row = Widget.objects.create(
+        screen=screen, widget_type="Row", parent_widget=products_row,
+        order=0, widget_id="flash_products_row"
     )
 
-    add_widget_property(products_list, "dataSource", "data_source_field_reference",
-                        data_source_field_reference=get_field(data_sources["Flash Sales"], "productId"))
+    # Add 5 sample product cards
+    for i in range(5):
+        create_product_card(screen, products_inner_row, i, actions, f"Flash Product {i+1}", f"${29.99 + i*10}", f"${59.99 + i*10}")
 
 
 def create_categories_grid(screen, parent, order, data_sources, actions):

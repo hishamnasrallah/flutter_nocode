@@ -163,7 +163,10 @@ def marketplace_user_profile(request):
     """Get user profile"""
     all_data = marketplace_mock.get_data_sources()
     profile = all_data.get('User Profile', {})
-    return JsonResponse(profile)
+    # Ensure it's always returned as a list for consistency
+    if isinstance(profile, dict):
+        return JsonResponse([profile], safe=False)
+    return JsonResponse(profile, safe=False)
 
 
 @csrf_exempt
@@ -211,7 +214,10 @@ def marketplace_loyalty_points(request):
     """Get loyalty points info"""
     all_data = marketplace_mock.get_data_sources()
     loyalty_data = all_data.get('Loyalty Points', {})
-    return JsonResponse(loyalty_data)
+    # Ensure it's always returned as a list for consistency
+    if isinstance(loyalty_data, dict):
+        return JsonResponse([loyalty_data], safe=False)
+    return JsonResponse(loyalty_data, safe=False)
 
 
 @csrf_exempt
@@ -220,7 +226,10 @@ def marketplace_wallet(request):
     """Get wallet information"""
     all_data = marketplace_mock.get_data_sources()
     wallet_data = all_data.get('Wallet', {})
-    return JsonResponse(wallet_data)
+    # Ensure it's always returned as a list for consistency
+    if isinstance(wallet_data, dict):
+        return JsonResponse([wallet_data], safe=False)
+    return JsonResponse(wallet_data, safe=False)
 
 
 @csrf_exempt
@@ -229,7 +238,10 @@ def marketplace_referrals(request):
     """Get referral program info"""
     all_data = marketplace_mock.get_data_sources()
     referral_data = all_data.get('Referrals', {})
-    return JsonResponse(referral_data)
+    # Ensure it's always returned as a list for consistency
+    if isinstance(referral_data, dict):
+        return JsonResponse([referral_data], safe=False)
+    return JsonResponse(referral_data, safe=False)
 
 
 # ============= CART & CHECKOUT ENDPOINTS =============

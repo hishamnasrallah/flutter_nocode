@@ -1084,19 +1084,27 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         # Check if there's a data source
         data_source_prop = prop_dict.get('dataSource')
 
+        # Check for scroll direction property
+        scroll_direction = self._get_property_value(prop_dict, 'scrollDirection', 'vertical')
+        is_horizontal = scroll_direction == 'horizontal'
+
         if data_source_prop and data_source_prop.data_source_field_reference:
             # Dynamic ListView with data source
             data_source = data_source_prop.data_source_field_reference.data_source
             field = data_source_prop.data_source_field_reference
 
-            # For ListViews with data, always wrap in Flexible or Expanded if not at root
-            wrapper_start = ""
-            wrapper_end = ""
-            if indent_level > 0:  # Not at root level
-                wrapper_start = f"Flexible(child: "
-                wrapper_end = ")"
+            # Determine if this is a product-related data source
+            is_product_list = any(keyword in data_source.name.lower()
+                                 for keyword in ['product', 'flash', 'trending', 'arrival', 'seller'])
 
-            return f'''{wrapper_start}FutureBuilder<List<dynamic>>(
+            # For horizontal lists, use Container with fixed height
+            height_wrapper_start = ""
+            height_wrapper_end = ""
+            if is_horizontal:
+                height_wrapper_start = f"Container(height: 250, child: "
+                height_wrapper_end = ")"
+
+            return f'''{height_wrapper_start}FutureBuilder<List<dynamic>>(
 {indent}  future: _apiService.fetchData('{data_source.name}'),
 {indent}  builder: (context, snapshot) {{
 {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
@@ -1110,22 +1118,17 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
 {indent}      return Center(child: Text('No items available'));
 {indent}    }}
 {indent}    return ListView.builder(
-{indent}      shrinkWrap: true,
-{indent}      physics: NeverScrollableScrollPhysics(),
-{indent}      itemCount: items.length > 10 ? 10 : items.length,
+{indent}      scrollDirection: Axis.{'horizontal' if is_horizontal else 'vertical'},
+{indent}      shrinkWrap: {'false' if is_horizontal else 'true'},
+{indent}      physics: {'AlwaysScrollableScrollPhysics()' if is_horizontal else 'NeverScrollableScrollPhysics()'},
+{indent}      itemCount: items.length > {'5' if is_horizontal else '10'} ? {'5' if is_horizontal else '10'} : items.length,
 {indent}      itemBuilder: (context, index) {{
 {indent}        final item = items[index];
-{indent}        return Card(
-{indent}          margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-{indent}          child: ListTile(
-{indent}            title: Text(item['{field.field_name}']?.toString() ?? 'Item'),
-{indent}            onTap: () {{}},
-{indent}          ),
-{indent}        );
+{indent}        return {self._generate_list_item_widget(data_source.name, field.field_name, is_horizontal, is_product_list, indent_level + 3)};
 {indent}      }},
 {indent}    );
 {indent}  }},
-{indent}){wrapper_end}'''
+{indent}){height_wrapper_end}'''
         else:
             # Static ListView with child widgets
             if child_widgets.exists():
@@ -1498,3 +1501,83 @@ class ErrorWidget extends StatelessWidget {
         """Convert text to camelCase"""
         pascal = self._to_pascal_case(text)
         return pascal[0].lower() + pascal[1:] if pascal else ''
+
+    def _generate_list_item_widget(self, data_source_name, field_name, is_horizontal, is_product_list,
+                                   indent_level):
+        """Generate appropriate list item widget based on data type"""
+        indent = '  ' * indent_level
+
+        if is_product_list:
+            # Generate product card for product-related lists
+            return f'''Container(
+{indent}  width: {200 if is_horizontal else 'double.infinity'},
+{indent}  margin: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+{indent}  child: Card(
+{indent}    child: Column(
+{indent}      crossAxisAlignment: CrossAxisAlignment.start,
+{indent}      children: [
+{indent}        Container(
+{indent}          height: 120,
+{indent}          decoration: BoxDecoration(
+{indent}            color: Colors.grey[300],
+{indent}            image: item['image'] != null 
+{indent}              ? DecorationImage(
+{indent}                  image: NetworkImage(item['image']),
+{indent}                  fit: BoxFit.cover,
+{indent}                )
+{indent}              : null,
+{indent}          ),
+{indent}          child: item['image'] == null 
+{indent}            ? Center(child: Icon(Icons.image, size: 50))
+{indent}            : null,
+{indent}        ),
+{indent}        Padding(
+{indent}          padding: EdgeInsets.all(8),
+{indent}          child: Column(
+{indent}            crossAxisAlignment: CrossAxisAlignment.start,
+{indent}            children: [
+{indent}              Text(
+{indent}                item['name']?.toString() ?? 'Product',
+{indent}                style: TextStyle(fontWeight: FontWeight.bold),
+{indent}                maxLines: 2,
+{indent}                overflow: TextOverflow.ellipsis,
+{indent}              ),
+{indent}              SizedBox(height: 4),
+{indent}              Text(
+{indent}                '\$' + (item['price']?.toString() ?? '0.00'),
+{indent}                style: TextStyle(
+{indent}                  color: Theme.of(context).primaryColor,
+{indent}                  fontSize: 16,
+{indent}                  fontWeight: FontWeight.w600,
+{indent}                ),
+{indent}              ),
+{indent}              if (item['discount'] != null && item['discount'] > 0) ...[
+{indent}                SizedBox(height: 2),
+{indent}                Container(
+{indent}                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+{indent}                  decoration: BoxDecoration(
+{indent}                    color: Colors.red,
+{indent}                    borderRadius: BorderRadius.circular(4),
+{indent}                  ),
+{indent}                  child: Text(
+{indent}                    item['discount'].toString() + '% OFF',
+{indent}                    style: TextStyle(color: Colors.white, fontSize: 10),
+{indent}                  ),
+{indent}                ),
+{indent}              ],
+{indent}            ],
+{indent}          ),
+{indent}        ),
+{indent}      ],
+{indent}    ),
+{indent}  ),
+{indent})'''
+        else:
+            # Default list tile for non-product lists
+            return f'''Card(
+{indent}  margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+{indent}  child: ListTile(
+{indent}    title: Text(item['{field_name}']?.toString() ?? 'Item'),
+{indent}    onTap: () {{}},
+{indent}  ),
+{indent})'''
