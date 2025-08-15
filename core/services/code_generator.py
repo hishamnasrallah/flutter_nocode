@@ -619,8 +619,8 @@ class AppRoutes {
         if uses_category_grid:
             screen_content += '''
 
-      Widget _buildCategoryIcon(Map<String, dynamic> item) {{
-        if (item['image'] != null) {{
+      Widget _buildCategoryIcon(Map<String, dynamic> item) {
+        if (item['image'] != null) {
           return Container(
             width: 50,
             height: 50,
@@ -630,13 +630,13 @@ class AppRoutes {
               errorBuilder: (c, e, s) => const Icon(Icons.category, size: 30),
             ),
           );
-        }}
+        }
 
         // Use icon name from data to select appropriate icon
-        IconData iconData;
+        IconData iconData = Icons.category;
         final iconName = item['icon']?.toString().toLowerCase() ?? '';
 
-        switch (iconName) {{
+        switch (iconName) {
           case 'devices':
             iconData = Icons.devices;
             break;
@@ -672,19 +672,19 @@ class AppRoutes {
             break;
           default:
             iconData = Icons.category;
-        }}
+        }
 
         return Icon(
           iconData,
           size: 30,
           color: Theme.of(context).primaryColor,
         );
-      }}'''
+      }'''
 
         screen_content += '''
 
       @override
-      Widget build(BuildContext context) {{
+      Widget build(BuildContext context) {
         return Scaffold(
     '''
 
@@ -728,8 +728,7 @@ class AppRoutes {
         screen_content += ''',
         );
       }
-    }
-    '''
+    }'''
 
         with open(self.lib_path / 'screens' / screen_file_name, 'w', encoding='utf-8') as f:
             f.write(screen_content)
