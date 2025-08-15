@@ -453,35 +453,39 @@ class FlutterCodeGenerator:
     def _generate_main_dart(self):
         """Generate main.dart file"""
         screens = Screen.objects.filter(application=self.application)
-        home_screen = screens.filter(is_home_screen=True).first()
 
-        if not home_screen:
-            home_screen = screens.first()
+        # Check if there's a splash screen - it should be the initial route
+        splash_screen = screens.filter(name='SplashScreen').first()
+        if splash_screen:
+            initial_route = splash_screen.route_name
+        else:
+            home_screen = screens.filter(is_home_screen=True).first()
+            initial_route = home_screen.route_name if home_screen else '/'
 
         main_content = f'''import 'package:flutter/material.dart';
-import 'theme/app_theme.dart';
-import 'routes/app_routes.dart';
-{self._generate_screen_imports()}
+    import 'theme/app_theme.dart';
+    import 'routes/app_routes.dart';
+    {self._generate_screen_imports()}
 
-void main() {{
-  runApp(MyApp());
-}}
+    void main() {{
+      runApp(MyApp());
+    }}
 
-class MyApp extends StatelessWidget {{
-  @override
-  Widget build(BuildContext context) {{
-    return MaterialApp(
-      title: '{self.application.name}',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: {('ThemeMode.dark' if self.application.theme.is_dark_mode else 'ThemeMode.light')},
-      initialRoute: '{home_screen.route_name if home_screen else '/'}',
-      routes: AppRoutes.routes,
-      debugShowCheckedModeBanner: false,
-    );
-  }}
-}}
-'''
+    class MyApp extends StatelessWidget {{
+      @override
+      Widget build(BuildContext context) {{
+        return MaterialApp(
+          title: '{self.application.name}',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: {('ThemeMode.dark' if self.application.theme.is_dark_mode else 'ThemeMode.light')},
+          initialRoute: '{initial_route}',
+          routes: AppRoutes.routes,
+          debugShowCheckedModeBanner: false,
+        );
+      }}
+    }}
+    '''
 
         with open(self.lib_path / 'main.dart', 'w', encoding='utf-8') as f:
             f.write(main_content)
@@ -713,153 +717,77 @@ class AppRoutes {
         if screen.name == 'Configuration':
             screen_content += '''
 
-      final TextEditingController _urlController = TextEditingController();
-      bool _isValidating = false;
+              final TextEditingController _urlController = TextEditingController();
+              bool _isValidating = false;
 
-      @override
-      void initState() {
-        super.initState();
-        _loadSavedUrl();
-      }
+              @override
+              void initState() {
+                super.initState();
+                _loadSavedUrl();
+              }
 
-      Future<void> _loadSavedUrl() async {
-        final prefs = await SharedPreferences.getInstance();
-        final savedUrl = prefs.getString('base_url');
-        if (savedUrl != null) {
-          _urlController.text = savedUrl;
-        }
-      }
+              Future<void> _loadSavedUrl() async {
+                final prefs = await SharedPreferences.getInstance();
+                final savedUrl = prefs.getString('base_url');
+                if (savedUrl != null) {
+                  _urlController.text = savedUrl;
+                }
+              }
 
-      Future<void> _saveConfiguration() async {
-        final url = _urlController.text.trim();
-        if (url.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Please enter a valid URL')),
-          );
-          return;
-        }
+              Future<void> _validateUrl() async {
+                setState(() => _isValidating = true);
 
-        // Save to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('base_url', url);
+                String url = _urlController.text.trim();
+                if (url.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please enter a URL')),
+                  );
+                  setState(() => _isValidating = false);
+                  return;
+                }
 
-        // Clear API cache
-        _apiService.clearCache();
+                // ... rest of _validateUrl method ...
+              }
 
-        // Navigate to home
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+              Future<void> _saveConfiguration() async {
+                String url = _urlController.text.trim();
+                if (url.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please enter a valid URL')),
+                  );
+                  return;
+                }
 
-      Future<void> _validateUrl() async {
-        setState(() => _isValidating = true);
-        
-        String url = _urlController.text.trim();
-        if (url.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Please enter a URL')),
-          );
-          setState(() => _isValidating = false);
-          return;
-        }
+                // Add protocol if missing
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                  url = 'https://' + url;
+                }
 
-        // Add protocol if missing
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-          url = 'https://' + url;
-          _urlController.text = url;
-        }
+                // Remove trailing slash if present
+                if (url.endsWith('/')) {
+                  url = url.substring(0, url.length - 1);
+                }
 
-        // Remove trailing slash if present
-        if (url.endsWith('/')) {
-          url = url.substring(0, url.length - 1);
-        }
+                // Save to SharedPreferences
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('base_url', url);
 
-        try {
-          // Make a direct HTTP request to test the connection
-          final testUrl = '$url/api/marketplace/categories';
-          final response = await http.get(
-            Uri.parse(testUrl),
-            headers: {'Content-Type': 'application/json'},
-          ).timeout(Duration(seconds: 10));
+                // Clear API cache
+                _apiService.clearCache();
 
-          if (response.statusCode == 200) {
-            // Save the validated URL
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('base_url', url);
-            _apiService.clearCache();
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Connection successful!'), 
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          } else {
-            throw Exception('Server returned status code: ${response.statusCode}');
-          }
-        } catch (e) {
-          String errorMessage = 'Connection failed';
-          if (e.toString().contains('SocketException')) {
-            errorMessage = 'Cannot connect to server. Please check the URL.';
-          } else if (e.toString().contains('TimeoutException')) {
-            errorMessage = 'Connection timeout. Server may be unavailable.';
-          } else if (e.toString().contains('FormatException')) {
-            errorMessage = 'Invalid URL format. Please check the URL.';
-          } else {
-            errorMessage = 'Connection failed: ${e.toString().split(':').last}';
-          }
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage), 
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        } finally {
-          setState(() => _isValidating = false);
-        }
-      }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Configuration saved successfully!'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 1),
+                  ),
+                );
 
-      Future<void> _saveConfiguration() async {
-        String url = _urlController.text.trim();
-        if (url.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Please enter a valid URL')),
-          );
-          return;
-        }
-
-        // Add protocol if missing
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-          url = 'https://' + url;
-        }
-
-        // Remove trailing slash if present
-        if (url.endsWith('/')) {
-          url = url.substring(0, url.length - 1);
-        }
-
-        // Save to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('base_url', url);
-        
-        // Clear API cache
-        _apiService.clearCache();
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Configuration saved successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 1),
-          ),
-        );
-        
-        // Navigate to home after a short delay
-        Future.delayed(Duration(seconds: 1), () {
-          Navigator.pushReplacementNamed(context, '/home');
-        });
-      }'''
+                // Navigate to home after a short delay
+                Future.delayed(Duration(seconds: 1), () {
+                  Navigator.pushReplacementNamed(context, '/home');
+                });
+              }'''
 
         screen_content += '''
 
@@ -1976,25 +1904,34 @@ class AppRoutes {
       String? _cachedBaseUrl;
 
       // Get base URL - check saved configuration first, then use default
-      Future<String> _getBaseUrl(String defaultUrl) async {
-        // Return cached URL if available
-        if (_cachedBaseUrl != null) return _cachedBaseUrl!;
+Future<String> _getBaseUrl(String defaultUrl) async {
+  // Return cached URL if available
+  if (_cachedBaseUrl != null && _cachedBaseUrl!.isNotEmpty) {
+    return _cachedBaseUrl!;
+  }
 
-        // Check if base URL is special marker
-        if (defaultUrl == 'LOCAL_STORAGE' || defaultUrl == 'DYNAMIC') {
-          final prefs = await SharedPreferences.getInstance();
-          _cachedBaseUrl = prefs.getString('base_url') ?? '';
-          return _cachedBaseUrl!;
-        }
+  // Always check for saved URL first
+  final prefs = await SharedPreferences.getInstance();
+  final savedUrl = prefs.getString('base_url');
 
-        // Check for saved override
-        final prefs = await SharedPreferences.getInstance();
-        final savedUrl = prefs.getString('base_url');
+  // Check if base URL is special marker or if we should use saved URL
+  if (defaultUrl == 'LOCAL_STORAGE' || defaultUrl == 'DYNAMIC' || defaultUrl.isEmpty) {
+    if (savedUrl == null || savedUrl.isEmpty) {
+      throw Exception('No server URL configured. Please configure the server URL first.');
+    }
+    _cachedBaseUrl = savedUrl;
+    return _cachedBaseUrl!;
+  }
 
-        // Use saved URL if exists, otherwise use default from database
-        _cachedBaseUrl = (savedUrl != null && savedUrl.isNotEmpty) ? savedUrl : defaultUrl;
-        return _cachedBaseUrl!;
-      }
+  // Use saved URL if exists, otherwise use default from database
+  _cachedBaseUrl = (savedUrl != null && savedUrl.isNotEmpty) ? savedUrl : defaultUrl;
+  
+  if (_cachedBaseUrl == null || _cachedBaseUrl!.isEmpty) {
+    throw Exception('No server URL configured. Please configure the server URL first.');
+  }
+  
+  return _cachedBaseUrl!;
+}
 
       // Clear cached URL when configuration changes
       void clearCache() {
