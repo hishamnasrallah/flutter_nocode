@@ -31,30 +31,60 @@ class FlutterCodeGenerator:
             # Clean and create project directory with retry logic for Windows file locks
             if self.project_path.exists():
                 # Try to remove the directory with retries
-                max_retries = 3
+                max_retries = 5
                 for attempt in range(max_retries):
                     try:
                         # First, try to clean build artifacts that might be locked
                         build_path = self.project_path / 'build'
-                        if build_path.exists():
-                            # Use Windows-specific cleanup if on Windows
-                            if os.name == 'nt':
-                                import subprocess
-                                # Force close any Java/Gradle processes that might be locking files
-                                subprocess.run(['taskkill', '/F', '/IM', 'java.exe'],
-                                               capture_output=True, shell=True)
-                                subprocess.run(['taskkill', '/F', '/IM', 'gradle.exe'],
-                                               capture_output=True, shell=True)
-                                # Small delay to let processes release files
-                                import time
-                                time.sleep(1)
+                        gradle_path = self.project_path / '.gradle'
+                        dart_tool_path = self.project_path / '.dart_tool'
 
-                                # Try to remove read-only attributes
-                                subprocess.run(['attrib', '-R', f'{build_path}\\*', '/S'],
-                                               capture_output=True, shell=True)
+                        if os.name == 'nt':
+                            import subprocess
+                            import time
 
-                        # Now try to remove the directory
-                        shutil.rmtree(self.project_path, ignore_errors=False)
+                            # Kill all potentially locking processes
+                            subprocess.run(['taskkill', '/F', '/IM', 'java.exe'],
+                                           capture_output=True, shell=True)
+                            subprocess.run(['taskkill', '/F', '/IM', 'gradle.exe'],
+                                           capture_output=True, shell=True)
+                            subprocess.run(['taskkill', '/F', '/IM', 'dart.exe'],
+                                           capture_output=True, shell=True)
+                            subprocess.run(['taskkill', '/F', '/IM', 'flutter_tester.exe'],
+                                           capture_output=True, shell=True)
+
+                            time.sleep(2)  # Increased delay
+
+                            # Remove read-only attributes from entire project
+                            subprocess.run(['attrib', '-R', '-S', f'{self.project_path}\\*', '/S', '/D'],
+                                           capture_output=True, shell=True)
+
+                            # Try to delete specific problematic directories first
+                            for prob_path in [build_path, gradle_path, dart_tool_path]:
+                                if prob_path.exists():
+                                    try:
+                                        subprocess.run(['rd', '/S', '/Q', str(prob_path)],
+                                                       capture_output=True, shell=True)
+                                    except:
+                                        pass
+
+                            time.sleep(1)
+
+                        # If deletion fails, rename the old directory instead
+                        try:
+                            shutil.rmtree(self.project_path, ignore_errors=False)
+                            break  # Success, exit the retry loop
+                        except Exception as e:
+                            if attempt == max_retries - 1:
+                                # Last attempt - rename instead of delete
+                                import datetime
+                                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                                backup_path = self.project_path.parent / f"{self.project_path.name}_backup_{timestamp}"
+                                self.project_path.rename(backup_path)
+                                print(f"Renamed old project to {backup_path}")
+                                break
+                            else:
+                                raise  # Re-raise to continue retry loop
                         break  # Success, exit the retry loop
 
                     except PermissionError as e:
