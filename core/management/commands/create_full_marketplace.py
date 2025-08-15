@@ -117,7 +117,7 @@ def create_all_data_sources(app):
     data_sources = {}
 
     # Base URL for mock APIs
-    base_url = "https://api.markethub.com"
+    base_url = "https://ericsson-hill-ten-cats.trycloudflare.com"
 
     # 1. Products Data Source
     products_ds = DataSource.objects.create(
@@ -125,7 +125,7 @@ def create_all_data_sources(app):
         name="Products",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/products",
+        endpoint="/api/marketplace/products",
         method="GET"
     )
 
@@ -171,7 +171,7 @@ def create_all_data_sources(app):
         name="FlashSales",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/flash-sales",
+        endpoint="/api/marketplace/flash-sales",
         method="GET"
     )
 
@@ -203,7 +203,7 @@ def create_all_data_sources(app):
         name="RecentlyViewed",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/recently-viewed",
+        endpoint="/api/marketplace/recently-viewed",
         method="GET"
     )
 
@@ -233,7 +233,7 @@ def create_all_data_sources(app):
         name="TrendingProducts",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/trending",
+        endpoint="/api/marketplace/trending",
         method="GET"
     )
 
@@ -255,7 +255,7 @@ def create_all_data_sources(app):
         name="BestSellers",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/best-sellers",
+        endpoint="/api/marketplace/best-sellers",
         method="GET"
     )
 
@@ -277,7 +277,7 @@ def create_all_data_sources(app):
         name="NewArrivals",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/new-arrivals",
+        endpoint="/api/marketplace/new-arrivals",
         method="GET"
     )
 
@@ -299,7 +299,7 @@ def create_all_data_sources(app):
         name="Categories",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/categories",
+        endpoint="/api/marketplace/categories",
         method="GET"
     )
 
@@ -329,7 +329,7 @@ def create_all_data_sources(app):
         name="Cart",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/cart",
+        endpoint="/api/marketplace/cart",
         method="GET"
     )
 
@@ -360,7 +360,7 @@ def create_all_data_sources(app):
         name="Orders",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/orders",
+        endpoint="/api/marketplace/orders",
         method="GET"
     )
 
@@ -392,7 +392,7 @@ def create_all_data_sources(app):
         name="UserProfile",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/user/profile",
+        endpoint="/api/marketplace/user/profile",
         method="GET"
     )
 
@@ -425,7 +425,7 @@ def create_all_data_sources(app):
         name="Reviews",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/reviews",
+        endpoint="/api/marketplace/reviews",
         method="GET"
     )
 
@@ -459,7 +459,7 @@ def create_all_data_sources(app):
         name="Sellers",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/sellers",
+        endpoint="/api/marketplace/sellers",
         method="GET"
     )
 
@@ -491,7 +491,7 @@ def create_all_data_sources(app):
         name="Wishlist",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/wishlist",
+        endpoint="/api/marketplace/wishlist",
         method="GET"
     )
 
@@ -521,7 +521,7 @@ def create_all_data_sources(app):
         name="Notifications",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/notifications",
+        endpoint="/api/marketplace/notifications",
         method="GET"
     )
 
@@ -551,7 +551,7 @@ def create_all_data_sources(app):
         name="Addresses",
         data_source_type="REST_API",
         base_url=base_url,
-        endpoint="/api/addresses",
+        endpoint="/api/marketplace/addresses",
         method="GET"
     )
 

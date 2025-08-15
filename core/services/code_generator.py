@@ -256,44 +256,105 @@ class FlutterCodeGenerator:
         for directory in custom_directories:
             (self.project_path / directory).mkdir(parents=True, exist_ok=True)
 
+        # Wait a moment for files to be fully written
+        import time
+        time.sleep(1)
+
         # Update android/app/build.gradle to add NDK version
         self._update_android_gradle()
 
     def _update_android_gradle(self):
         """Update Android build.gradle with proper NDK version"""
-        build_gradle_path = self.project_path / 'android' / 'app' / 'build.gradle'
+        import time
+        import re
 
-        if not build_gradle_path.exists():
-            print(f"Warning: build.gradle not found at {build_gradle_path}")
-            return
+        # Try multiple times in case file is still being written
+        for attempt in range(3):
+            # Check for both .gradle and .gradle.kts files
+            build_gradle_path = self.project_path / 'android' / 'app' / 'build.gradle'
+            build_gradle_kts_path = self.project_path / 'android' / 'app' / 'build.gradle.kts'
 
-        # Read the existing build.gradle
-        with open(build_gradle_path, 'r') as f:
-            content = f.read()
+            gradle_file = None
+            is_kotlin_script = False
 
-        # Update or add ndkVersion
-        if 'ndkVersion' in content:
-            # Replace existing ndkVersion
-            import re
-            content = re.sub(r'ndkVersion\s*["\'][\d.]+["\']', 'ndkVersion "27.0.12077973"', content)
-        else:
-            # Find the android block and add ndkVersion
-            android_block_start = content.find('android {')
-            if android_block_start != -1:
-                # Find the next line after android {
-                next_line_start = content.find('\n', android_block_start) + 1
-                # Insert ndkVersion
-                content = (
-                        content[:next_line_start] +
-                        '    ndkVersion "27.0.12077973"\n' +
-                        content[next_line_start:]
-                )
+            if build_gradle_kts_path.exists():
+                gradle_file = build_gradle_kts_path
+                is_kotlin_script = True
+            elif build_gradle_path.exists():
+                gradle_file = build_gradle_path
+                is_kotlin_script = False
+            else:
+                if attempt < 2:
+                    time.sleep(1)
+                    continue
+                print(f"Warning: No build.gradle or build.gradle.kts found after {attempt + 1} attempts")
+                return
 
-        # Write the updated content back
-        with open(build_gradle_path, 'w', encoding='utf-8') as f:
-            f.write(content)
+            try:
+                # Read the existing gradle file
+                with open(gradle_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
 
-        print(f"Updated Android build.gradle with NDK version 27.0.12077973")
+                original_content = content  # Keep backup
+
+                if is_kotlin_script:
+                    # For Kotlin script (.gradle.kts)
+                    # First remove any existing ndkVersion
+                    content = re.sub(r'ndkVersion\s*=\s*"[\d.]+"', '', content)
+                    content = re.sub(r'ndkVersion\("[\d.]+"\)', '', content)
+                    content = re.sub(r'ndkVersion\s+"[\d.]+"', '', content)
+
+                    # Find android block and add ndkVersion as first item
+                    android_pattern = r'android\s*\{'
+                    match = re.search(android_pattern, content)
+                    if match:
+                        insert_pos = match.end()
+                        # Add on new line right after android {
+                        content = (
+                                content[:insert_pos] +
+                                '\n    ndkVersion = "27.0.12077973"' +
+                                content[insert_pos:]
+                        )
+                    else:
+                        print(f"Warning: Could not find android block in {gradle_file.name}")
+                        return
+                else:
+                    # For Groovy script (.gradle)
+                    # First remove any existing ndkVersion
+                    content = re.sub(r'ndkVersion\s*["\'][\d.]+["\']', '', content)
+
+                    # Find android block and add ndkVersion
+                    android_block_start = content.find('android {')
+                    if android_block_start != -1:
+                        # Find position right after android {
+                        insert_pos = android_block_start + len('android {')
+                        # Add ndkVersion on new line
+                        content = (
+                                content[:insert_pos] +
+                                '\n    ndkVersion "27.0.12077973"' +
+                                content[insert_pos:]
+                        )
+                    else:
+                        print(f"Warning: Could not find android block in {gradle_file.name}")
+                        return
+
+                # Only write if content actually changed
+                if content != original_content:
+                    # Write the updated content back
+                    with open(gradle_file, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    print(f"Successfully updated {gradle_file.name} with NDK version 27.0.12077973")
+                else:
+                    print(f"No changes needed in {gradle_file.name}")
+
+                break  # Success, exit loop
+
+            except Exception as e:
+                if attempt < 2:
+                    print(f"Attempt {attempt + 1} failed to update gradle file: {e}")
+                    time.sleep(1)
+                else:
+                    print(f"Failed to update gradle file after {attempt + 1} attempts: {e}")
 
     def _update_android_manifest(self):
         """Add internet permission to Android manifest"""
@@ -531,7 +592,7 @@ class AppTheme {{
       );
     }}
 
-    return MaterialColor(color.value, swatch);
+    return MaterialColor(color.value.toInt(), swatch);
   }}
 }}
 '''
@@ -690,11 +751,12 @@ class AppRoutes {
 
         # Add AppBar if needed
         if screen.show_app_bar:
+            app_bar_title = self._escape_dart_string(screen.app_bar_title or screen.name)
             screen_content += f'''      appBar: AppBar(
-            title: Text('{screen.app_bar_title or screen.name}'),
-            automaticallyImplyLeading: {str(screen.show_back_button).lower()},
-          ),
-    '''
+                title: Text('{app_bar_title}'),
+                automaticallyImplyLeading: {str(screen.show_back_button).lower()},
+              ),
+        '''
 
         # Add body
         screen_content += '''      body: '''
@@ -1195,7 +1257,16 @@ class AppRoutes {
         if not text:
             return ''
 
-        # Remove or replace problematic Unicode characters
+        # First, handle Unicode normalization and smart quotes
+        import unicodedata
+
+        # Normalize Unicode characters
+        try:
+            text = unicodedata.normalize('NFKD', text)
+        except:
+            pass
+
+        # Replace problematic Unicode characters BEFORE escaping
         replacements = {
             '🔴': '[RED]',
             '🟢': '[GREEN]',
@@ -1207,27 +1278,54 @@ class AppRoutes {
             '📱': '[PHONE]',
             '🛒': '[CART]',
             '📰': '[NEWS]',
+            ''': "'",  # Left single quotation mark
+            ''': "'",  # Right single quotation mark
+            '"': '"',  # Left double quotation mark
+            '"': '"',  # Right double quotation mark
+            '–': '-',  # En dash
+            '—': '-',  # Em dash
+            '…': '...',  # Ellipsis
+            '\u2018': "'",  # Unicode left single quote
+            '\u2019': "'",  # Unicode right single quote
+            '\u201C': '"',  # Unicode left double quote
+            '\u201D': '"',  # Unicode right double quote
         }
 
-        for emoji, replacement in replacements.items():
-            text = text.replace(emoji, replacement)
+        for old_char, new_char in replacements.items():
+            text = text.replace(old_char, new_char)
 
-        # Escape special characters for Dart strings
-        text = text.replace('\\', '\\\\')  # Escape backslashes first
+        # Remove any remaining non-printable or problematic Unicode characters
+        cleaned_text = []
+        for char in text:
+            if ord(char) < 32 and char not in '\n\r\t':
+                # Skip control characters except newline, carriage return, tab
+                continue
+            elif ord(char) > 126 and ord(char) < 160:
+                # Skip non-printable extended ASCII
+                continue
+            elif ord(char) >= 160:
+                # Try to convert extended characters to ASCII equivalent
+                try:
+                    ascii_equiv = unicodedata.normalize('NFKD', char).encode('ascii', 'ignore').decode('ascii')
+                    if ascii_equiv:
+                        cleaned_text.append(ascii_equiv)
+                    else:
+                        cleaned_text.append(' ')  # Replace with space if no equivalent
+                except:
+                    cleaned_text.append(' ')  # Replace with space on error
+            else:
+                cleaned_text.append(char)
+
+        text = ''.join(cleaned_text)
+
+        # Now escape for Dart strings - ORDER MATTERS!
+        text = text.replace('\\', '\\\\')  # Escape backslashes FIRST
         text = text.replace("'", "\\'")  # Escape single quotes
         text = text.replace('"', '\\"')  # Escape double quotes
         text = text.replace('\n', '\\n')  # Escape newlines
         text = text.replace('\r', '\\r')  # Escape carriage returns
         text = text.replace('\t', '\\t')  # Escape tabs
-        text = text.replace('$', '\\$')  # Escape dollar signs (Dart string interpolation)
-
-        # Remove any other non-ASCII characters that might cause issues
-        import unicodedata
-        text = ''.join(
-            char if ord(char) < 128 else unicodedata.normalize('NFKD', char).encode('ascii', 'ignore').decode(
-                'ascii') or ''
-            for char in text
-        )
+        text = text.replace('$', '\\$')  # Escape dollar signs
 
         return text
 
@@ -1809,18 +1907,37 @@ class AppData {
     def _to_snake_case(self, text):
         """Convert text to snake_case"""
         import re
+        # First, replace special characters with underscores
+        text = re.sub(r'[&\+\-\*\/\\\|\?\!\@\#\$\%\^\(\)\[\]\{\}\<\>\,\.\;\:\'\"\`\~]', '_', text)
+        # Then handle camelCase conversion
         text = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', text)
         text = re.sub(r'([a-z\d])([A-Z])', r'\1_\2', text)
-        return text.lower().replace(' ', '_').replace('-', '_')
+        # Replace spaces and multiple underscores with single underscore
+        text = text.lower().replace(' ', '_')
+        text = re.sub(r'_+', '_', text)  # Replace multiple underscores with single
+        text = text.strip('_')  # Remove leading/trailing underscores
+        return text
 
     def _to_pascal_case(self, text):
         """Convert text to PascalCase"""
-        return ''.join(word.capitalize() for word in text.replace('_', ' ').replace('-', ' ').split())
+        import re
+        # Replace special characters with spaces
+        text = re.sub(r'[&\+\-\*\/\\\|\?\!\@\#\$\%\^\(\)\[\]\{\}\<\>\,\.\;\:\'\"\`\~_]', ' ', text)
+        # Split by spaces and capitalize each word
+        words = [word.capitalize() for word in text.split() if word]
+        return ''.join(words)
 
     def _to_camel_case(self, text):
         """Convert text to camelCase"""
         pascal = self._to_pascal_case(text)
-        return pascal[0].lower() + pascal[1:] if pascal else ''
+        if not pascal:
+            return ''
+        # Ensure the result starts with a lowercase letter and is a valid identifier
+        result = pascal[0].lower() + pascal[1:]
+        # If the result starts with a number, prefix with underscore
+        if result and result[0].isdigit():
+            result = '_' + result
+        return result
 
     def _generate_list_item_widget(self, data_source_name, field_name, is_horizontal, is_product_list, indent_level):
         """Generate dynamic list item widget based on data source fields"""
