@@ -459,8 +459,11 @@ class FlutterCodeGenerator:
         if splash_screen:
             initial_route = splash_screen.route_name
         else:
-            home_screen = screens.filter(is_home_screen=True).first()
-            initial_route = home_screen.route_name if home_screen else '/'
+            # Find the Home screen or any screen marked as home
+            home_screen = screens.filter(name='Home').first()
+            if not home_screen:
+                home_screen = screens.filter(is_home_screen=True).first()
+            initial_route = home_screen.route_name if home_screen else '/home'
 
         main_content = f'''import 'package:flutter/material.dart';
     import 'theme/app_theme.dart';
@@ -697,67 +700,13 @@ class AppRoutes {
       final Map<String, TextEditingController> _controllers = {{}};
       final Map<String, dynamic> _stateVariables = {{}};'''
 
-        # Add special initialization for Splash Screen
-        if screen.name == 'SplashScreen':
-            # Check if Configuration screen exists
-            config_screen = Screen.objects.filter(
-                application=self.application,
-                name='Configuration'
-            ).first()
-
-            # Check if any data source needs dynamic configuration
-            needs_dynamic_config = DataSource.objects.filter(
-                application=self.application,
-                use_dynamic_base_url=True
-            ).exists()
-
-            if config_screen and needs_dynamic_config:
-                screen_content += f'''
-
-          @override
-          void initState() {{
-            super.initState();
-            _checkConfiguration();
-          }}
-
-          Future<void> _checkConfiguration() async {{
-            final prefs = await SharedPreferences.getInstance();
-            final savedUrl = prefs.getString('base_url');
-
-            if (savedUrl == null || savedUrl.isEmpty) {{
-              // No configuration, go to configuration screen
-              if (mounted) {{
-                Navigator.pushReplacementNamed(context, '{config_screen.route_name}');
-              }}
-            }} else {{
-              // Configuration exists, go to home
-              if (mounted) {{
-                Navigator.pushReplacementNamed(context, '/home');
-              }}
-            }}
-          }}'''
-            else:
-                # No configuration needed, just navigate to home
-                home_screen = Screen.objects.filter(
-                    application=self.application,
-                    is_home_screen=True
-                ).first()
-
-                if home_screen:
-                    screen_content += f'''
-
-          @override
-          void initState() {{
-            super.initState();
-            _navigateToHome();
-          }}
-
-          Future<void> _navigateToHome() async {{
-            await Future.delayed(Duration(seconds: 2));
-            if (mounted) {{
-              Navigator.pushReplacementNamed(context, '{home_screen.route_name}');
-            }}
-          }}'''
+        # This will trigger configuration check in generated code
+        WidgetProperty.objects.create(
+            widget=main_column,
+            property_name="onInit",
+            property_type="json",
+            json_value='{"action": "check_configuration", "load_action": "LoadConfiguration", "navigate_config": "Navigate to Configuration", "navigate_home": "Navigate to Home"}'
+        )
 
         # Add save/load methods for Configuration Screen
         if screen.name == 'Configuration':
@@ -830,7 +779,8 @@ class AppRoutes {
                   _isValidating = false;
                   _errorMessage = null;
                 }});
-                _saveConfiguration(testUrl);
+                _urlController.text = testUrl;  // Update the controller with validated URL
+                _saveConfiguration();
               }} else {{
                 setState(() {{
                   _isValidating = false;
@@ -845,19 +795,22 @@ class AppRoutes {
             }}
           }}
 
-          Future<void> _saveConfiguration(String url) async {{
+          Future<void> _saveConfiguration() async {{
+            final url = _urlController.text.trim();
+            
             setState(() {{
               _isSaving = true;
             }});
 
             // Remove trailing slash if present
-            if (url.endsWith('/')) {{
-              url = url.substring(0, url.length - 1);
+            String cleanUrl = url;
+            if (cleanUrl.endsWith('/')) {{
+              cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
             }}
 
             // Save to SharedPreferences
             final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('base_url', url);
+            await prefs.setString('base_url', cleanUrl);
 
             // Clear API cache
             _apiService.clearCache();
@@ -2027,7 +1980,7 @@ class AppRoutes {
         """Generate Dart code for actions"""
         # Handle special configuration actions
         if action.name == 'SaveConfiguration':
-            return "_saveConfiguration"
+            return "_saveConfiguration"  # This will be called as a function, not a reference
         elif action.name == 'ValidateConfiguration':
             return "_validateUrl"
         elif action.name == 'LoadConfiguration':

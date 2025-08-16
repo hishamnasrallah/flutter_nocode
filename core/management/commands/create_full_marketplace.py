@@ -111,7 +111,7 @@ class Command(BaseCommand):
     def create_data_sources(self, app):
         """Step 4: Define All New Data Sources"""
         data_sources = {}
-        base_url = "https://businesses-hebrew-every-baltimore.trycloudflare.com"
+        base_url = "https://intl-pressure-alpha-relay.trycloudflare.com"
 
         # Configuration Data Source (for local storage)
         config_ds = DataSource.objects.create(
@@ -1537,13 +1537,23 @@ class Command(BaseCommand):
             decimal_value=20
         )
 
-        # This will trigger configuration check in generated code
-        WidgetProperty.objects.create(
-            widget=main_column,
-            property_name="onInit",
-            property_type="json",
-            json_value='{"action": "check_configuration", "load_action": "LoadConfiguration", "navigate_config": "Navigate to Configuration", "navigate_home": "Navigate to Home"}'
+        # Loading text
+        loading_text = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=main_column,
+            order=2
         )
+
+        WidgetProperty.objects.create(
+            widget=loading_text,
+            property_name="text",
+            property_type="string",
+            string_value="Loading..."
+        )
+
+        # Don't add onInit property - it's not a valid widget property
+        # The navigation logic is handled in the screen's initState method
 
     def create_configuration_screen_ui(self, screen, actions):
         """Configuration Screen for base URL setup"""
@@ -1707,13 +1717,6 @@ class Command(BaseCommand):
             property_name="text",
             property_type="string",
             string_value="Save and Continue"
-        )
-
-        WidgetProperty.objects.create(
-            widget=save_btn,
-            property_name="onPressed",
-            property_type="action_reference",
-            action_reference=actions['SaveConfiguration']
         )
 
         # Link save action to navigation
