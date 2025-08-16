@@ -1778,7 +1778,7 @@ class AppRoutes {
         return "Icon(Icons.image, size: 50)"
 
     def _generate_list_view(self, widget, prop_dict, child_widgets, indent_level):
-        """Generate ListView from database configuration"""
+        """Generate ListView from database configuration - FULLY DYNAMIC"""
         indent = '  ' * indent_level
 
         # Check if there's a data source
@@ -1788,65 +1788,98 @@ class AppRoutes {
         scroll_direction = self._get_property_value(prop_dict, 'scrollDirection', 'vertical')
         is_horizontal = scroll_direction == 'horizontal'
 
+        # Check if this ListView is inside a SingleChildScrollView
+        parent = widget.parent_widget
+        is_nested_scroll = False
+        while parent:
+            if parent.widget_type == 'SingleChildScrollView':
+                is_nested_scroll = True
+                break
+            parent = parent.parent_widget
+
+        # Determine physics based on context
+        if is_horizontal:
+            physics = 'AlwaysScrollableScrollPhysics()'
+        elif is_nested_scroll:
+            physics = 'NeverScrollableScrollPhysics()'
+        else:
+            physics = 'AlwaysScrollableScrollPhysics()'
+
         if data_source_prop and data_source_prop.data_source_field_reference:
             # Dynamic ListView with data source
             data_source = data_source_prop.data_source_field_reference.data_source
             field = data_source_prop.data_source_field_reference
 
-            # Determine if this is a product-related data source
-            is_product_list = any(keyword in data_source.name.lower()
-                                  for keyword in ['product', 'flash', 'trending', 'arrival', 'seller', 'best'])
+            # Get height from properties if specified
+            height = self._get_property_value(prop_dict, 'height', None)
 
-            # For horizontal lists, use Container with fixed height
+            # For horizontal lists, wrap in Container with height
             height_wrapper_start = ""
             height_wrapper_end = ""
             if is_horizontal:
-                height_wrapper_start = f"Container(height: 280, child: "
+                list_height = height if height else '250'
+                height_wrapper_start = f"Container(height: {list_height}, child: "
                 height_wrapper_end = ")"
 
             return f'''{height_wrapper_start}FutureBuilder<List<dynamic>>(
-    {indent}  future: _apiService.fetchData('{data_source.name}'),
-    {indent}  builder: (context, snapshot) {{
-    {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
-    {indent}      return Center(child: CircularProgressIndicator());
-    {indent}    }}
-    {indent}    if (snapshot.hasError) {{
-    {indent}      return Center(child: Text('Error loading data'));
-    {indent}    }}
-    {indent}    final items = snapshot.data ?? [];
-    {indent}    if (items.isEmpty) {{
-    {indent}      return Center(child: Text('No items available'));
-    {indent}    }}
-    {indent}    return ListView.builder(
-    {indent}      scrollDirection: Axis.{'horizontal' if is_horizontal else 'vertical'},
-    {indent}      shrinkWrap: {'false' if is_horizontal else 'true'},
-    {indent}      physics: {'ClampingScrollPhysics()' if is_horizontal else 'NeverScrollableScrollPhysics()'},
-    {indent}      primary: false,
-    {indent}      itemCount: items.length,
-    {indent}      itemBuilder: (context, index) {{
-    {indent}        final item = items[index];
-    {indent}        return {self._generate_list_item_widget(data_source.name, field.field_name, is_horizontal, is_product_list, indent_level + 3)};
-    {indent}      }},
-    {indent}    );
-    {indent}  }},
-    {indent}){height_wrapper_end}'''
+        {indent}  future: _apiService.fetchData('{data_source.name}'),
+        {indent}  builder: (context, snapshot) {{
+        {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
+        {indent}      return Center(child: CircularProgressIndicator());
+        {indent}    }}
+        {indent}    if (snapshot.hasError) {{
+        {indent}      return Center(child: Text('Error loading data'));
+        {indent}    }}
+        {indent}    final items = snapshot.data ?? [];
+        {indent}    if (items.isEmpty) {{
+        {indent}      return Center(child: Text('No items available'));
+        {indent}    }}
+        {indent}    return ListView.builder(
+        {indent}      scrollDirection: Axis.{scroll_direction},
+        {indent}      shrinkWrap: {str(not is_horizontal).lower()},
+        {indent}      physics: {physics},
+        {indent}      primary: false,
+        {indent}      itemCount: items.length,
+        {indent}      itemBuilder: (context, index) {{
+        {indent}        final item = items[index];
+        {indent}        return {self._generate_list_item_widget(data_source.name, field.field_name, is_horizontal, False, indent_level + 3)};
+        {indent}      }},
+        {indent}    );
+        {indent}  }},
+        {indent}){height_wrapper_end}'''
         else:
             # Static ListView with child widgets
             if child_widgets.exists():
-                code = f"ListView(\n{indent}  shrinkWrap: true,\n{indent}  physics: NeverScrollableScrollPhysics(),\n{indent}  primary: false,\n{indent}  children: [\n"
+                code = f"ListView(\n{indent}  scrollDirection: Axis.{scroll_direction},\n{indent}  shrinkWrap: {str(not is_horizontal).lower()},\n{indent}  physics: {physics},\n{indent}  primary: false,\n{indent}  children: [\n"
                 for child in child_widgets:
                     code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
                 code += f"{indent}  ],\n{indent})"
                 return code
             else:
-                return "ListView(shrinkWrap: true, physics: NeverScrollableScrollPhysics(), children: [])"
+                return f"ListView(scrollDirection: Axis.{scroll_direction}, shrinkWrap: {str(not is_horizontal).lower()}, physics: {physics}, children: [])"
 
     def _generate_grid_view(self, widget, prop_dict, child_widgets, indent_level):
-        """Generate GridView from database configuration"""
+        """Generate GridView from database configuration - FULLY DYNAMIC"""
         indent = '  ' * indent_level
 
-        # Get grid properties
+        # Get grid properties from database
         columns = self._get_property_value(prop_dict, 'crossAxisCount', '2')
+        scroll_direction = self._get_property_value(prop_dict, 'scrollDirection', 'vertical')
+        height = self._get_property_value(prop_dict, 'height', None)
+        item_limit = self._get_property_value(prop_dict, 'itemLimit', None)
+        aspect_ratio = self._get_property_value(prop_dict, 'childAspectRatio', '1.0')
+
+        # Check if this GridView is inside a SingleChildScrollView
+        parent = widget.parent_widget
+        is_nested_scroll = False
+        while parent:
+            if parent.widget_type == 'SingleChildScrollView':
+                is_nested_scroll = True
+                break
+            parent = parent.parent_widget
+
+        # Determine physics based on context
+        physics = 'NeverScrollableScrollPhysics()' if is_nested_scroll else 'AlwaysScrollableScrollPhysics()'
 
         # Check if there's a data source
         data_source_prop = prop_dict.get('dataSource')
@@ -1856,56 +1889,55 @@ class AppRoutes {
             data_source = data_source_prop.data_source_field_reference.data_source
             field = data_source_prop.data_source_field_reference
 
-            # Check if this is categories grid
-            is_categories = 'categor' in data_source.name.lower()
+            # Wrap in container if height is specified
+            container_start = ""
+            container_end = ""
+            if height:
+                container_start = f"Container(height: {height}, child: "
+                container_end = ")"
 
-            return f'''FutureBuilder<List<dynamic>>(
-    {indent}  future: _apiService.fetchData('{data_source.name}'),
-    {indent}  builder: (context, snapshot) {{
-    {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
-    {indent}      return Container(
-    {indent}        height: 200,
-    {indent}        child: Center(child: CircularProgressIndicator()),
-    {indent}      );
-    {indent}    }}
-    {indent}    if (snapshot.hasError) {{
-    {indent}      return Container(
-    {indent}        height: 200,
-    {indent}        child: Center(child: Text('Error loading data')),
-    {indent}      );
-    {indent}    }}
-    {indent}    final data = snapshot.data ?? [];
-    {indent}    if (data.isEmpty) {{
-    {indent}      return Container(
-    {indent}        height: 200,
-    {indent}        child: Center(child: Text('No items')),
-    {indent}      );
-    {indent}    }}
-    {indent}    return GridView.builder(
-    {indent}      shrinkWrap: true,
-    {indent}      physics: NeverScrollableScrollPhysics(),
-    {indent}      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-    {indent}        crossAxisCount: {columns},
-    {indent}        crossAxisSpacing: 8,
-    {indent}        mainAxisSpacing: 8,
-    {indent}        childAspectRatio: {('1.0' if is_categories else '0.8')},
-    {indent}      ),
-    {indent}      itemCount: data.length > 8 ? 8 : data.length,
-    {indent}      itemBuilder: (context, index) {{
-    {indent}        final item = data[index];
-    {indent}        return {self._generate_category_item(indent_level + 3) if is_categories else self._generate_grid_item(field.field_name, indent_level + 3)};
-    {indent}      }},
-    {indent}    );
-    {indent}  }},
-    {indent})'''
+            item_count_logic = f"data.length" if not item_limit else f"data.length > {item_limit} ? {item_limit} : data.length"
+
+            return f'''{container_start}FutureBuilder<List<dynamic>>(
+        {indent}  future: _apiService.fetchData('{data_source.name}'),
+        {indent}  builder: (context, snapshot) {{
+        {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
+        {indent}      return Center(child: CircularProgressIndicator());
+        {indent}    }}
+        {indent}    if (snapshot.hasError) {{
+        {indent}      return Center(child: Text('Error loading data'));
+        {indent}    }}
+        {indent}    final data = snapshot.data ?? [];
+        {indent}    if (data.isEmpty) {{
+        {indent}      return Center(child: Text('No items'));
+        {indent}    }}
+        {indent}    return GridView.builder(
+        {indent}      scrollDirection: Axis.{scroll_direction},
+        {indent}      shrinkWrap: {str(is_nested_scroll).lower()},
+        {indent}      physics: {physics},
+        {indent}      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        {indent}        crossAxisCount: {columns},
+        {indent}        crossAxisSpacing: 8,
+        {indent}        mainAxisSpacing: 8,
+        {indent}        childAspectRatio: {aspect_ratio},
+        {indent}      ),
+        {indent}      itemCount: {item_count_logic},
+        {indent}      itemBuilder: (context, index) {{
+        {indent}        final item = data[index];
+        {indent}        return {self._generate_grid_item_widget(field, indent_level + 3)};
+        {indent}      }},
+        {indent}    );
+        {indent}  }},
+        {indent}){container_end}'''
         else:
             # Static GridView
             return f'''GridView.count(
-    {indent}  crossAxisCount: {columns},
-    {indent}  shrinkWrap: true,
-    {indent}  physics: NeverScrollableScrollPhysics(),
-    {indent}  children: [],
-    {indent})'''
+        {indent}  crossAxisCount: {columns},
+        {indent}  shrinkWrap: {str(is_nested_scroll).lower()},
+        {indent}  physics: {physics},
+        {indent}  childAspectRatio: {aspect_ratio},
+        {indent}  children: [],
+        {indent})'''
 
     def _generate_children_column(self, child_widgets, indent_level):
         """Generate a Column for multiple children"""
@@ -2557,3 +2589,29 @@ class AppData {
                 print(f"Fixed by adding {missing} closing braces")
 
         return widget_code
+
+    def _generate_grid_item_widget(self, field, indent_level):
+        """Generate grid item widget - fully dynamic based on field type"""
+        indent = '  ' * indent_level
+
+        # Determine what to display based on field type
+        if field.field_type == 'image_url':
+            return f'''Card(
+        {indent}  child: Image.network(
+        {indent}    item['{field.field_name}'] ?? '',
+        {indent}    fit: BoxFit.cover,
+        {indent}    errorBuilder: (c,e,s) => Icon(Icons.image),
+        {indent}  ),
+        {indent})'''
+        else:
+            return f'''Card(
+        {indent}  child: Center(
+        {indent}    child: Padding(
+        {indent}      padding: EdgeInsets.all(8),
+        {indent}      child: Text(
+        {indent}        item['{field.field_name}']?.toString() ?? '',
+        {indent}        textAlign: TextAlign.center,
+        {indent}      ),
+        {indent}    ),
+        {indent}  ),
+        {indent})'''
