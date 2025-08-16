@@ -310,11 +310,9 @@ class FlutterCodeGenerator:
                     if match:
                         insert_pos = match.end()
                         # Add on new line right after android {
-                        content = (
-                                content[:insert_pos] +
-                                '\n    ndkVersion = "27.0.12077973"' +
-                                content[insert_pos:]
-                        )
+                        # For Kotlin DSL, the format should be: ndkVersion = "27.0.12077973"
+                        ndk_line = '\n    ndkVersion = "27.0.12077973"'
+                        content = content[:insert_pos] + ndk_line + content[insert_pos:]
                     else:
                         print(f"Warning: Could not find android block in {gradle_file.name}")
                         return
@@ -329,11 +327,8 @@ class FlutterCodeGenerator:
                         # Find position right after android {
                         insert_pos = android_block_start + len('android {')
                         # Add ndkVersion on new line
-                        content = (
-                                content[:insert_pos] +
-                                '\n    ndkVersion "27.0.12077973"' +
-                                content[insert_pos:]
-                        )
+                        ndk_line = '\n    ndkVersion "27.0.12077973"'
+                        content = content[:insert_pos] + ndk_line + content[insert_pos:]
                     else:
                         print(f"Warning: Could not find android block in {gradle_file.name}")
                         return
@@ -583,8 +578,7 @@ class FlutterCodeGenerator:
       static MaterialColor _createMaterialColor(Color color) {{
         List strengths = <double>[.05];
         Map<int, Color> swatch = {{}};
-        final int r = color.red, g = color.green, b = color.blue;
-
+        
         for (int i = 1; i < 10; i++) {{
           strengths.add(0.1 * i);
         }}
@@ -592,14 +586,14 @@ class FlutterCodeGenerator:
         for (var strength in strengths) {{
           final double ds = 0.5 - strength;
           swatch[(strength * 1000).round()] = Color.fromRGBO(
-            r + ((ds < 0 ? r : (255 - r)) * ds).round(),
-            g + ((ds < 0 ? g : (255 - g)) * ds).round(),
-            b + ((ds < 0 ? b : (255 - b)) * ds).round(),
+            ((color.r * 255).round() + ((ds < 0 ? (color.r * 255).round() : (255 - (color.r * 255).round())) * ds)).round(),
+            ((color.g * 255).round() + ((ds < 0 ? (color.g * 255).round() : (255 - (color.g * 255).round())) * ds)).round(),
+            ((color.b * 255).round() + ((ds < 0 ? (color.b * 255).round() : (255 - (color.b * 255).round())) * ds)).round(),
             1,
           );
         }}
 
-        return MaterialColor(color.value, swatch);
+        return MaterialColor((((color.a * 255).round() << 24) | ((color.r * 255).round() << 16) | ((color.g * 255).round() << 8) | ((color.b * 255).round() << 0)) & 0xFFFFFFFF, swatch);
       }}
     }}
     '''
@@ -648,8 +642,10 @@ class AppRoutes {
 
     def _generate_single_screen(self, screen):
         """Generate a single screen file"""
-        screen_file_name = self._to_snake_case(screen.name) + '_screen.dart'
-        screen_class_name = self._to_pascal_case(screen.name) + 'Screen'
+        # Normalize screen name to avoid duplicates
+        normalized_name = screen.name.replace(' ', '')  # Remove spaces
+        screen_file_name = self._to_snake_case(normalized_name) + '_screen.dart'
+        screen_class_name = self._to_pascal_case(normalized_name) + 'Screen'
 
         # Get root widgets for this screen
         root_widgets = Widget.objects.filter(
@@ -700,16 +696,65 @@ class AppRoutes {
       final Map<String, TextEditingController> _controllers = {{}};
       final Map<String, dynamic> _stateVariables = {{}};'''
 
-        # This will trigger configuration check in generated code
-        WidgetProperty.objects.create(
-            widget=main_column,
-            property_name="onInit",
-            property_type="json",
-            json_value='{"action": "check_configuration", "load_action": "LoadConfiguration", "navigate_config": "Navigate to Configuration", "navigate_home": "Navigate to Home"}'
-        )
+        # Add initialization for SplashScreen to handle navigation
+        if screen.name == 'SplashScreen':
+            # Check if there's a Configuration screen in the app
+            has_config_screen = Screen.objects.filter(
+                application=self.application,
+                name='Configuration'
+            ).exists()
+
+            # Find the home screen or next screen to navigate to
+            home_screen = Screen.objects.filter(
+                application=self.application,
+                name='Home'
+            ).first()
+            if not home_screen:
+                home_screen = Screen.objects.filter(
+                    application=self.application
+                ).exclude(name='SplashScreen').exclude(name='Configuration').first()
+
+            next_route = home_screen.route_name if home_screen else '/home'
+            config_route = '/configuration' if has_config_screen else next_route
+
+            screen_content += f'''
+
+              @override
+              void initState() {{
+                super.initState();
+                _checkConfigurationAndNavigate();
+              }}
+
+              Future<void> _checkConfigurationAndNavigate() async {{
+                // Wait for a moment to show splash screen
+                await Future.delayed(Duration(seconds: 2));
+
+                if (!mounted) return;
+                '''
+
+            if has_config_screen:
+                screen_content += f'''
+                // Check if base URL is configured
+                final prefs = await SharedPreferences.getInstance();
+                final savedUrl = prefs.getString('base_url');
+
+                if (savedUrl == null || savedUrl.isEmpty) {{
+                  // No configuration saved, go to configuration screen
+                  Navigator.pushReplacementNamed(context, '{config_route}');
+                }} else {{
+                  // Configuration exists, go to home
+                  Navigator.pushReplacementNamed(context, '{next_route}');
+                }}'''
+            else:
+                screen_content += f'''
+                // No configuration screen, navigate directly to home
+                Navigator.pushReplacementNamed(context, '{next_route}');'''
+
+            screen_content += '''
+              }}'''
 
         # Add save/load methods for Configuration Screen
-        if screen.name == 'Configuration':
+        elif screen.name == 'Configuration':
             # Get all data sources that use dynamic URLs
             dynamic_data_sources = DataSource.objects.filter(
                 application=self.application,
@@ -833,86 +878,108 @@ class AppRoutes {
             }}
           }}'''
 
-        screen_content += '''
+        # Only add dispose method if not already added for SplashScreen
+        if screen.name != 'SplashScreen':
+            # Only add dispose method if not already added for SplashScreen
+            if screen.name != 'SplashScreen':
+                screen_content += '''
 
-      @override
-      void dispose() {{
-        _controllers.forEach((key, controller) => controller.dispose());'''
+                  @override
+                  void dispose() {
+                    _controllers.forEach((key, controller) => controller.dispose());'''
 
-        if screen.name == 'Configuration':
+                if screen.name == 'Configuration':
+                    screen_content += '''
+                    _urlController.dispose();'''
+
+                screen_content += '''
+                    super.dispose();
+                  }'''
+
+            # Add helper method for category icons if needed
+            if uses_category_grid:
+                screen_content += '''
+
+                  Widget _buildCategoryIcon(Map<String, dynamic> item) {
+                    if (item['image'] != null) {
+                      return Container(
+                        width: 50,
+                        height: 50,
+                        child: Image.network(
+                          item['image'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, e, s) => const Icon(Icons.category, size: 30),
+                        ),
+                      );
+                    }
+
+                    // Use icon name from data to select appropriate icon
+                    IconData iconData = Icons.category;
+                    final iconName = item['icon']?.toString().toLowerCase() ?? '';
+
+                    switch (iconName) {
+                      case 'devices':
+                        iconData = Icons.devices;
+                        break;
+                      case 'shopping_bag':
+                        iconData = Icons.shopping_bag;
+                        break;
+                      case 'home':
+                        iconData = Icons.home;
+                        break;
+                      case 'sports_soccer':
+                        iconData = Icons.sports_soccer;
+                        break;
+                      case 'menu_book':
+                        iconData = Icons.menu_book;
+                        break;
+                      case 'face':
+                        iconData = Icons.face;
+                        break;
+                      case 'restaurant':
+                        iconData = Icons.restaurant;
+                        break;
+                      case 'favorite':
+                        iconData = Icons.favorite;
+                        break;
+                      case 'directions_car':
+                        iconData = Icons.directions_car;
+                        break;
+                      case 'toys':
+                        iconData = Icons.toys;
+                        break;
+                      case 'pets':
+                        iconData = Icons.pets;
+                        break;
+                      default:
+                        iconData = Icons.category;
+                    }
+
+                    return Icon(
+                      iconData,
+                      size: 30,
+                      color: Theme.of(context).primaryColor,
+                    );
+                  }'''
+
+            # ENSURE BUILD METHOD IS ALWAYS ADDED
             screen_content += '''
-        _urlController.dispose();'''
 
-        screen_content += '''
-        super.dispose();
-      }}'''
+                  @override
+                  Widget build(BuildContext context) {
+                    return Scaffold(
+            '''
 
-        # Add helper method for category icons if needed
-        if uses_category_grid:
-            screen_content += '''
+        # Add AppBar if needed
+        if screen.show_app_bar:
+            app_bar_title = self._escape_dart_string(screen.app_bar_title or screen.name)
+            screen_content += f'''      appBar: AppBar(
+                title: Text('{app_bar_title}'),
+                automaticallyImplyLeading: {str(screen.show_back_button).lower()},
+              ),
+        '''
 
-      Widget _buildCategoryIcon(Map<String, dynamic> item) {
-        if (item['image'] != null) {
-          return Container(
-            width: 50,
-            height: 50,
-            child: Image.network(
-              item['image'],
-              fit: BoxFit.cover,
-              errorBuilder: (c, e, s) => const Icon(Icons.category, size: 30),
-            ),
-          );
-        }
-
-        // Use icon name from data to select appropriate icon
-        IconData iconData = Icons.category;
-        final iconName = item['icon']?.toString().toLowerCase() ?? '';
-
-        switch (iconName) {
-          case 'devices':
-            iconData = Icons.devices;
-            break;
-          case 'shopping_bag':
-            iconData = Icons.shopping_bag;
-            break;
-          case 'home':
-            iconData = Icons.home;
-            break;
-          case 'sports_soccer':
-            iconData = Icons.sports_soccer;
-            break;
-          case 'menu_book':
-            iconData = Icons.menu_book;
-            break;
-          case 'face':
-            iconData = Icons.face;
-            break;
-          case 'restaurant':
-            iconData = Icons.restaurant;
-            break;
-          case 'favorite':
-            iconData = Icons.favorite;
-            break;
-          case 'directions_car':
-            iconData = Icons.directions_car;
-            break;
-          case 'toys':
-            iconData = Icons.toys;
-            break;
-          case 'pets':
-            iconData = Icons.pets;
-            break;
-          default:
-            iconData = Icons.category;
-        }
-
-        return Icon(
-          iconData,
-          size: 30,
-          color: Theme.of(context).primaryColor,
-        );
-      }'''
-
+        # Add build method for ALL screens
         screen_content += '''
 
       @override
@@ -958,7 +1025,7 @@ class AppRoutes {
           bottomNavigationBar: '''
             screen_content += self._generate_widget_code(bottom_nav, 0)
 
-        screen_content += ''',
+        screen_content += '''
         );
       }
     }'''
