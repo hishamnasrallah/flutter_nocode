@@ -111,7 +111,7 @@ class Command(BaseCommand):
     def create_data_sources(self, app):
         """Step 4: Define All New Data Sources"""
         data_sources = {}
-        base_url = "https://browse-month-bags-association.trycloudflare.com"
+        base_url = "https://businesses-hebrew-every-baltimore.trycloudflare.com"
 
         # Configuration Data Source (for local storage)
         config_ds = DataSource.objects.create(

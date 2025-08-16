@@ -134,6 +134,13 @@ class DataSource(models.Model):
     DATA_SOURCE_TYPES = [
         ('REST_API', 'REST API (Web Service)'),
     ]
+
+    # Add this field to make base_url optional/configurable
+    use_dynamic_base_url = models.BooleanField(
+        default=False,
+        verbose_name="Use Dynamic Base URL",
+        help_text="If enabled, the base URL can be configured from the app's Configuration screen"
+    )
     
     HTTP_METHODS = [
         ('GET', 'GET (Retrieve Data)'),

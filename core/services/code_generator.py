@@ -507,99 +507,99 @@ class FlutterCodeGenerator:
 
         theme_content = f'''import 'package:flutter/material.dart';
 
-class AppTheme {{
-  static const Color primaryColor = Color(0xFF{theme.primary_color.lstrip('#')});
-  static const Color accentColor = Color(0xFF{theme.accent_color.lstrip('#')});
-  static const Color backgroundColor = Color(0xFF{theme.background_color.lstrip('#')});
-  static const Color textColor = Color(0xFF{theme.text_color.lstrip('#')});
+    class AppTheme {{
+      static const Color primaryColor = Color(0xFF{theme.primary_color.lstrip('#')});
+      static const Color accentColor = Color(0xFF{theme.accent_color.lstrip('#')});
+      static const Color backgroundColor = Color(0xFF{theme.background_color.lstrip('#')});
+      static const Color textColor = Color(0xFF{theme.text_color.lstrip('#')});
 
-  static ThemeData get lightTheme {{
-    return ThemeData(
-      primarySwatch: _createMaterialColor(primaryColor),
-      primaryColor: primaryColor,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        brightness: Brightness.light,
-      ),
-      scaffoldBackgroundColor: backgroundColor,
-      fontFamily: '{theme.font_family}',
-      textTheme: TextTheme(
-        bodyLarge: TextStyle(color: textColor),
-        bodyMedium: TextStyle(color: textColor),
-        titleLarge: TextStyle(color: textColor),
-      ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 2,
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-        ),
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: accentColor,
-      ),
-    );
-  }}
+      static ThemeData get lightTheme {{
+        return ThemeData(
+          primarySwatch: _createMaterialColor(primaryColor),
+          primaryColor: primaryColor,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: primaryColor,
+            brightness: Brightness.light,
+          ),
+          scaffoldBackgroundColor: backgroundColor,
+          fontFamily: '{theme.font_family}',
+          textTheme: TextTheme(
+            bodyLarge: TextStyle(color: textColor),
+            bodyMedium: TextStyle(color: textColor),
+            titleLarge: TextStyle(color: textColor),
+          ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
+            elevation: 2,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          floatingActionButtonTheme: FloatingActionButtonThemeData(
+            backgroundColor: accentColor,
+          ),
+        );
+      }}
 
-  static ThemeData get darkTheme {{
-    return ThemeData(
-      primarySwatch: _createMaterialColor(primaryColor),
-      primaryColor: primaryColor,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        brightness: Brightness.dark,
-      ),
-      scaffoldBackgroundColor: Color(0xFF121212),
-      fontFamily: '{theme.font_family}',
-      textTheme: TextTheme(
-        bodyLarge: TextStyle(color: Colors.white),
-        bodyMedium: TextStyle(color: Colors.white),
-        titleLarge: TextStyle(color: Colors.white),
-      ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 2,
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-        ),
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: accentColor,
-      ),
-    );
-  }}
+      static ThemeData get darkTheme {{
+        return ThemeData(
+          primarySwatch: _createMaterialColor(primaryColor),
+          primaryColor: primaryColor,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: primaryColor,
+            brightness: Brightness.dark,
+          ),
+          scaffoldBackgroundColor: Color(0xFF121212),
+          fontFamily: '{theme.font_family}',
+          textTheme: TextTheme(
+            bodyLarge: TextStyle(color: Colors.white),
+            bodyMedium: TextStyle(color: Colors.white),
+            titleLarge: TextStyle(color: Colors.white),
+          ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
+            elevation: 2,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          floatingActionButtonTheme: FloatingActionButtonThemeData(
+            backgroundColor: accentColor,
+          ),
+        );
+      }}
 
-  static MaterialColor _createMaterialColor(Color color) {{
-    List strengths = <double>[.05];
-    Map<int, Color> swatch = {{}};
-    final int r = color.red, g = color.green, b = color.blue;
+      static MaterialColor _createMaterialColor(Color color) {{
+        List strengths = <double>[.05];
+        Map<int, Color> swatch = {{}};
+        final int r = color.red, g = color.green, b = color.blue;
 
-    for (int i = 1; i < 10; i++) {{
-      strengths.add(0.1 * i);
+        for (int i = 1; i < 10; i++) {{
+          strengths.add(0.1 * i);
+        }}
+
+        for (var strength in strengths) {{
+          final double ds = 0.5 - strength;
+          swatch[(strength * 1000).round()] = Color.fromRGBO(
+            r + ((ds < 0 ? r : (255 - r)) * ds).round(),
+            g + ((ds < 0 ? g : (255 - g)) * ds).round(),
+            b + ((ds < 0 ? b : (255 - b)) * ds).round(),
+            1,
+          );
+        }}
+
+        return MaterialColor(color.value, swatch);
+      }}
     }}
-
-    for (var strength in strengths) {{
-      final double ds = 0.5 - strength;
-      swatch[(strength * 1000).round()] = Color.fromRGBO(
-        r + ((ds < 0 ? r : (255 - r)) * ds).round(),
-        g + ((ds < 0 ? g : (255 - g)) * ds).round(),
-        b + ((ds < 0 ? b : (255 - b)) * ds).round(),
-        1,
-      );
-    }}
-
-    return MaterialColor(color.value.toInt(), swatch);
-  }}
-}}
-'''
+    '''
 
         with open(self.lib_path / 'theme' / 'app_theme.dart', 'w', encoding='utf-8') as f:
             f.write(theme_content)
@@ -664,10 +664,21 @@ class AppRoutes {
     import '../services/api_service.dart';
     import '../models/app_models.dart';'''
 
-        # Add SharedPreferences import for Configuration and Splash screens
-        if screen.name in ['Configuration', 'SplashScreen']:
+        # Dynamically check if this screen needs SharedPreferences
+        needs_shared_prefs = False
+        if screen.name == 'Configuration':
+            needs_shared_prefs = True
+        elif screen.name == 'SplashScreen':
+            # Check if there's a Configuration screen in the app
+            has_config_screen = Screen.objects.filter(
+                application=self.application,
+                name='Configuration'
+            ).exists()
+            needs_shared_prefs = has_config_screen
+
+        if needs_shared_prefs:
             screen_content += '''
-    import 'package:shared_preferences/shared_preferences.dart';'''
+        import 'package:shared_preferences/shared_preferences.dart';'''
 
         # Add http import for Configuration screen
         if screen.name == 'Configuration':
@@ -688,106 +699,186 @@ class AppRoutes {
 
         # Add special initialization for Splash Screen
         if screen.name == 'SplashScreen':
-            screen_content += '''
+            # Check if Configuration screen exists
+            config_screen = Screen.objects.filter(
+                application=self.application,
+                name='Configuration'
+            ).first()
 
-      @override
-      void initState() {
-        super.initState();
-        _checkConfiguration();
-      }
+            # Check if any data source needs dynamic configuration
+            needs_dynamic_config = DataSource.objects.filter(
+                application=self.application,
+                use_dynamic_base_url=True
+            ).exists()
 
-      Future<void> _checkConfiguration() async {
-        final prefs = await SharedPreferences.getInstance();
-        final savedUrl = prefs.getString('base_url');
+            if config_screen and needs_dynamic_config:
+                screen_content += f'''
 
-        if (savedUrl == null || savedUrl.isEmpty) {
-          // No configuration, go to configuration screen
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/configuration');
-          }
-        } else {
-          // Configuration exists, go to home
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/home');
-          }
-        }
-      }'''
+          @override
+          void initState() {{
+            super.initState();
+            _checkConfiguration();
+          }}
+
+          Future<void> _checkConfiguration() async {{
+            final prefs = await SharedPreferences.getInstance();
+            final savedUrl = prefs.getString('base_url');
+
+            if (savedUrl == null || savedUrl.isEmpty) {{
+              // No configuration, go to configuration screen
+              if (mounted) {{
+                Navigator.pushReplacementNamed(context, '{config_screen.route_name}');
+              }}
+            }} else {{
+              // Configuration exists, go to home
+              if (mounted) {{
+                Navigator.pushReplacementNamed(context, '/home');
+              }}
+            }}
+          }}'''
+            else:
+                # No configuration needed, just navigate to home
+                home_screen = Screen.objects.filter(
+                    application=self.application,
+                    is_home_screen=True
+                ).first()
+
+                if home_screen:
+                    screen_content += f'''
+
+          @override
+          void initState() {{
+            super.initState();
+            _navigateToHome();
+          }}
+
+          Future<void> _navigateToHome() async {{
+            await Future.delayed(Duration(seconds: 2));
+            if (mounted) {{
+              Navigator.pushReplacementNamed(context, '{home_screen.route_name}');
+            }}
+          }}'''
 
         # Add save/load methods for Configuration Screen
         if screen.name == 'Configuration':
-            screen_content += '''
+            # Get all data sources that use dynamic URLs
+            dynamic_data_sources = DataSource.objects.filter(
+                application=self.application,
+                use_dynamic_base_url=True
+            )
 
-              final TextEditingController _urlController = TextEditingController();
-              bool _isValidating = false;
+            # Find a home screen to navigate to after configuration
+            home_screen = Screen.objects.filter(
+                application=self.application,
+                is_home_screen=True
+            ).first()
 
-              @override
-              void initState() {
-                super.initState();
-                _loadSavedUrl();
-              }
+            next_route = home_screen.route_name if home_screen else '/home'
 
-              Future<void> _loadSavedUrl() async {
-                final prefs = await SharedPreferences.getInstance();
-                final savedUrl = prefs.getString('base_url');
-                if (savedUrl != null) {
-                  _urlController.text = savedUrl;
-                }
-              }
+            screen_content += f'''
 
-              Future<void> _validateUrl() async {
-                setState(() => _isValidating = true);
+          final TextEditingController _urlController = TextEditingController();
+          bool _isValidating = false;
+          bool _isSaving = false;
+          String? _errorMessage;
 
-                String url = _urlController.text.trim();
-                if (url.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please enter a URL')),
-                  );
-                  setState(() => _isValidating = false);
-                  return;
-                }
+          @override
+          void initState() {{
+            super.initState();
+            _loadSavedUrl();
+          }}
 
-                // ... rest of _validateUrl method ...
-              }
+          Future<void> _loadSavedUrl() async {{
+            final prefs = await SharedPreferences.getInstance();
+            final savedUrl = prefs.getString('base_url');
+            if (savedUrl != null) {{
+              setState(() {{
+                _urlController.text = savedUrl;
+              }});
+            }}
+          }}
 
-              Future<void> _saveConfiguration() async {
-                String url = _urlController.text.trim();
-                if (url.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please enter a valid URL')),
-                  );
-                  return;
-                }
+          Future<void> _validateUrl() async {{
+            final url = _urlController.text.trim();
 
-                // Add protocol if missing
-                if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                  url = 'https://' + url;
-                }
+            if (url.isEmpty) {{
+              setState(() {{
+                _errorMessage = 'Please enter a URL';
+              }});
+              return;
+            }}
 
-                // Remove trailing slash if present
-                if (url.endsWith('/')) {
-                  url = url.substring(0, url.length - 1);
-                }
+            setState(() {{
+              _isValidating = true;
+              _errorMessage = null;
+            }});
 
-                // Save to SharedPreferences
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('base_url', url);
+            try {{
+              // Add protocol if missing
+              String testUrl = url;
+              if (!testUrl.startsWith('http://') && !testUrl.startsWith('https://')) {{
+                testUrl = 'http://' + testUrl;
+              }}
 
-                // Clear API cache
-                _apiService.clearCache();
+              // Test the URL by trying to reach a test endpoint
+              final response = await http.get(
+                Uri.parse('$testUrl/api/marketplace/categories'),
+              ).timeout(Duration(seconds: 10));
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Configuration saved successfully!'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 1),
-                  ),
-                );
+              if (response.statusCode == 200) {{
+                setState(() {{
+                  _isValidating = false;
+                  _errorMessage = null;
+                }});
+                _saveConfiguration(testUrl);
+              }} else {{
+                setState(() {{
+                  _isValidating = false;
+                  _errorMessage = 'Server returned error: ${{response.statusCode}}';
+                }});
+              }}
+            }} catch (e) {{
+              setState(() {{
+                _isValidating = false;
+                _errorMessage = 'Connection failed: ${{e.toString()}}';
+              }});
+            }}
+          }}
 
-                // Navigate to home after a short delay
-                Future.delayed(Duration(seconds: 1), () {
-                  Navigator.pushReplacementNamed(context, '/home');
-                });
-              }'''
+          Future<void> _saveConfiguration(String url) async {{
+            setState(() {{
+              _isSaving = true;
+            }});
+
+            // Remove trailing slash if present
+            if (url.endsWith('/')) {{
+              url = url.substring(0, url.length - 1);
+            }}
+
+            // Save to SharedPreferences
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('base_url', url);
+
+            // Clear API cache
+            _apiService.clearCache();
+
+            setState(() {{
+              _isSaving = false;
+            }});
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Configuration saved successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            // Navigate to home after a short delay
+            await Future.delayed(Duration(seconds: 1));
+            if (mounted) {{
+              Navigator.pushReplacementNamed(context, '{next_route}');
+            }}
+          }}'''
 
         screen_content += '''
 
@@ -948,97 +1039,94 @@ class AppRoutes {
             text = self._escape_dart_string(text)
             action_code = self._generate_action_from_property(prop_dict.get('onPressed'))
             widget_code = f'''{widget.widget_type}(
-{indent}  onPressed: {action_code},
-{indent}  child: Text('{text}'),
-{indent})'''
+    {indent}  onPressed: {action_code},
+    {indent}  child: Text('{text}'),
+    {indent})'''
 
         elif widget.widget_type == 'IconButton':
             icon = self._get_property_value(prop_dict, 'icon', 'add')
             action_code = self._generate_action_from_property(prop_dict.get('onPressed'))
             color = self._get_property_value(prop_dict, 'color', None)
             size = self._get_property_value(prop_dict, 'size', None)
-
             widget_code = f'''IconButton(
-{indent}  icon: Icon(Icons.{icon}'''
+    {indent}  icon: Icon(Icons.{icon}'''
             if color:
                 widget_code += f", color: Color(0xFF{color.lstrip('#')})"
             if size:
                 widget_code += f", size: {size}"
             widget_code += f'''),
-{indent}  onPressed: {action_code},
-{indent})'''
+    {indent}  onPressed: {action_code},
+    {indent})'''
+
         elif widget.widget_type == 'DatePicker':
             widget_code = f'''TextButton(
-        {indent}  onPressed: () async {{
-        {indent}    final date = await showDatePicker(
-        {indent}      context: context,
-        {indent}      initialDate: DateTime.now(),
-        {indent}      firstDate: DateTime(2020),
-        {indent}      lastDate: DateTime(2030),
-        {indent}    );
-        {indent}  }},
-        {indent}  child: Text('Select Date'),
-        {indent})'''
+    {indent}  onPressed: () async {{
+    {indent}    final date = await showDatePicker(
+    {indent}      context: context,
+    {indent}      initialDate: DateTime.now(),
+    {indent}      firstDate: DateTime(2020),
+    {indent}      lastDate: DateTime(2030),
+    {indent}    );
+    {indent}  }},
+    {indent}  child: Text('Select Date'),
+    {indent})'''
 
         elif widget.widget_type == 'TimePicker':
             widget_code = f'''TextButton(
-        {indent}  onPressed: () async {{
-        {indent}    final time = await showTimePicker(
-        {indent}      context: context,
-        {indent}      initialTime: TimeOfDay.now(),
-        {indent}    );
-        {indent}  }},
-        {indent}  child: Text('Select Time'),
-        {indent})'''
+    {indent}  onPressed: () async {{
+    {indent}    final time = await showTimePicker(
+    {indent}      context: context,
+    {indent}      initialTime: TimeOfDay.now(),
+    {indent}    );
+    {indent}  }},
+    {indent}  child: Text('Select Time'),
+    {indent})'''
 
         elif widget.widget_type == 'FileUpload':
             widget_code = f'''ElevatedButton.icon(
-        {indent}  onPressed: () async {{
-        {indent}    // File upload logic
-        {indent}  }},
-        {indent}  icon: Icon(Icons.upload_file),
-        {indent}  label: Text('Upload File'),
-        {indent})'''
+    {indent}  onPressed: () async {{
+    {indent}    // File upload logic
+    {indent}  }},
+    {indent}  icon: Icon(Icons.upload_file),
+    {indent}  label: Text('Upload File'),
+    {indent})'''
+
         elif widget.widget_type == 'FloatingActionButton':
             icon = self._get_property_value(prop_dict, 'icon', 'add')
             action_code = self._generate_action_from_property(prop_dict.get('onPressed'))
             widget_code = f'''FloatingActionButton(
-{indent}  onPressed: {action_code},
-{indent}  child: Icon(Icons.{icon}),
-{indent})'''
-
+    {indent}  onPressed: {action_code},
+    {indent}  child: Icon(Icons.{icon}),
+    {indent})'''
 
         elif widget.widget_type in ['Column', 'Row']:
-
             axis = 'mainAxisAlignment'
-
             alignment = self._get_property_value(prop_dict, axis, 'start')
-
             cross_alignment = self._get_property_value(prop_dict, 'crossAxisAlignment', 'center')
-
-            # Check if this is the main home column
-
             is_home_column = widget.widget_id == 'home_column'
 
             widget_code = f'''{widget.widget_type}(
-
-        {indent}  mainAxisAlignment: MainAxisAlignment.{alignment},
-
-        {indent}  crossAxisAlignment: CrossAxisAlignment.{cross_alignment},'''
+    {indent}  mainAxisAlignment: MainAxisAlignment.{alignment},
+    {indent}  crossAxisAlignment: CrossAxisAlignment.{cross_alignment},'''
 
             if widget.widget_type == 'Column' and is_home_column:
                 widget_code += f'''
-
-        {indent}  mainAxisSize: MainAxisSize.min,'''
+    {indent}  mainAxisSize: MainAxisSize.min,'''
 
             widget_code += f'''
+    {indent}  children: ['''
 
-        {indent}  children: [
+            if child_widgets.exists():
+                for i, child in enumerate(child_widgets):
+                    child_code = self._generate_widget_code(child, indent_level + 2)
+                    widget_code += f'''
+    {indent}    {child_code}'''
+                    if i < child_widgets.count() - 1:
+                        widget_code += ','
 
-        '''
-            for child in child_widgets:
-                widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
-            widget_code += f"{indent}  ],\n{indent})"
+            widget_code += f'''
+    {indent}  ],
+    {indent})'''
 
         elif widget.widget_type == 'Container':
             widget_code = self._generate_container(prop_dict, child_widgets, indent_level)
@@ -1047,28 +1135,30 @@ class AppRoutes {
             hint = self._escape_dart_string(self._get_property_value(prop_dict, 'hintText', 'Enter text...'))
             label = self._escape_dart_string(self._get_property_value(prop_dict, 'labelText', ''))
             obscure = self._get_property_value(prop_dict, 'obscureText', False)
-
-            # Check if this is the URL input field for Configuration screen
-            is_url_input = widget.widget_id == 'url_input'
+            is_url_input = widget.widget_id == 'url_input' and widget.screen.name == 'Configuration'
 
             if is_url_input:
                 widget_code = f'''TextField(
-{indent}  controller: _urlController,
-{indent}  decoration: InputDecoration(
-{indent}    hintText: '{hint}','''
+    {indent}  controller: _urlController,
+    {indent}  decoration: InputDecoration(
+    {indent}    hintText: '{hint}',
+    {indent}    labelText: 'Server URL',
+    {indent}    prefixIcon: Icon(Icons.link),
+    {indent}    border: OutlineInputBorder(),
+    {indent}  ),
+    {indent})'''
             else:
                 widget_code = f'''TextField(
-{indent}  decoration: InputDecoration(
-{indent}    hintText: '{hint}','''
-
-            if label:
-                widget_code += f"\n{indent}    labelText: '{label}',"
-            widget_code += f'''
-{indent}    border: OutlineInputBorder(),
-{indent}  ),'''
-            if obscure:
-                widget_code += f"\n{indent}  obscureText: true,"
-            widget_code += f"\n{indent})"
+    {indent}  decoration: InputDecoration(
+    {indent}    hintText: '{hint}','''
+                if label:
+                    widget_code += f"\n{indent}    labelText: '{label}',"
+                widget_code += f'''
+    {indent}    border: OutlineInputBorder(),
+    {indent}  ),'''
+                if obscure:
+                    widget_code += f"\n{indent}  obscureText: true,"
+                widget_code += f"\n{indent})"
 
         elif widget.widget_type == 'Image':
             widget_code = self._generate_image(prop_dict)
@@ -1077,7 +1167,6 @@ class AppRoutes {
             icon_name = self._get_property_value(prop_dict, 'icon', 'info')
             icon_size = self._get_property_value(prop_dict, 'size', None)
             icon_color = self._get_property_value(prop_dict, 'color', None)
-
             widget_code = f"Icon(Icons.{icon_name}"
             if icon_size:
                 widget_code += f", size: {icon_size}"
@@ -1089,7 +1178,6 @@ class AppRoutes {
             height = self._get_property_value(prop_dict, 'height', None)
             thickness = self._get_property_value(prop_dict, 'thickness', None)
             color = self._get_property_value(prop_dict, 'color', None)
-
             widget_code = "Divider("
             params = []
             if height:
@@ -1105,20 +1193,114 @@ class AppRoutes {
             elevation = self._get_property_value(prop_dict, 'elevation', '4')
             margin = self._get_property_value(prop_dict, 'margin', None)
             color = self._get_property_value(prop_dict, 'color', None)
-
             widget_code = f'''Card(
-{indent}  elevation: {elevation},'''
+    {indent}  elevation: {elevation},'''
             if margin:
                 widget_code += f"\n{indent}  margin: EdgeInsets.all({margin}),"
             if color:
                 widget_code += f"\n{indent}  color: Color(0xFF{color.lstrip('#')}),"
             widget_code += f'''
-{indent}  child: '''
+    {indent}  child: '''
             if child_widgets.exists():
                 if child_widgets.count() == 1:
                     widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
                 else:
                     widget_code += self._generate_children_column(child_widgets, indent_level + 1)
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'ListTile':
+            title = self._escape_dart_string(self._get_property_value(prop_dict, 'title', 'Title'))
+            subtitle = self._escape_dart_string(self._get_property_value(prop_dict, 'subtitle', ''))
+            widget_code = f'''ListTile(
+    {indent}  title: Text('{title}'),'''
+            if subtitle:
+                widget_code += f"\n{indent}  subtitle: Text('{subtitle}'),"
+            if 'leading' in prop_dict:
+                widget_code += f"\n{indent}  leading: Icon(Icons.{self._get_property_value(prop_dict, 'leading', 'info')}),"
+            if 'trailing' in prop_dict:
+                widget_code += f"\n{indent}  trailing: Icon(Icons.{self._get_property_value(prop_dict, 'trailing', 'arrow_forward')}),"
+            if 'onTap' in prop_dict:
+                action_code = self._generate_action_from_property(prop_dict.get('onTap'))
+                widget_code += f"\n{indent}  onTap: {action_code},"
+            widget_code += f"\n{indent})"
+
+        elif widget.widget_type == 'ListView':
+            widget_code = self._generate_list_view(widget, prop_dict, child_widgets, indent_level)
+
+        elif widget.widget_type == 'GridView':
+            widget_code = self._generate_grid_view(widget, prop_dict, child_widgets, indent_level)
+
+        elif widget.widget_type == 'SingleChildScrollView':
+            scroll_direction = self._get_property_value(prop_dict, 'scrollDirection', 'vertical')
+            physics = self._get_property_value(prop_dict, 'physics', 'AlwaysScrollableScrollPhysics')
+            widget_code = f'''SingleChildScrollView(
+    {indent}  scrollDirection: Axis.{scroll_direction},
+    {indent}  physics: {physics}(),
+    {indent}  child: '''
+            if child_widgets.exists():
+                if child_widgets.count() == 1:
+                    widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
+                else:
+                    widget_code += f'''Column(
+    {indent}    mainAxisSize: MainAxisSize.min,
+    {indent}    children: [
+    '''
+                    for child in child_widgets:
+                        widget_code += f"{indent}      {self._generate_widget_code(child, indent_level + 3)},\n"
+                    widget_code += f"{indent}    ],\n{indent}  )"
+            else:
+                widget_code += "Container()"
+            widget_code += f",\n{indent})"
+
+        elif widget.widget_type == 'PageView':
+            widget_code = f'''PageView(
+    {indent}  children: [
+    '''
+            for child in child_widgets:
+                widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
+            widget_code += f"{indent}  ],\n{indent})"
+
+        elif widget.widget_type == 'Stack':
+            widget_code = f'''Stack(
+    {indent}  children: [
+    '''
+            for child in child_widgets:
+                widget_code += f"{indent}    {self._generate_widget_code(child, indent_level + 2)},\n"
+            widget_code += f"{indent}  ],\n{indent})"
+
+        elif widget.widget_type == 'Positioned':
+            top = self._get_property_value(prop_dict, 'top', None)
+            bottom = self._get_property_value(prop_dict, 'bottom', None)
+            left = self._get_property_value(prop_dict, 'left', None)
+            right = self._get_property_value(prop_dict, 'right', None)
+            widget_code = f"Positioned("
+            params = []
+            if top:
+                params.append(f"top: {top}")
+            if bottom:
+                params.append(f"bottom: {bottom}")
+            if left:
+                params.append(f"left: {left}")
+            if right:
+                params.append(f"right: {right}")
+            if params:
+                widget_code += ", ".join(params) + ", "
+            widget_code += "child: "
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level)
+            else:
+                widget_code += "Container()"
+            widget_code += ")"
+
+        elif widget.widget_type == 'Expanded':
+            flex = self._get_property_value(prop_dict, 'flex', '1')
+            widget_code = f'''Expanded(
+    {indent}  flex: {flex},
+    {indent}  child: '''
+            if child_widgets.exists():
+                widget_code += self._generate_widget_code(child_widgets.first(), indent_level + 1)
             else:
                 widget_code += "Container()"
             widget_code += f",\n{indent})"
@@ -1408,6 +1590,7 @@ class AppRoutes {
         else:
             # For any other widget type not explicitly handled
             widget_code = f"Container(child: Text('Widget type: {widget.widget_type}'))"
+        widget_code = self._validate_widget_structure(widget_code)
 
         return widget_code
 
@@ -1892,62 +2075,91 @@ class AppRoutes {
         """Generate API service - all data sources are dynamic APIs"""
         data_sources = DataSource.objects.filter(application=self.application)
 
+        # Check if any data source uses dynamic base URL or if there's a Configuration screen
+        has_config_screen = Screen.objects.filter(
+            application=self.application,
+            name='Configuration'
+        ).exists()
+
+        uses_dynamic_url = any(ds.use_dynamic_base_url for ds in data_sources) or has_config_screen
+
         service_content = '''import 'dart:convert';
-    import 'package:http/http.dart' as http;
-    import 'package:shared_preferences/shared_preferences.dart';
+    import 'package:http/http.dart' as http;'''
+
+        if uses_dynamic_url:
+            service_content += '''
+    import 'package:shared_preferences/shared_preferences.dart';'''
+
+        service_content += '''
 
     class ApiService {
       static final ApiService _instance = ApiService._internal();
       factory ApiService() => _instance;
-      ApiService._internal();
+      ApiService._internal();'''
+
+        if uses_dynamic_url:
+            service_content += '''
 
       String? _cachedBaseUrl;
 
       // Get base URL - check saved configuration first, then use default
-Future<String> _getBaseUrl(String defaultUrl) async {
-  // Return cached URL if available
-  if (_cachedBaseUrl != null && _cachedBaseUrl!.isNotEmpty) {
-    return _cachedBaseUrl!;
-  }
+      Future<String> _getBaseUrl(String defaultUrl) async {
+        // Return cached URL if available
+        if (_cachedBaseUrl != null && _cachedBaseUrl!.isNotEmpty) {
+          return _cachedBaseUrl!;
+        }
 
-  // Always check for saved URL first
-  final prefs = await SharedPreferences.getInstance();
-  final savedUrl = prefs.getString('base_url');
+        // Always check for saved URL first
+        final prefs = await SharedPreferences.getInstance();
+        final savedUrl = prefs.getString('base_url');
 
-  // Check if base URL is special marker or if we should use saved URL
-  if (defaultUrl == 'LOCAL_STORAGE' || defaultUrl == 'DYNAMIC' || defaultUrl.isEmpty) {
-    if (savedUrl == null || savedUrl.isEmpty) {
-      throw Exception('No server URL configured. Please configure the server URL first.');
-    }
-    _cachedBaseUrl = savedUrl;
-    return _cachedBaseUrl!;
-  }
+        // Check if base URL is special marker or if we should use saved URL
+        if (defaultUrl == 'DYNAMIC' || defaultUrl.isEmpty) {
+          if (savedUrl == null || savedUrl.isEmpty) {
+            throw Exception('No server URL configured. Please configure the server URL first.');
+          }
+          _cachedBaseUrl = savedUrl;
+          return _cachedBaseUrl!;
+        }
 
-  // Use saved URL if exists, otherwise use default from database
-  _cachedBaseUrl = (savedUrl != null && savedUrl.isNotEmpty) ? savedUrl : defaultUrl;
-  
-  if (_cachedBaseUrl == null || _cachedBaseUrl!.isEmpty) {
-    throw Exception('No server URL configured. Please configure the server URL first.');
-  }
-  
-  return _cachedBaseUrl!;
-}
+        // Use saved URL if exists, otherwise use default from database
+        _cachedBaseUrl = (savedUrl != null && savedUrl.isNotEmpty) ? savedUrl : defaultUrl;
+
+        if (_cachedBaseUrl == null || _cachedBaseUrl!.isEmpty) {
+          throw Exception('No server URL configured. Please configure the server URL first.');
+        }
+
+        return _cachedBaseUrl!;
+      }
 
       // Clear cached URL when configuration changes
       void clearCache() {
         _cachedBaseUrl = null;
+      }'''
+        else:
+            # Static base URL for applications without configuration
+            service_content += '''
+
+      // Simple static base URL
+      Future<String> _getBaseUrl(String defaultUrl) async {
+        return defaultUrl;
       }
 
-    '''
+      void clearCache() {
+        // No-op for static configuration
+      }'''
 
         # Generate methods for each data source
         for data_source in data_sources:
             method_name = self._to_camel_case(data_source.name)
 
+            # Use DYNAMIC as marker if this data source uses dynamic URL
+            base_url_param = 'DYNAMIC' if data_source.use_dynamic_base_url else data_source.base_url
+
             service_content += f'''
-      Future<List<dynamic>> fetch{self._to_pascal_case(data_source.name)}() async {{
-        try {{
-          final baseUrl = await _getBaseUrl('{data_source.base_url}');
+          Future<List<dynamic>> fetch{self._to_pascal_case(data_source.name)}() async {{
+            try {{
+              final baseUrl = await _getBaseUrl('{base_url_param}');
           final url = '${{baseUrl}}{data_source.endpoint}';
           final response = await http.{data_source.method.lower()}(
             Uri.parse(url),
@@ -2032,11 +2244,11 @@ class AppData {
       final Color? backgroundColor;
 
       const AppCard({
-        Key? key,
+        super.key,
         required this.child,
         this.padding,
         this.backgroundColor,
-      }) : super(key: key);
+      });
 
       @override
       Widget build(BuildContext context) {
@@ -2053,7 +2265,7 @@ class AppData {
     class LoadingWidget extends StatelessWidget {
       final String? message;
 
-      const LoadingWidget({Key? key, this.message}) : super(key: key);
+      const LoadingWidget({super.key, this.message});
 
       @override
       Widget build(BuildContext context) {
@@ -2077,10 +2289,10 @@ class AppData {
       final VoidCallback? onRetry;
 
       const ErrorWidget({
-        Key? key,
+        super.key,
         required this.message,
         this.onRetry,
-      }) : super(key: key);
+      });
 
       @override
       Widget build(BuildContext context) {
@@ -2301,3 +2513,46 @@ class AppData {
     {indent}    child: Text(item['{field_name}']?.toString() ?? ''),
     {indent}  ),
     {indent})'''
+
+    def _validate_widget_structure(self, widget_code):
+        """Validate that widget code has balanced parentheses and brackets"""
+        if not widget_code:
+            return widget_code
+
+        # Count parentheses and brackets
+        open_parens = widget_code.count('(')
+        close_parens = widget_code.count(')')
+        open_brackets = widget_code.count('[')
+        close_brackets = widget_code.count(']')
+        open_braces = widget_code.count('{')
+        close_braces = widget_code.count('}')
+
+        # Check for imbalances
+        if open_parens != close_parens:
+            print(f"WARNING: Unbalanced parentheses in widget code: {open_parens} open, {close_parens} close")
+
+            # Try to fix by adding missing closing parentheses
+            missing = open_parens - close_parens
+            if missing > 0:
+                widget_code += ')' * missing
+                print(f"Fixed by adding {missing} closing parentheses")
+
+        if open_brackets != close_brackets:
+            print(f"WARNING: Unbalanced brackets in widget code: {open_brackets} open, {close_brackets} close")
+
+            # Try to fix by adding missing closing brackets
+            missing = open_brackets - close_brackets
+            if missing > 0:
+                widget_code += ']' * missing
+                print(f"Fixed by adding {missing} closing brackets")
+
+        if open_braces != close_braces:
+            print(f"WARNING: Unbalanced braces in widget code: {open_braces} open, {close_braces} close")
+
+            # Try to fix by adding missing closing braces
+            missing = open_braces - close_braces
+            if missing > 0:
+                widget_code += '}' * missing
+                print(f"Fixed by adding {missing} closing braces")
+
+        return widget_code

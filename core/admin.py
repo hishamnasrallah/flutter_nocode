@@ -330,24 +330,29 @@ class ApplicationAdmin(admin.ModelAdmin):
         return JsonResponse(data)
 
 
+class DataSourceFieldInline(admin.TabularInline):
+    model = DataSourceField
+    extra = 1
+    fields = ('field_name', 'field_type', 'display_name', 'is_required')
+
+
 @admin.register(DataSource)
 class DataSourceAdmin(admin.ModelAdmin):
-    list_display = ('name', 'application', 'data_source_type', 'method', 'created_at')
-    list_filter = ('data_source_type', 'method', 'application')
+    list_display = ('name', 'application', 'data_source_type', 'method', 'use_dynamic_base_url', 'created_at')
+    list_filter = ('data_source_type', 'method', 'use_dynamic_base_url', 'application')
     search_fields = ('name', 'base_url', 'endpoint')
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('application', 'name')
         }),
         ('API Configuration', {
-            'fields': ('base_url', 'endpoint', 'method', 'headers'),
-            'description': 'Configuration for REST API data sources'
+            'fields': ('base_url', 'endpoint', 'method', 'headers', 'use_dynamic_base_url'),
+            'description': 'Configuration for REST API data sources. Enable "Use Dynamic Base URL" to allow users to configure the server URL from the app.'
         }),
     )
-    
-    inlines = [DataSourceFieldInline]
 
+    inlines = [DataSourceFieldInline]
 
 @admin.register(Screen)
 class ScreenAdmin(admin.ModelAdmin):
