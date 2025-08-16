@@ -719,39 +719,39 @@ class AppRoutes {
 
             screen_content += f'''
 
-              @override
-              void initState() {{
-                super.initState();
-                _checkConfigurationAndNavigate();
-              }}
+      @override
+      void initState() {{
+        super.initState();
+        _checkConfigurationAndNavigate();
+      }}
 
-              Future<void> _checkConfigurationAndNavigate() async {{
-                // Wait for a moment to show splash screen
-                await Future.delayed(Duration(seconds: 2));
+      Future<void> _checkConfigurationAndNavigate() async {{
+        // Wait for a moment to show splash screen
+        await Future.delayed(Duration(seconds: 2));
 
-                if (!mounted) return;
-                '''
+        if (!mounted) return;
+        '''
 
             if has_config_screen:
                 screen_content += f'''
-                // Check if base URL is configured
-                final prefs = await SharedPreferences.getInstance();
-                final savedUrl = prefs.getString('base_url');
+        // Check if base URL is configured
+        final prefs = await SharedPreferences.getInstance();
+        final savedUrl = prefs.getString('base_url');
 
-                if (savedUrl == null || savedUrl.isEmpty) {{
-                  // No configuration saved, go to configuration screen
-                  Navigator.pushReplacementNamed(context, '{config_route}');
-                }} else {{
-                  // Configuration exists, go to home
-                  Navigator.pushReplacementNamed(context, '{next_route}');
-                }}'''
+        if (savedUrl == null || savedUrl.isEmpty) {{
+          // No configuration saved, go to configuration screen
+          Navigator.pushReplacementNamed(context, '{config_route}');
+        }} else {{
+          // Configuration exists, go to home
+          Navigator.pushReplacementNamed(context, '{next_route}');
+        }}'''
             else:
                 screen_content += f'''
-                // No configuration screen, navigate directly to home
-                Navigator.pushReplacementNamed(context, '{next_route}');'''
+        // No configuration screen, navigate directly to home
+        Navigator.pushReplacementNamed(context, '{next_route}');'''
 
             screen_content += '''
-              }}'''
+      }'''
 
         # Add save/load methods for Configuration Screen
         elif screen.name == 'Configuration':
@@ -880,106 +880,87 @@ class AppRoutes {
 
         # Only add dispose method if not already added for SplashScreen
         if screen.name != 'SplashScreen':
-            # Only add dispose method if not already added for SplashScreen
-            if screen.name != 'SplashScreen':
-                screen_content += '''
-
-                  @override
-                  void dispose() {
-                    _controllers.forEach((key, controller) => controller.dispose());'''
-
-                if screen.name == 'Configuration':
-                    screen_content += '''
-                    _urlController.dispose();'''
-
-                screen_content += '''
-                    super.dispose();
-                  }'''
-
-            # Add helper method for category icons if needed
-            if uses_category_grid:
-                screen_content += '''
-
-                  Widget _buildCategoryIcon(Map<String, dynamic> item) {
-                    if (item['image'] != null) {
-                      return Container(
-                        width: 50,
-                        height: 50,
-                        child: Image.network(
-                          item['image'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (c, e, s) => const Icon(Icons.category, size: 30),
-                        ),
-                      );
-                    }
-
-                    // Use icon name from data to select appropriate icon
-                    IconData iconData = Icons.category;
-                    final iconName = item['icon']?.toString().toLowerCase() ?? '';
-
-                    switch (iconName) {
-                      case 'devices':
-                        iconData = Icons.devices;
-                        break;
-                      case 'shopping_bag':
-                        iconData = Icons.shopping_bag;
-                        break;
-                      case 'home':
-                        iconData = Icons.home;
-                        break;
-                      case 'sports_soccer':
-                        iconData = Icons.sports_soccer;
-                        break;
-                      case 'menu_book':
-                        iconData = Icons.menu_book;
-                        break;
-                      case 'face':
-                        iconData = Icons.face;
-                        break;
-                      case 'restaurant':
-                        iconData = Icons.restaurant;
-                        break;
-                      case 'favorite':
-                        iconData = Icons.favorite;
-                        break;
-                      case 'directions_car':
-                        iconData = Icons.directions_car;
-                        break;
-                      case 'toys':
-                        iconData = Icons.toys;
-                        break;
-                      case 'pets':
-                        iconData = Icons.pets;
-                        break;
-                      default:
-                        iconData = Icons.category;
-                    }
-
-                    return Icon(
-                      iconData,
-                      size: 30,
-                      color: Theme.of(context).primaryColor,
-                    );
-                  }'''
-
-            # ENSURE BUILD METHOD IS ALWAYS ADDED
             screen_content += '''
 
-                  @override
-                  Widget build(BuildContext context) {
-                    return Scaffold(
-            '''
+      @override
+      void dispose() {
+        _controllers.forEach((key, controller) => controller.dispose());'''
 
-        # Add AppBar if needed
-        if screen.show_app_bar:
-            app_bar_title = self._escape_dart_string(screen.app_bar_title or screen.name)
-            screen_content += f'''      appBar: AppBar(
-                title: Text('{app_bar_title}'),
-                automaticallyImplyLeading: {str(screen.show_back_button).lower()},
-              ),
-        '''
+            if screen.name == 'Configuration':
+                screen_content += '''
+        _urlController.dispose();'''
 
-        # Add build method for ALL screens
+            screen_content += '''
+        super.dispose();
+      }'''
+
+        # Add helper method for category icons if needed
+        if uses_category_grid:
+            screen_content += '''
+
+      Widget _buildCategoryIcon(Map<String, dynamic> item) {
+        if (item['image'] != null) {
+          return Container(
+            width: 50,
+            height: 50,
+            child: Image.network(
+              item['image'],
+              fit: BoxFit.cover,
+              errorBuilder: (c, e, s) => const Icon(Icons.category, size: 30),
+            ),
+          );
+        }
+
+        // Use icon name from data to select appropriate icon
+        IconData iconData = Icons.category;
+        final iconName = item['icon']?.toString().toLowerCase() ?? '';
+
+        switch (iconName) {
+          case 'devices':
+            iconData = Icons.devices;
+            break;
+          case 'shopping_bag':
+            iconData = Icons.shopping_bag;
+            break;
+          case 'home':
+            iconData = Icons.home;
+            break;
+          case 'sports_soccer':
+            iconData = Icons.sports_soccer;
+            break;
+          case 'menu_book':
+            iconData = Icons.menu_book;
+            break;
+          case 'face':
+            iconData = Icons.face;
+            break;
+          case 'restaurant':
+            iconData = Icons.restaurant;
+            break;
+          case 'favorite':
+            iconData = Icons.favorite;
+            break;
+          case 'directions_car':
+            iconData = Icons.directions_car;
+            break;
+          case 'toys':
+            iconData = Icons.toys;
+            break;
+          case 'pets':
+            iconData = Icons.pets;
+            break;
+          default:
+            iconData = Icons.category;
+        }
+
+        return Icon(
+          iconData,
+          size: 30,
+          color: Theme.of(context).primaryColor,
+        );
+      }'''
+
+        # Add build method ONLY ONCE
         screen_content += '''
 
       @override
