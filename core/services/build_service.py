@@ -1,3 +1,9 @@
+# File: core/services/build_service.py
+"""
+Build service for Flutter applications.
+Uses the new modular code generation system.
+"""
+
 import requests
 import json
 import os
@@ -6,16 +12,18 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from ..models import Application, BuildHistory
-from .code_generator import FlutterCodeGenerator
+
+# Import the new modular code generator
+from .code_generation import FlutterCodeGenerator
 
 
 class BuildService:
     """Handles building Flutter applications into APK files"""
-    
+
     def __init__(self):
         self.build_server_url = settings.BUILD_SERVER_URL
         self.api_key = settings.BUILD_SERVER_API_KEY
-    
+
     def start_build(self, application):
         """Start the build process for an application"""
         try:
@@ -24,69 +32,70 @@ class BuildService:
                 application=application,
                 status='started'
             )
-            
+
             # Update application status
             application.build_status = 'building'
             application.save()
-            
-            # Generate Flutter code first
+
+            # Generate Flutter code using new modular system
             build_history.status = 'generating_code'
             build_history.save()
-            
+
+            # Use the new FlutterCodeGenerator
             generator = FlutterCodeGenerator(application)
             success, message = generator.generate_project()
-            
+
             if not success:
                 build_history.status = 'code_generation_failed'
                 build_history.error_message = message
                 build_history.build_end_time = timezone.now()
                 build_history.save()
-                
+
                 application.build_status = 'failed'
                 application.save()
-                
+
                 return False, f"Code generation failed: {message}"
-            
+
             build_history.status = 'code_generated'
             build_history.log_output = f"Code generation successful: {message}\n"
             build_history.save()
-            
+
             # For now, simulate APK build since we don't have a real build server
             # In production, this would send the project to a Flutter build server
             success, apk_path = self._simulate_apk_build(application, build_history)
-            
+
             if success:
                 build_history.status = 'success'
                 build_history.build_end_time = timezone.now()
                 build_history.log_output += "APK build completed successfully\n"
-                
+
                 # Save APK file to build history and application
                 with open(apk_path, 'rb') as apk_file:
                     apk_content = ContentFile(apk_file.read())
                     apk_filename = f"{application.package_name}.apk"
-                    
+
                     build_history.apk_file.save(apk_filename, apk_content)
                     application.apk_file.save(apk_filename, apk_content)
-                
+
                 # Calculate APK size
                 build_history.apk_size_mb = round(os.path.getsize(apk_path) / (1024 * 1024), 2)
                 build_history.save()
-                
+
                 application.build_status = 'success'
                 application.save()
-                
+
                 return True, "APK build completed successfully"
             else:
                 build_history.status = 'failed'
                 build_history.error_message = apk_path  # Error message in this case
                 build_history.build_end_time = timezone.now()
                 build_history.save()
-                
+
                 application.build_status = 'failed'
                 application.save()
-                
+
                 return False, f"APK build failed: {apk_path}"
-                
+
         except Exception as e:
             # Update build history with error
             if 'build_history' in locals():
@@ -94,12 +103,12 @@ class BuildService:
                 build_history.error_message = str(e)
                 build_history.build_end_time = timezone.now()
                 build_history.save()
-            
+
             application.build_status = 'failed'
             application.save()
-            
+
             return False, f"Build process failed: {str(e)}"
-    
+
     def _simulate_apk_build(self, application, build_history):
         """Build APK using configured Flutter SDK"""
         import subprocess
@@ -119,7 +128,8 @@ class BuildService:
 
             # Use Flutter SDK from settings
             project_path = settings.GENERATED_CODE_PATH / f"{application.package_name.replace('.', '_')}"
-            flutter_exe = os.path.join(settings.FLUTTER_SDK_PATH, 'bin', 'flutter.bat' if os.name == 'nt' else 'flutter')
+            flutter_exe = os.path.join(settings.FLUTTER_SDK_PATH, 'bin',
+                                       'flutter.bat' if os.name == 'nt' else 'flutter')
 
             if not project_path.exists():
                 return False, f"Project path not found: {project_path}"
@@ -136,9 +146,9 @@ class BuildService:
             # On Windows, kill any lingering Java/Gradle processes
             if os.name == 'nt':
                 subprocess.run(['taskkill', '/F', '/IM', 'java.exe'],
-                             capture_output=True, shell=True)
+                               capture_output=True, shell=True)
                 subprocess.run(['taskkill', '/F', '/IM', 'gradle.exe'],
-                             capture_output=True, shell=True)
+                               capture_output=True, shell=True)
                 import time
                 time.sleep(1)  # Give time for processes to terminate
 
@@ -337,13 +347,13 @@ class BuildService:
             build_history.log_output += f"Traceback:\n{traceback.format_exc()}\n"
             build_history.save()
             return False, error_msg
-    
+
     def _send_to_build_server(self, project_zip_path, application, build_history):
         """Send project to build server (for real implementation)"""
         try:
             # This would be implemented when you have a real build server
             build_endpoint = f"{self.build_server_url}/api/build"
-            
+
             with open(project_zip_path, 'rb') as zip_file:
                 files = {'project': zip_file}
                 data = {
@@ -355,7 +365,7 @@ class BuildService:
                 headers = {
                     'Authorization': f'Bearer {self.api_key}'
                 }
-                
+
                 response = requests.post(
                     build_endpoint,
                     files=files,
@@ -363,22 +373,22 @@ class BuildService:
                     headers=headers,
                     timeout=300  # 5 minutes timeout
                 )
-                
+
                 if response.status_code == 200:
                     result = response.json()
                     return True, result.get('apk_url'), result.get('logs', '')
                 else:
                     return False, f"Build server error: {response.status_code}", response.text
-                    
+
         except requests.exceptions.RequestException as e:
             return False, f"Network error: {str(e)}", ""
         except Exception as e:
             return False, f"Unexpected error: {str(e)}", ""
-    
+
     def get_build_status(self, application):
         """Get current build status"""
         latest_build = application.build_history.first()
-        
+
         return {
             'application_status': application.build_status,
             'latest_build': {

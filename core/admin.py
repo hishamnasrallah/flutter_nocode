@@ -13,9 +13,11 @@ from .models import (
     Theme, Application, DataSource, DataSourceField, Screen, 
     Widget, WidgetProperty, Action, BuildHistory, CustomPubDevWidget
 )
-from .services.code_generator import FlutterCodeGenerator
+# from .services.code_generator import FlutterCodeGenerator
 from .services.build_service import BuildService
 import json
+
+from .services.code_generation import FlutterCodeGenerator
 
 
 class DataSourceFieldInline(admin.TabularInline):
