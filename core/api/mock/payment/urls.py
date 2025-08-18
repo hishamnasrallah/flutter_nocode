@@ -1,3 +1,8 @@
+# File: core/api/mock/payment/urls.py
+"""
+URL Configuration for Payment (Stripe) Mock APIs
+"""
+
 from django.urls import path
 from . import views
 

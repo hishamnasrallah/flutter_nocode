@@ -1,3 +1,8 @@
+# File: core/api/mock/chat/urls.py
+"""
+URL Configuration for Chat Mock APIs
+"""
+
 from django.urls import path
 from . import views
 

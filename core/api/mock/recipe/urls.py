@@ -1,3 +1,8 @@
+# File: core/api/mock/recipe/urls.py
+"""
+URL Configuration for Recipe Mock APIs
+"""
+
 from django.urls import path
 from . import views
 
