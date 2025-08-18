@@ -24,6 +24,9 @@ urlpatterns = [
     # Marketplace Application APIs (Most comprehensive)
     path('marketplace/', include('core.api.mock.marketplace.urls')),
 
+    # Weather Application APIs
+    path('weather/', include('core.api.mock.weather.urls')),
+
     # Authentication System APIs
     path('auth/', include('core.api.mock.auth.urls')),
 

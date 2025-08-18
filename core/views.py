@@ -4,6 +4,7 @@ Main application views for the Flutter No-Code project.
 This file contains only the main application views.
 All mock API views are organized in the api/mock/ directory.
 """
+from datetime import datetime
 
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -46,6 +47,16 @@ def api_info(request):
         "documentation": "/api/docs/"
     })
 
-
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_test(request):
+    """Test endpoint for connection validation"""
+    return JsonResponse({
+        "status": "ok",
+        "message": "Connection successful",
+        "timestamp": datetime.now().isoformat() if 'datetime' in dir() else None,
+        "server": "Flutter No-Code Backend",
+        "version": "1.0.0"
+    })
 # Add any other main application views here
 # Keep this file clean - only non-mock API views should be here

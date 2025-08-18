@@ -9,12 +9,12 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from core import views  # Main application views
+from core.views import api_test
 
 urlpatterns = [
     # ============ ADMIN ============
     path('admin/', admin.site.urls),
-
-    # ============ MAIN APPLICATION ENDPOINTS ============
+    path('api/test/', api_test),
     path('health/', views.health_check, name='health_check'),
     path('api/info/', views.api_info, name='api_info'),
 

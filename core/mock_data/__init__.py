@@ -5,6 +5,7 @@ from .news_mock_data import NewsMockData
 from .recipe_mock_data import RecipeMockData
 from .restaurant_mock_data import RestaurantMockData
 from .complete_marketplace_data import CompleteMarketplaceMockData
+from .weather_mock_data import WeatherMockData
 
 MOCK_DATA_REGISTRY = {
     'news': NewsMockData,
@@ -13,6 +14,7 @@ MOCK_DATA_REGISTRY = {
     'comp_news': ComprehensiveNewsMockData,
     'marketplace': CompleteMarketplaceMockData,
     'recipe': RecipeMockData,
+    'weather': WeatherMockData,
 }
 
 def get_mock_data_for_app_type(app_type):

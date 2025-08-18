@@ -73,8 +73,8 @@ class ScreenBuilder:
         normalized_name = re.sub(r'[^a-zA-Z0-9]', '', normalized_name)
         screen_class_name = StringUtils.to_pascal_case(normalized_name) + 'Screen'
 
-        # Get root widgets for this screen
-        root_widgets = self._get_root_widgets(screen)
+        # Get root widgets for this screen - excluding BottomNavigationBar
+        root_widgets = self._get_root_widgets_excluding_navigation(screen)
 
         # Build imports
         imports = self._build_imports(screen, context)
@@ -91,6 +91,7 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
   final ApiService _apiService = ApiService();
   final Map<String, TextEditingController> _controllers = {{}};
   final Map<String, dynamic> _stateVariables = {{}};
+  int _selectedIndex = 0;
 
   @override
   void dispose() {{
@@ -219,3 +220,21 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
       )'''
 
         return code
+
+    def _get_root_widgets_excluding_navigation(self, screen: Any) -> List[Any]:
+        """
+        Get root widgets for a screen, excluding navigation widgets.
+
+        Args:
+            screen: Screen model instance
+
+        Returns:
+            List: Root widgets ordered by position, excluding BottomNavigationBar
+        """
+        from core.models import Widget
+        return list(Widget.objects.filter(
+            screen=screen,
+            parent_widget=None
+        ).exclude(
+            widget_type__in=['BottomNavigationBar', 'AppBar', 'Drawer']
+        ).order_by('order'))
