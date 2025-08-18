@@ -1,6 +1,8 @@
+# =====================================
+# File: core/api/mock/payment/views.py
 """
-Mock Stripe Payment API Views
-File: core/stripe_mock_views.py
+Payment System Mock API Views (Stripe)
+Provides mock payment processing endpoints
 """
 
 import json

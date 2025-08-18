@@ -1,6 +1,8 @@
+# =====================================
+# File: core/api/mock/chat/views.py
 """
-Mock Chat API Views for Marketplace
-File: core/chat_mock_views.py
+Chat System Mock API Views
+Provides mock chat and messaging endpoints
 """
 
 import json
@@ -81,3 +83,4 @@ def mock_send_message(request):
             "is_read": False
         }
     })
+
