@@ -2,6 +2,7 @@
 from .ecommerce_mock_data import EcommerceMockData
 from .complete_news_mock_data import ComprehensiveNewsMockData
 from .news_mock_data import NewsMockData
+from .recipe_mock_data import RecipeMockData
 from .restaurant_mock_data import RestaurantMockData
 from .complete_marketplace_data import CompleteMarketplaceMockData
 
@@ -11,6 +12,7 @@ MOCK_DATA_REGISTRY = {
     'restaurant': RestaurantMockData,
     'comp_news': ComprehensiveNewsMockData,
     'marketplace': CompleteMarketplaceMockData,
+    'recipe': RecipeMockData,
 }
 
 def get_mock_data_for_app_type(app_type):

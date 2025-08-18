@@ -1,3 +1,4 @@
+# File: core/admin.py
 import os
 
 from django.contrib import admin
@@ -10,7 +11,7 @@ from django.utils.safestring import mark_safe
 
 from flutter_nocode import settings
 from .models import (
-    Theme, Application, DataSource, DataSourceField, Screen, 
+    Theme, Application, DataSource, DataSourceField, Screen,
     Widget, WidgetProperty, Action, BuildHistory, CustomPubDevWidget
 )
 # from .services.code_generator import FlutterCodeGenerator
@@ -35,29 +36,29 @@ class WidgetPropertyInline(admin.StackedInline):
         'color_value', 'alignment_value', 'url_value', 'json_value',
         'action_reference', 'data_source_field_reference', 'screen_reference'
     )
-    
+
     def get_formset(self, request, obj=None, **kwargs):
         formset = super().get_formset(request, obj, **kwargs)
-        
+
         # Filter references based on the widget's screen's application
         if obj and obj.screen:
             application = obj.screen.application
-            
+
             # Filter actions to only show actions from the same application
             formset.form.base_fields['action_reference'].queryset = Action.objects.filter(
                 application=application
             )
-            
+
             # Filter data source fields to only show fields from the same application
             formset.form.base_fields['data_source_field_reference'].queryset = DataSourceField.objects.filter(
                 data_source__application=application
             )
-            
+
             # Filter screens to only show screens from the same application
             formset.form.base_fields['screen_reference'].queryset = Screen.objects.filter(
                 application=application
             )
-        
+
         return formset
 
 
@@ -96,7 +97,7 @@ class BuildHistoryInline(admin.TabularInline):
     )
     fields = readonly_fields
     can_delete = False
-    
+
     def has_add_permission(self, request, obj=None):
         return False
 
@@ -135,7 +136,7 @@ class ApplicationAdmin(admin.ModelAdmin):
     list_filter = ('build_status', 'theme', 'created_at')
     search_fields = ('name', 'package_name', 'description')
     readonly_fields = ('build_status', 'created_at', 'updated_at')
-    
+
     fieldsets = (
         ('App Information', {
             'fields': ('name', 'description', 'package_name', 'version'),
@@ -155,17 +156,19 @@ class ApplicationAdmin(admin.ModelAdmin):
             'description': 'Download your built app and source code'
         }),
     )
-    
+
     inlines = [ScreenInline, ActionInline, CustomPubDevWidgetInline, BuildHistoryInline]
 
     actions = ['generate_flutter_code', 'build_apk', 'clean_project_directory', 'create_sample_ecommerce',
-               'create_sample_social_media', 'create_sample_news', 'create_full_marketplace']
+               'create_sample_social_media', 'create_sample_news', 'create_full_marketplace',
+               'create_recipe_app_action']  # NEW ACTION
 
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
             path('<int:app_id>/download-apk/', self.admin_site.admin_view(self.download_apk), name='download_apk'),
-            path('<int:app_id>/download-source/', self.admin_site.admin_view(self.download_source), name='download_source'),
+            path('<int:app_id>/download-source/', self.admin_site.admin_view(self.download_source),
+                 name='download_source'),
             path('<int:app_id>/build-status/', self.admin_site.admin_view(self.build_status), name='build_status'),
         ]
         return custom_urls + urls
@@ -204,56 +207,59 @@ class ApplicationAdmin(admin.ModelAdmin):
             try:
                 generator = FlutterCodeGenerator(app)
                 success, message = generator.generate_project()
-                
+
                 if success:
                     self.message_user(request, f"Flutter code generated successfully for {app.name}: {message}")
                 else:
-                    self.message_user(request, f"Failed to generate code for {app.name}: {message}", level=messages.ERROR)
+                    self.message_user(request, f"Failed to generate code for {app.name}: {message}",
+                                      level=messages.ERROR)
             except Exception as e:
                 self.message_user(request, f"Error generating code for {app.name}: {str(e)}", level=messages.ERROR)
-    
+
     generate_flutter_code.short_description = "🔧 Generate Flutter Source Code"
-    
+
     def build_apk(self, request, queryset):
         """Build APK for selected applications"""
         for app in queryset:
             try:
                 build_service = BuildService()
                 success, message = build_service.start_build(app)
-                
+
                 if success:
                     self.message_user(request, f"Build started for {app.name}: {message}")
                 else:
                     self.message_user(request, f"Failed to start build for {app.name}: {message}", level=messages.ERROR)
             except Exception as e:
                 self.message_user(request, f"Error starting build for {app.name}: {str(e)}", level=messages.ERROR)
-    
+
     build_apk.short_description = "📱 Build APK File"
-    
+
     def create_sample_ecommerce(self, request, queryset):
         """Create a sample e-commerce application"""
         from .management.commands.create_sample_app import create_ecommerce_app
-        
+
         for app in queryset:
             try:
                 create_ecommerce_app(app)
                 self.message_user(request, f"Sample e-commerce structure created for {app.name}")
             except Exception as e:
-                self.message_user(request, f"Error creating e-commerce sample for {app.name}: {str(e)}", level=messages.ERROR)
-    
+                self.message_user(request, f"Error creating e-commerce sample for {app.name}: {str(e)}",
+                                  level=messages.ERROR)
+
     create_sample_ecommerce.short_description = "🛒 Create E-commerce Sample"
-    
+
     def create_sample_social_media(self, request, queryset):
         """Create a sample social media application"""
         from .management.commands.create_sample_app import create_social_media_app
-        
+
         for app in queryset:
             try:
                 create_social_media_app(app)
                 self.message_user(request, f"Sample social media structure created for {app.name}")
             except Exception as e:
-                self.message_user(request, f"Error creating social media sample for {app.name}: {str(e)}", level=messages.ERROR)
-    
+                self.message_user(request, f"Error creating social media sample for {app.name}: {str(e)}",
+                                  level=messages.ERROR)
+
     create_sample_social_media.short_description = "📱 Create Social Media Sample"
 
     def create_sample_news(self, request, queryset):
@@ -284,7 +290,19 @@ class ApplicationAdmin(admin.ModelAdmin):
                 self.message_user(request, f"Error creating marketplace: {str(e)}", level=messages.ERROR)
 
     create_full_marketplace.short_description = "🛍️ Create Full Marketplace"
-    
+
+    def create_recipe_app_action(self, request, queryset):  # NEW ACTION
+        """Create a Recipe & Meal Planner application"""
+        from django.core.management import call_command
+        for app in queryset:
+            try:
+                call_command('create_recipe_app', name=app.name, package=app.package_name)
+                self.message_user(request, f"Recipe & Meal Planner app created for {app.name}")
+            except Exception as e:
+                self.message_user(request, f"Error creating Recipe app: {str(e)}", level=messages.ERROR)
+
+    create_recipe_app_action.short_description = "🍳 Create Recipe & Meal Planner App"  # NEW ACTION
+
     def download_apk(self, request, app_id):
         """Download APK file"""
         app = get_object_or_404(Application, id=app_id)
@@ -295,7 +313,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         else:
             messages.error(request, "No APK file available. Please build the app first.")
             return redirect('admin:core_application_change', app_id)
-    
+
     def download_source(self, request, app_id):
         """Download source code ZIP"""
         app = get_object_or_404(Application, id=app_id)
@@ -306,17 +324,17 @@ class ApplicationAdmin(admin.ModelAdmin):
         else:
             messages.error(request, "No source code available. Please generate code first.")
             return redirect('admin:core_application_change', app_id)
-    
+
     def build_status(self, request, app_id):
         """Get build status as JSON"""
         app = get_object_or_404(Application, id=app_id)
         latest_build = app.build_history.first()
-        
+
         data = {
             'status': app.build_status,
             'latest_build': None
         }
-        
+
         if latest_build:
             data['latest_build'] = {
                 'id': str(latest_build.build_id),
@@ -328,7 +346,7 @@ class ApplicationAdmin(admin.ModelAdmin):
                 'apk_available': bool(latest_build.apk_file),
                 'source_available': bool(latest_build.source_code_zip),
             }
-        
+
         return JsonResponse(data)
 
 
@@ -356,12 +374,13 @@ class DataSourceAdmin(admin.ModelAdmin):
 
     inlines = [DataSourceFieldInline]
 
+
 @admin.register(Screen)
 class ScreenAdmin(admin.ModelAdmin):
     list_display = ('name', 'application', 'route_name', 'is_home_screen', 'show_app_bar')
     list_filter = ('application', 'is_home_screen', 'show_app_bar')
     search_fields = ('name', 'route_name', 'app_bar_title')
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('application', 'name', 'route_name', 'is_home_screen')
@@ -373,7 +392,7 @@ class ScreenAdmin(admin.ModelAdmin):
             'fields': ('background_color',)
         }),
     )
-    
+
     inlines = [WidgetInline]
 
 
@@ -383,7 +402,7 @@ class WidgetAdmin(admin.ModelAdmin):
     list_filter = ('widget_type', 'screen__application', 'screen')
     search_fields = ('widget_type', 'widget_id', 'screen__name')
     ordering = ('screen', 'order')
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('screen', 'widget_type', 'widget_id')
@@ -392,18 +411,18 @@ class WidgetAdmin(admin.ModelAdmin):
             'fields': ('parent_widget', 'order')
         }),
     )
-    
+
     inlines = [WidgetPropertyInline]
-    
+
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        
+
         # Filter parent_widget to only show widgets from the same screen
         if obj and obj.screen:
             form.base_fields['parent_widget'].queryset = Widget.objects.filter(
                 screen=obj.screen
             ).exclude(id=obj.id if obj.id else None)
-        
+
         return form
 
 
@@ -412,7 +431,7 @@ class ActionAdmin(admin.ModelAdmin):
     list_display = ('name', 'application', 'action_type', 'target_screen', 'created_at')
     list_filter = ('action_type', 'application')
     search_fields = ('name', 'dialog_title', 'dialog_message')
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('application', 'name', 'action_type')
@@ -438,10 +457,10 @@ class ActionAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        
+
         # Filter target_screen and api_data_source based on application
         if obj and obj.application:
             form.base_fields['target_screen'].queryset = Screen.objects.filter(
@@ -450,7 +469,7 @@ class ActionAdmin(admin.ModelAdmin):
             form.base_fields['api_data_source'].queryset = DataSource.objects.filter(
                 application=obj.application
             )
-        
+
         return form
 
 
@@ -464,7 +483,7 @@ class BuildHistoryAdmin(admin.ModelAdmin):
         'apk_size_mb', 'log_output', 'error_message'
     )
     ordering = ('-build_start_time',)
-    
+
     fieldsets = (
         ('Build Information', {
             'fields': ('application', 'build_id', 'status')
@@ -480,19 +499,21 @@ class BuildHistoryAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
     def build_id_short(self, obj):
         return obj.build_id.hex[:8]
+
     build_id_short.short_description = 'Build ID'
-    
+
     def duration_display(self, obj):
         if obj.duration_seconds:
             minutes = int(obj.duration_seconds // 60)
             seconds = int(obj.duration_seconds % 60)
             return f"{minutes}m {seconds}s"
         return "-"
+
     duration_display.short_description = 'Duration'
-    
+
     def has_add_permission(self, request):
         return False
 
@@ -502,7 +523,7 @@ class CustomPubDevWidgetAdmin(admin.ModelAdmin):
     list_display = ('widget_class_name', 'application', 'package_name', 'package_version', 'is_active')
     list_filter = ('application', 'is_active')
     search_fields = ('package_name', 'widget_class_name', 'description')
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('application', 'widget_class_name', 'description')

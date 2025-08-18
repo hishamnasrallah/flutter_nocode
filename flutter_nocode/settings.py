@@ -15,9 +15,10 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.trycloudflare.com"
 
 ]
+BACKEND_URL = "https://investigate-cho-ex-receives.trycloudflare.com"
 # Allow specific domains for CORS
 CORS_ALLOWED_ORIGINS = [
-    "https://intl-pressure-alpha-relay.trycloudflare.com",
+    BACKEND_URL,
     "http://6c75545e1be2.ngrok-free.app",
     "https://6032713a89bd.ngrok-free.app",
     "http://6032713a89bd.ngrok-free.app"

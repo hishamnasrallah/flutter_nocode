@@ -13,7 +13,7 @@ This creates a FULL production-ready marketplace application with:
 - Customer support
 - And much more...
 """
-
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from core.models import (
@@ -111,7 +111,7 @@ class Command(BaseCommand):
     def create_data_sources(self, app):
         """Step 4: Define All New Data Sources"""
         data_sources = {}
-        base_url = "https://intl-pressure-alpha-relay.trycloudflare.com"
+        base_url = settings.BACKEND_URL
 
         # Configuration Data Source (for local storage)
         config_ds = DataSource.objects.create(
