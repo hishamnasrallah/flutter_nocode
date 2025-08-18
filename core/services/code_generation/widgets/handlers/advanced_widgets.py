@@ -93,35 +93,95 @@ class FutureBuilderHandler(BaseWidgetHandler):
 
     def _generate_with_data_source(self, data_source: Any, child_widgets: list,
                                    context: GeneratorContext, indent_level: int) -> str:
-        """Generate FutureBuilder with data source."""
-        indent = self.get_indent(indent_level)
+            """Generate FutureBuilder with data source - fully dynamic."""
+            indent = self.get_indent(indent_level)
+            from ...utils import StringUtils
 
-        code = f'''FutureBuilder<List<dynamic>>(
-{indent}  future: _apiService.fetchData('{data_source.name}'),
-{indent}  builder: (context, snapshot) {{
-{indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
-{indent}      return Center(child: CircularProgressIndicator());
-{indent}    }}
-{indent}    if (snapshot.hasError) {{
-{indent}      return Center(child: Text('Error: ${{snapshot.error}}'));
-{indent}    }}
-{indent}    if (!snapshot.hasData || snapshot.data!.isEmpty) {{
-{indent}      return Center(child: Text('No data available'));
-{indent}    }}
-{indent}    return '''
+            # Always use dynamic type and handle both Map and List at runtime
+            code = f'''FutureBuilder<dynamic>(
+    {indent}  future: _apiService.fetch{StringUtils.to_pascal_case(data_source.name)}(),
+    {indent}  builder: (context, snapshot) {{
+    {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
+    {indent}      return Center(child: CircularProgressIndicator());
+    {indent}    }}
+    {indent}    if (snapshot.hasError) {{
+    {indent}      return Center(child: Text('Error: ${{snapshot.error}}'));
+    {indent}    }}
+    {indent}    if (!snapshot.hasData) {{
+    {indent}      return Center(child: Text('No data available'));
+    {indent}    }}
+    {indent}    
+    {indent}    final rawData = snapshot.data;
+    {indent}    
+    {indent}    // Handle both single objects and lists dynamically
+    {indent}    if (rawData is Map<String, dynamic>) {{
+    {indent}      // Single object - display its fields
+    {indent}      return _buildSingleItemView(rawData);
+    {indent}    }} else if (rawData is List) {{
+    {indent}      // List of items
+    {indent}      if (rawData.isEmpty) {{
+    {indent}        return Center(child: Text('No items available'));
+    {indent}      }}
+    {indent}      return _buildListView(rawData);
+    {indent}    }} else {{
+    {indent}      return Center(child: Text('Unexpected data format'));
+    {indent}    }}
+    {indent}  }},
+    {indent})'''
 
-        if child_widgets:
-            from ..widget_generator import WidgetGenerator
-            widget_gen = WidgetGenerator()
-            code += widget_gen.generate_widget(child_widgets[0], context, indent_level + 2)
-        else:
-            code += "Container()"
+            # Add helper methods at class level
+            code += f'''
+    {indent}
+    {indent}Widget _buildSingleItemView(Map<String, dynamic> data) {{
+    {indent}  return Container(
+    {indent}    padding: EdgeInsets.all(16),
+    {indent}    child: Column(
+    {indent}      crossAxisAlignment: CrossAxisAlignment.start,
+    {indent}      children: data.entries.map((entry) {{
+    {indent}        return Padding(
+    {indent}          padding: EdgeInsets.symmetric(vertical: 4),
+    {indent}          child: Row(
+    {indent}            crossAxisAlignment: CrossAxisAlignment.start,
+    {indent}            children: [
+    {indent}              Text(
+    {indent}                '${{entry.key}}: ',
+    {indent}                style: TextStyle(fontWeight: FontWeight.bold),
+    {indent}              ),
+    {indent}              Expanded(
+    {indent}                child: Text(
+    {indent}                  '${{entry.value}}',
+    {indent}                  softWrap: true,
+    {indent}                ),
+    {indent}              ),
+    {indent}            ],
+    {indent}          ),
+    {indent}        );
+    {indent}      }}).toList(),
+    {indent}    ),
+    {indent}  );
+    {indent}}}
+    {indent}
+    {indent}Widget _buildListView(List<dynamic> items) {{
+    {indent}  return ListView.builder(
+    {indent}    shrinkWrap: true,
+    {indent}    itemCount: items.length,
+    {indent}    itemBuilder: (context, index) {{
+    {indent}      final item = items[index];
+    {indent}      if (item is Map<String, dynamic>) {{
+    {indent}        return Card(
+    {indent}          margin: EdgeInsets.all(8),
+    {indent}          child: _buildSingleItemView(item),
+    {indent}        );
+    {indent}      }} else {{
+    {indent}        return ListTile(
+    {indent}          title: Text('${{item}}'),
+    {indent}        );
+    {indent}      }}
+    {indent}    }},
+    {indent}  );
+    {indent}}}'''
 
-        code += f''';
-{indent}  }},
-{indent})'''
-
-        return code
+            return code
 
     def _generate_default(self, child_widgets: list, context: GeneratorContext, indent_level: int) -> str:
         """Generate default FutureBuilder."""

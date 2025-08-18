@@ -148,14 +148,14 @@ class ApiService {
 
             content += f'''
 
-  Future<List<dynamic>> {method_name}() async {{
-    try {{
-      final baseUrl = await _getBaseUrl('{base_url_param}');
-      final url = '${{baseUrl}}{data_source.endpoint}';
-      final response = await http.{data_source.method.lower()}(
-        Uri.parse(url),
-        headers: {{
-          'Content-Type': 'application/json','''
+    Future<dynamic> {method_name}() async {{
+      try {{
+        final baseUrl = await _getBaseUrl('{base_url_param}');
+        final url = '${{baseUrl}}{data_source.endpoint}';
+        final response = await http.{data_source.method.lower()}(
+          Uri.parse(url),
+          headers: {{
+            'Content-Type': 'application/json','''
 
             # Add custom headers
             if data_source.headers:
@@ -165,19 +165,20 @@ class ApiService {
                         content += f"\n          '{key.strip()}': '{value.strip()}',"
 
             content += '''
-        },
-      );
+          },
+        );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data is List ? data : [data];
-      } else {
-        throw Exception('Failed to load data: ${response.statusCode}');
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          // Return data as-is, let the widgets handle the type
+          return data;
+        } else {
+          throw Exception('Failed to load data: ${response.statusCode}');
+        }
+      } catch (e) {
+        throw Exception('Network error: $e');
       }
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
-  }'''
+    }'''
 
         return content
 

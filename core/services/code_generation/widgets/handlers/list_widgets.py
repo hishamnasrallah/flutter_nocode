@@ -56,50 +56,82 @@ class ListViewHandler(BaseWidgetHandler):
 
     def _generate_dynamic_list(self, widget: Any, field_ref: Any, scroll_direction: str,
                                physics: str, context: GeneratorContext, indent_level: int) -> str:
-        """Generate dynamic ListView with data source."""
-        indent = self.get_indent(indent_level)
-        prop_dict = self.get_widget_properties(widget)
+            """Generate dynamic ListView with data source."""
+            indent = self.get_indent(indent_level)
+            prop_dict = self.get_widget_properties(widget)
+            from ...utils import StringUtils
 
-        data_source = field_ref.data_source
-        field = field_ref
+            data_source = field_ref.data_source
+            field = field_ref
 
-        height = self.get_property_value(prop_dict, 'height', None)
-        is_horizontal = scroll_direction == 'horizontal'
+            height = self.get_property_value(prop_dict, 'height', None)
+            is_horizontal = scroll_direction == 'horizontal'
 
-        # Wrap in container if horizontal
-        height_wrapper_start = ""
-        height_wrapper_end = ""
-        if is_horizontal:
-            list_height = height if height else '250'
-            height_wrapper_start = f"Container(height: {list_height}, child: "
-            height_wrapper_end = ")"
+            # Wrap in container if horizontal
+            height_wrapper_start = ""
+            height_wrapper_end = ""
+            if is_horizontal:
+                list_height = height if height else '250'
+                height_wrapper_start = f"Container(height: {list_height}, child: "
+                height_wrapper_end = ")"
 
-        return f'''{height_wrapper_start}FutureBuilder<List<dynamic>>(
-{indent}  future: _apiService.fetchData('{data_source.name}'),
-{indent}  builder: (context, snapshot) {{
-{indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
-{indent}      return Center(child: CircularProgressIndicator());
-{indent}    }}
-{indent}    if (snapshot.hasError) {{
-{indent}      return Center(child: Text('Error loading data'));
-{indent}    }}
-{indent}    final items = snapshot.data ?? [];
-{indent}    if (items.isEmpty) {{
-{indent}      return Center(child: Text('No items available'));
-{indent}    }}
-{indent}    return ListView.builder(
-{indent}      scrollDirection: Axis.{scroll_direction},
-{indent}      shrinkWrap: {str(not is_horizontal).lower()},
-{indent}      physics: {physics},
-{indent}      primary: false,
-{indent}      itemCount: items.length,
-{indent}      itemBuilder: (context, index) {{
-{indent}        final item = items[index];
-{indent}        return {self._generate_list_item(data_source.name, field.field_name, is_horizontal, indent_level + 3)};
-{indent}      }},
-{indent}    );
-{indent}  }},
-{indent}){height_wrapper_end}'''
+            return f'''{height_wrapper_start}FutureBuilder<dynamic>(
+    {indent}  future: _apiService.fetch{StringUtils.to_pascal_case(data_source.name)}(),
+    {indent}  builder: (context, snapshot) {{
+    {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
+    {indent}      return Center(child: CircularProgressIndicator());
+    {indent}    }}
+    {indent}    if (snapshot.hasError) {{
+    {indent}      return Center(child: Text('Error loading data'));
+    {indent}    }}
+    {indent}    
+    {indent}    final rawData = snapshot.data;
+    {indent}    List<dynamic> items = [];
+    {indent}    
+    {indent}    // Handle different response formats dynamically
+    {indent}    if (rawData is List) {{
+    {indent}      items = rawData;
+    {indent}    }} else if (rawData is Map) {{
+    {indent}      // Check for common data keys
+    {indent}      final possibleKeys = ['data', 'items', 'results', 'content', 'list'];
+    {indent}      for (String key in possibleKeys) {{
+    {indent}        if (rawData.containsKey(key) && rawData[key] is List) {{
+    {indent}          items = rawData[key];
+    {indent}          break;
+    {indent}        }}
+    {indent}      }}
+    {indent}      // If no list found, check all values for first list
+    {indent}      if (items.isEmpty) {{
+    {indent}        for (var value in rawData.values) {{
+    {indent}          if (value is List) {{
+    {indent}            items = value;
+    {indent}            break;
+    {indent}          }}
+    {indent}        }}
+    {indent}      }}
+    {indent}      // If still no list, treat the map as a single item
+    {indent}      if (items.isEmpty) {{
+    {indent}        items = [rawData];
+    {indent}      }}
+    {indent}    }}
+    {indent}    
+    {indent}    if (items.isEmpty) {{
+    {indent}      return Center(child: Text('No items available'));
+    {indent}    }}
+    {indent}    
+    {indent}    return ListView.builder(
+    {indent}      scrollDirection: Axis.{scroll_direction},
+    {indent}      shrinkWrap: {str(not is_horizontal).lower()},
+    {indent}      physics: {physics},
+    {indent}      primary: false,
+    {indent}      itemCount: items.length,
+    {indent}      itemBuilder: (context, index) {{
+    {indent}        final item = items[index];
+    {indent}        return {self._generate_dynamic_list_item(field.field_name, is_horizontal, indent_level + 3)};
+    {indent}      }},
+    {indent}    );
+    {indent}  }},
+    {indent}){height_wrapper_end}'''
 
     def _generate_static_list(self, child_widgets: list, scroll_direction: str, physics: str,
                               context: GeneratorContext, indent_level: int) -> str:
@@ -169,6 +201,71 @@ class ListViewHandler(BaseWidgetHandler):
 {indent}  ),
 {indent})'''
 
+    def _generate_dynamic_list_item(self, primary_field: str, is_horizontal: bool, indent_level: int) -> str:
+        """Generate list item widget that works with any data structure."""
+        indent = self.get_indent(indent_level)
+
+        width_style = "width: 150," if is_horizontal else ""
+
+        return f'''Container(
+{indent}  {width_style}
+{indent}  margin: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+{indent}  child: Card(
+{indent}    elevation: 2,
+{indent}    child: InkWell(
+{indent}      onTap: () {{
+{indent}        // Navigation if ID exists
+{indent}        if (item is Map && item.containsKey('id')) {{
+{indent}          // Navigate with item data
+{indent}        }}
+{indent}      }},
+{indent}      child: Padding(
+{indent}        padding: EdgeInsets.all(8),
+{indent}        child: item is Map ? Column(
+{indent}          crossAxisAlignment: CrossAxisAlignment.start,
+{indent}          children: [
+{indent}            // Display image if exists
+{indent}            if (item.containsKey('image') || item.containsKey('imageUrl') || item.containsKey('avatar'))
+{indent}              Container(
+{indent}                height: 120,
+{indent}                width: double.infinity,
+{indent}                child: Image.network(
+{indent}                  item['image'] ?? item['imageUrl'] ?? item['avatar'] ?? '',
+{indent}                  fit: BoxFit.cover,
+{indent}                  errorBuilder: (c,e,s) => Icon(Icons.image),
+{indent}                ),
+{indent}              ),
+{indent}            // Display primary field
+{indent}            if (item.containsKey('{primary_field}'))
+{indent}              Text(
+{indent}                item['{primary_field}']?.toString() ?? '',
+{indent}                style: TextStyle(fontWeight: FontWeight.bold),
+{indent}                maxLines: 2,
+{indent}                overflow: TextOverflow.ellipsis,
+{indent}              ),
+{indent}            // Try common field names if primary field doesn't exist
+{indent}            if (!item.containsKey('{primary_field}'))
+{indent}              Text(
+{indent}                item['name'] ?? item['title'] ?? item['label'] ?? item.values.first?.toString() ?? '',
+{indent}                style: TextStyle(fontWeight: FontWeight.bold),
+{indent}                maxLines: 2,
+{indent}                overflow: TextOverflow.ellipsis,
+{indent}              ),
+{indent}            // Display secondary info if exists
+{indent}            if (item.containsKey('description') || item.containsKey('subtitle'))
+{indent}              Text(
+{indent}                item['description'] ?? item['subtitle'] ?? '',
+{indent}                style: TextStyle(fontSize: 12, color: Colors.grey),
+{indent}                maxLines: 2,
+{indent}                overflow: TextOverflow.ellipsis,
+{indent}              ),
+{indent}          ],
+{indent}        ) : Text(item?.toString() ?? ''),
+{indent}      ),
+{indent}    ),
+{indent}  ),
+{indent})'''
+
 
 class GridViewHandler(BaseWidgetHandler):
     """Handler for GridView widget."""
@@ -221,6 +318,7 @@ class GridViewHandler(BaseWidgetHandler):
                                is_nested: bool, context: GeneratorContext, indent_level: int) -> str:
         """Generate dynamic GridView with data source."""
         indent = self.get_indent(indent_level)
+        from ...utils import StringUtils
 
         data_source = field_ref.data_source
         field = field_ref
@@ -232,10 +330,10 @@ class GridViewHandler(BaseWidgetHandler):
             container_start = f"Container(height: {height}, child: "
             container_end = ")"
 
-        item_count = f"data.length" if not item_limit else f"data.length > {item_limit} ? {item_limit} : data.length"
+        item_count_calc = f"items.length" if not item_limit else f"items.length > {item_limit} ? {item_limit} : items.length"
 
-        return f'''{container_start}FutureBuilder<List<dynamic>>(
-{indent}  future: _apiService.fetchData('{data_source.name}'),
+        return f'''{container_start}FutureBuilder<dynamic>(
+{indent}  future: _apiService.fetch{StringUtils.to_pascal_case(data_source.name)}(),
 {indent}  builder: (context, snapshot) {{
 {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
 {indent}      return Center(child: CircularProgressIndicator());
@@ -243,10 +341,41 @@ class GridViewHandler(BaseWidgetHandler):
 {indent}    if (snapshot.hasError) {{
 {indent}      return Center(child: Text('Error loading data'));
 {indent}    }}
-{indent}    final data = snapshot.data ?? [];
-{indent}    if (data.isEmpty) {{
+{indent}    
+{indent}    final rawData = snapshot.data;
+{indent}    List<dynamic> items = [];
+{indent}    
+{indent}    // Handle different response formats dynamically
+{indent}    if (rawData is List) {{
+{indent}      items = rawData;
+{indent}    }} else if (rawData is Map) {{
+{indent}      // Check for common data keys
+{indent}      final possibleKeys = ['data', 'items', 'results', 'content', 'list'];
+{indent}      for (String key in possibleKeys) {{
+{indent}        if (rawData.containsKey(key) && rawData[key] is List) {{
+{indent}          items = rawData[key];
+{indent}          break;
+{indent}        }}
+{indent}      }}
+{indent}      // If no list found, check all values for first list
+{indent}      if (items.isEmpty) {{
+{indent}        for (var value in rawData.values) {{
+{indent}          if (value is List) {{
+{indent}            items = value;
+{indent}            break;
+{indent}          }}
+{indent}        }}
+{indent}      }}
+{indent}      // If still no list, treat the map as a single item
+{indent}      if (items.isEmpty) {{
+{indent}        items = [rawData];
+{indent}      }}
+{indent}    }}
+{indent}    
+{indent}    if (items.isEmpty) {{
 {indent}      return Center(child: Text('No items'));
 {indent}    }}
+{indent}    
 {indent}    return GridView.builder(
 {indent}      scrollDirection: Axis.{scroll_direction},
 {indent}      shrinkWrap: {str(is_nested).lower()},
@@ -257,10 +386,10 @@ class GridViewHandler(BaseWidgetHandler):
 {indent}        mainAxisSpacing: 8,
 {indent}        childAspectRatio: {aspect_ratio},
 {indent}      ),
-{indent}      itemCount: {item_count},
+{indent}      itemCount: {item_count_calc},
 {indent}      itemBuilder: (context, index) {{
-{indent}        final item = data[index];
-{indent}        return {self._generate_grid_item(field, indent_level + 3)};
+{indent}        final item = items[index];
+{indent}        return {self._generate_dynamic_grid_item(field, indent_level + 3)};
 {indent}      }},
 {indent}    );
 {indent}  }},
@@ -298,6 +427,53 @@ class GridViewHandler(BaseWidgetHandler):
 {indent}      padding: EdgeInsets.all(8),
 {indent}      child: Text(
 {indent}        item['{field.field_name}']?.toString() ?? '',
+{indent}        textAlign: TextAlign.center,
+{indent}      ),
+{indent}    ),
+{indent}  ),
+{indent})'''
+
+    def _generate_dynamic_grid_item(self, field: Any, indent_level: int) -> str:
+        """Generate grid item widget that works with any data structure."""
+        indent = self.get_indent(indent_level)
+
+        return f'''Card(
+{indent}  child: InkWell(
+{indent}    onTap: () {{
+{indent}      // Handle tap if needed
+{indent}    }},
+{indent}    child: item is Map ? Column(
+{indent}      mainAxisAlignment: MainAxisAlignment.center,
+{indent}      children: [
+{indent}        // Display image if exists
+{indent}        if (item.containsKey('image') || item.containsKey('imageUrl') || item.containsKey('icon'))
+{indent}          Expanded(
+{indent}            child: item.containsKey('icon') 
+{indent}              ? Icon(Icons.image, size: 40)
+{indent}              : Image.network(
+{indent}                  item['image'] ?? item['imageUrl'] ?? '',
+{indent}                  fit: BoxFit.cover,
+{indent}                  errorBuilder: (c,e,s) => Icon(Icons.image),
+{indent}                ),
+{indent}          ),
+{indent}        // Display text
+{indent}        Padding(
+{indent}          padding: EdgeInsets.all(8),
+{indent}          child: Text(
+{indent}            item['{field.field_name}'] ?? 
+{indent}            item['name'] ?? 
+{indent}            item['title'] ?? 
+{indent}            item['label'] ?? 
+{indent}            item.values.first?.toString() ?? '',
+{indent}            textAlign: TextAlign.center,
+{indent}            maxLines: 2,
+{indent}            overflow: TextOverflow.ellipsis,
+{indent}          ),
+{indent}        ),
+{indent}      ],
+{indent}    ) : Center(
+{indent}      child: Text(
+{indent}        item?.toString() ?? '',
 {indent}        textAlign: TextAlign.center,
 {indent}      ),
 {indent}    ),
