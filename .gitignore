@@ -17,7 +17,9 @@ db.sqlite3
 db__2.sqlite3
 db__backup.sqlite3
 #db.sqlite3-journal
-flutter_nocode/media
+flutter_nocode/media/apks
+flutter_nocode/media/build_apks
+flutter_nocode/media/source_zips
 tmp/*
 !tmp/.gitkeep
 staticfiles/*
