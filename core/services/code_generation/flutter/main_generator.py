@@ -84,9 +84,15 @@ class MyApp extends StatelessWidget {{
             str: Import statements
         """
         imports = []
+        seen_files = set()
 
         for screen in context.screens:
             screen_file_name = StringUtils.to_snake_case(screen.name) + '_screen.dart'
-            imports.append(f"import 'screens/{screen_file_name}';")
+
+            # Avoid duplicate imports
+            if screen_file_name not in seen_files:
+                imports.append(f"import 'screens/{screen_file_name}';")
+                seen_files.add(screen_file_name)
+                print(f"Adding import for screen: {screen.name} -> {screen_file_name}")
 
         return '\n'.join(imports)

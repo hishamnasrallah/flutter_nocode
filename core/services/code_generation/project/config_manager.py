@@ -260,20 +260,32 @@ flutter:
 
         if is_kotlin_script:
             # For Kotlin script (.gradle.kts)
-            # Remove any existing ndkVersion
-            content = re.sub(r'ndkVersion\s*=\s*"[\d.]+"', '', content)
-            content = re.sub(r'ndkVersion\("[\d.]+"\)', '', content)
-            content = re.sub(r'ndkVersion\s+"[\d.]+"', '', content)
+            # Check if ndkVersion already exists with correct version
+            if f'ndkVersion = "{ndk_version}"' in content:
+                return content
 
-            # Find android block and add ndkVersion
+            # Remove any existing ndkVersion lines completely
+            lines = content.split('\n')
+            filtered_lines = []
+            for line in lines:
+                if 'ndkVersion' not in line:
+                    filtered_lines.append(line)
+            content = '\n'.join(filtered_lines)
+
+            # Find android block and add ndkVersion right after it
             android_pattern = r'android\s*\{'
             match = re.search(android_pattern, content)
             if match:
                 insert_pos = match.end()
+                # Add newline and proper indentation
                 ndk_line = f'\n    ndkVersion = "{ndk_version}"'
                 content = content[:insert_pos] + ndk_line + content[insert_pos:]
         else:
             # For Groovy script (.gradle)
+            # Check if ndkVersion already exists with correct version
+            if f'ndkVersion "{ndk_version}"' in content:
+                return content
+
             # Remove any existing ndkVersion
             content = re.sub(r'ndkVersion\s*["\'][\d.]+["\']', '', content)
 

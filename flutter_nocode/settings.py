@@ -15,7 +15,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.trycloudflare.com"
 
 ]
-BACKEND_URL = "https://investigate-cho-ex-receives.trycloudflare.com"
+BACKEND_URL = "https://injuries-disaster-economic-cz.trycloudflare.com"
 # Allow specific domains for CORS
 CORS_ALLOWED_ORIGINS = [
     BACKEND_URL,

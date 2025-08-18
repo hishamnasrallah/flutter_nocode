@@ -23,6 +23,8 @@ class StringUtils:
         Returns:
             str: Text in snake_case
         """
+        # Replace ampersand with 'and'
+        text = text.replace('&', '_and_')
         # Replace special characters with underscores
         text = re.sub(r'[&\+\-\*\/\\\|\?\!\@\#\$\%\^\(\)\[\]\{\}\<\>\,\.\;\:\'\"\`\~]', '_', text)
         # Handle camelCase conversion
@@ -32,6 +34,11 @@ class StringUtils:
         text = text.lower().replace(' ', '_')
         text = re.sub(r'_+', '_', text)
         text = text.strip('_')
+
+        # Ensure valid Dart identifier
+        if text and text[0].isdigit():
+            text = '_' + text
+
         return text
 
     @staticmethod
@@ -423,7 +430,29 @@ class WidgetPropertyUtils:
             parts.append(f"fontSize: {style_props['fontSize']}")
 
         if 'fontWeight' in style_props and style_props['fontWeight']:
-            parts.append(f"fontWeight: FontWeight.{style_props['fontWeight']}")
+            weight_value = style_props['fontWeight']
+            # Map common weight names to Flutter values
+            weight_map = {
+                'thin': 'w100',
+                'light': 'w300',
+                'regular': 'w400',
+                'medium': 'w500',
+                'semibold': 'w600',
+                'bold': 'w700',
+                'black': 'w900'
+            }
+
+            # Convert if it's a named weight
+            if weight_value in weight_map:
+                weight_value = weight_map[weight_value]
+
+            # Ensure it starts with 'w' for weight values
+            if weight_value and not weight_value.startswith('FontWeight.'):
+                if not weight_value.startswith('w'):
+                    weight_value = 'w500'  # Default to medium
+                parts.append(f"fontWeight: FontWeight.{weight_value}")
+            else:
+                parts.append(f"fontWeight: {weight_value}")
 
         if 'fontStyle' in style_props and style_props['fontStyle']:
             parts.append(f"fontStyle: FontStyle.{style_props['fontStyle']}")

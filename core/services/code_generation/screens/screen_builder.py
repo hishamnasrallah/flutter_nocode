@@ -34,7 +34,7 @@ class ScreenBuilder:
             # Generate screen content
             content = self._build_screen_content(screen, context)
 
-            # Determine file path
+            # Determine file path - ensure consistent naming
             screen_file_name = StringUtils.to_snake_case(screen.name) + '_screen.dart'
             file_path = context.lib_path / 'screens' / screen_file_name
 
@@ -44,10 +44,15 @@ class ScreenBuilder:
                 f.write(content)
 
             context.add_generated_file(file_path)
+
+            # Log successful generation
+            print(f"Generated screen: {screen.name} -> {screen_file_name}")
+
             return True
 
         except Exception as e:
             context.add_error(f"Failed to generate screen {screen.name}: {str(e)}")
+            print(f"Error generating screen {screen.name}: {str(e)}")
             return False
 
     def _build_screen_content(self, screen: Any, context: GeneratorContext) -> str:
@@ -61,8 +66,11 @@ class ScreenBuilder:
         Returns:
             str: Screen file content
         """
-        # Normalize screen name
-        normalized_name = screen.name.replace(' ', '')
+        # Normalize screen name - handle spaces and special cases
+        normalized_name = screen.name.replace(' ', '').replace('&', 'And')
+        # Remove any non-alphanumeric characters
+        import re
+        normalized_name = re.sub(r'[^a-zA-Z0-9]', '', normalized_name)
         screen_class_name = StringUtils.to_pascal_case(normalized_name) + 'Screen'
 
         # Get root widgets for this screen

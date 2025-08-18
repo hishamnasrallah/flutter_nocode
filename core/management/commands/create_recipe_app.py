@@ -2,7 +2,7 @@
 """
 Management command to create a comprehensive Recipe & Meal Planner application.
 """
-
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from core.models import (
@@ -71,7 +71,7 @@ def create_recipe_app(custom_name=None, package_name=None):
     )
 
     # Base URL for mock APIs
-    base_url = "http://localhost:8000"
+    base_url = settings.BACKEND_URL
 
     # Create data sources
     data_sources = create_data_sources(app, base_url)

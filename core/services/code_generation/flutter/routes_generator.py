@@ -71,10 +71,15 @@ class AppRoutes {{
             str: Import statements
         """
         imports = []
+        seen_files = set()
 
         for screen in context.screens:
             screen_file_name = StringUtils.to_snake_case(screen.name) + '_screen.dart'
-            imports.append(f"import '../screens/{screen_file_name}';")
+
+            # Avoid duplicate imports
+            if screen_file_name not in seen_files:
+                imports.append(f"import '../screens/{screen_file_name}';")
+                seen_files.add(screen_file_name)
 
         return '\n'.join(imports)
 
@@ -89,9 +94,19 @@ class AppRoutes {{
             str: Route mapping entries
         """
         mappings = []
+        seen_routes = set()
 
         for screen in context.screens:
-            screen_class_name = StringUtils.to_pascal_case(screen.name) + 'Screen'
-            mappings.append(f"      '{screen.route_name}': (context) => {screen_class_name}(),")
+            # Normalize screen name for class name
+            normalized_name = screen.name.replace(' ', '').replace('&', 'And')
+            import re
+            normalized_name = re.sub(r'[^a-zA-Z0-9]', '', normalized_name)
+            screen_class_name = StringUtils.to_pascal_case(normalized_name) + 'Screen'
+
+            # Avoid duplicate routes
+            if screen.route_name not in seen_routes:
+                mappings.append(f"      '{screen.route_name}': (context) => {screen_class_name}(),")
+                seen_routes.add(screen.route_name)
+                print(f"Adding route: {screen.route_name} -> {screen_class_name}")
 
         return '\n'.join(mappings)

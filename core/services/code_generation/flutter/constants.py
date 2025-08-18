@@ -141,8 +141,19 @@ FONT_WEIGHTS = {
     'light': 'FontWeight.w300',
     'regular': 'FontWeight.w400',
     'medium': 'FontWeight.w500',
+    'semibold': 'FontWeight.w600',
     'bold': 'FontWeight.w700',
     'black': 'FontWeight.w900',
+    # Support both formats
+    'w100': 'FontWeight.w100',
+    'w200': 'FontWeight.w200',
+    'w300': 'FontWeight.w300',
+    'w400': 'FontWeight.w400',
+    'w500': 'FontWeight.w500',
+    'w600': 'FontWeight.w600',
+    'w700': 'FontWeight.w700',
+    'w800': 'FontWeight.w800',
+    'w900': 'FontWeight.w900',
 }
 
 # Common screen names that might need special handling
