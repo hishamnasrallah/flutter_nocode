@@ -762,7 +762,7 @@ def create_configuration_screen_widgets(screen, data_sources, actions):
 
 
 def create_home_screen_widgets(screen, data_sources, actions):
-    """Create widgets for home screen"""
+    """Create widgets for home screen with proper weather display"""
     # Main scroll view
     scroll_view = Widget.objects.create(
         screen=screen,
@@ -780,64 +780,46 @@ def create_home_screen_widgets(screen, data_sources, actions):
         widget_id="home_column"
     )
 
-    # Current weather card
-    weather_card = Widget.objects.create(
+    # Current weather section - Custom display widget
+    weather_container = Widget.objects.create(
         screen=screen,
-        widget_type="Card",
+        widget_type="Container",
         parent_widget=main_column,
         order=0,
-        widget_id="current_weather_card"
+        widget_id="weather_container"
     )
 
     WidgetProperty.objects.create(
-        widget=weather_card,
-        property_name="elevation",
-        property_type="integer",
-        integer_value=4
-    )
-
-    WidgetProperty.objects.create(
-        widget=weather_card,
-        property_name="margin",
+        widget=weather_container,
+        property_name="padding",
         property_type="integer",
         integer_value=16
-    )
-
-    # Weather content using FutureBuilder
-    weather_future = Widget.objects.create(
-        screen=screen,
-        widget_type="FutureBuilder",
-        parent_widget=weather_card,
-        order=0,
-        widget_id="weather_future_builder"
-    )
-
-    WidgetProperty.objects.create(
-        widget=weather_future,
-        property_name="dataSource",
-        property_type="data_source_field_reference",
-        data_source_field_reference=DataSourceField.objects.get(
-            data_source=data_sources['current_weather'],
-            field_name="temperature"
-        )
     )
 
     # Weather display column
     weather_column = Widget.objects.create(
         screen=screen,
         widget_type="Column",
-        parent_widget=weather_future,
+        parent_widget=weather_container,
         order=0,
-        widget_id="weather_display"
+        widget_id="weather_column"
     )
 
-    # Temperature text
+    # Large temperature text widget
+    temp_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Center",
+        parent_widget=weather_column,
+        order=0,
+        widget_id="temp_center"
+    )
+
     temp_text = Widget.objects.create(
         screen=screen,
         widget_type="Text",
-        parent_widget=weather_column,
+        parent_widget=temp_container,
         order=0,
-        widget_id="temperature_text"
+        widget_id="temperature_display"
     )
 
     WidgetProperty.objects.create(
@@ -851,16 +833,24 @@ def create_home_screen_widgets(screen, data_sources, actions):
         widget=temp_text,
         property_name="fontSize",
         property_type="integer",
-        integer_value=48
+        integer_value=72
     )
 
     # Description text
+    desc_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Center",
+        parent_widget=weather_column,
+        order=1,
+        widget_id="desc_center"
+    )
+
     desc_text = Widget.objects.create(
         screen=screen,
         widget_type="Text",
-        parent_widget=weather_column,
-        order=1,
-        widget_id="description_text"
+        parent_widget=desc_container,
+        order=0,
+        widget_id="weather_description"
     )
 
     WidgetProperty.objects.create(
@@ -874,10 +864,163 @@ def create_home_screen_widgets(screen, data_sources, actions):
         widget=desc_text,
         property_name="fontSize",
         property_type="integer",
-        integer_value=20
+        integer_value=24
     )
 
-    # Hourly forecast section
+    # Weather details grid
+    details_container = Widget.objects.create(
+        screen=screen,
+        widget_type="Container",
+        parent_widget=weather_column,
+        order=2,
+        widget_id="details_container"
+    )
+
+    WidgetProperty.objects.create(
+        widget=details_container,
+        property_name="padding",
+        property_type="integer",
+        integer_value=16
+    )
+
+    details_grid = Widget.objects.create(
+        screen=screen,
+        widget_type="GridView",
+        parent_widget=details_container,
+        order=0,
+        widget_id="weather_details_grid"
+    )
+
+    WidgetProperty.objects.create(
+        widget=details_grid,
+        property_name="crossAxisCount",
+        property_type="integer",
+        integer_value=2
+    )
+
+    WidgetProperty.objects.create(
+        widget=details_grid,
+        property_name="childAspectRatio",
+        property_type="decimal",
+        decimal_value=2.5
+    )
+
+    WidgetProperty.objects.create(
+        widget=details_grid,
+        property_name="height",
+        property_type="integer",
+        integer_value=200
+    )
+
+    # Add weather detail cards
+    weather_details = [
+        ("Feels Like", "22°C", "thermostat"),
+        ("Humidity", "65%", "water_drop"),
+        ("Wind Speed", "12 km/h", "air"),
+        ("UV Index", "5", "wb_sunny"),
+    ]
+
+    for i, (label, value, icon) in enumerate(weather_details):
+        detail_card = Widget.objects.create(
+            screen=screen,
+            widget_type="Card",
+            parent_widget=details_grid,
+            order=i,
+            widget_id=f"detail_card_{i}"
+        )
+
+        detail_column = Widget.objects.create(
+            screen=screen,
+            widget_type="Column",
+            parent_widget=detail_card,
+            order=0,
+            widget_id=f"detail_column_{i}"
+        )
+
+        WidgetProperty.objects.create(
+            widget=detail_column,
+            property_name="mainAxisAlignment",
+            property_type="string",
+            string_value="center"
+        )
+
+        # Icon
+        detail_icon = Widget.objects.create(
+            screen=screen,
+            widget_type="Icon",
+            parent_widget=detail_column,
+            order=0,
+            widget_id=f"detail_icon_{i}"
+        )
+
+        WidgetProperty.objects.create(
+            widget=detail_icon,
+            property_name="icon",
+            property_type="string",
+            string_value=icon
+        )
+
+        WidgetProperty.objects.create(
+            widget=detail_icon,
+            property_name="size",
+            property_type="integer",
+            integer_value=24
+        )
+
+        # Label
+        detail_label = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=detail_column,
+            order=1,
+            widget_id=f"detail_label_{i}"
+        )
+
+        WidgetProperty.objects.create(
+            widget=detail_label,
+            property_name="text",
+            property_type="string",
+            string_value=label
+        )
+
+        WidgetProperty.objects.create(
+            widget=detail_label,
+            property_name="fontSize",
+            property_type="integer",
+            integer_value=12
+        )
+
+        # Value
+        detail_value = Widget.objects.create(
+            screen=screen,
+            widget_type="Text",
+            parent_widget=detail_column,
+            order=2,
+            widget_id=f"detail_value_{i}"
+        )
+
+        WidgetProperty.objects.create(
+            widget=detail_value,
+            property_name="text",
+            property_type="string",
+            string_value=value
+        )
+
+        WidgetProperty.objects.create(
+            widget=detail_value,
+            property_name="fontSize",
+            property_type="integer",
+            integer_value=18
+        )
+
+        WidgetProperty.objects.create(
+            widget=detail_value,
+            property_name="fontWeight",
+            property_type="string",
+            string_value="bold"
+        )
+
+    # Hourly forecast section with proper ListView
     hourly_title = Widget.objects.create(
         screen=screen,
         widget_type="Padding",

@@ -194,16 +194,16 @@ class ApiService {
         """
         content = '''
 
-  Future<List<dynamic>> fetchData(String dataSourceName) async {
-    switch (dataSourceName) {'''
+      Future<dynamic> fetchData(String dataSourceName) async {
+        switch (dataSourceName) {'''
 
         for data_source in context.data_sources:
             method_name = 'fetch' + StringUtils.to_pascal_case(data_source.name)
             content += f"\n      case '{data_source.name}': return {method_name}();"
 
         content += '''
-      default: throw Exception('Unknown data source: $dataSourceName');
-    }
-  }'''
+          default: throw Exception('Unknown data source: $dataSourceName');
+        }
+      }'''
 
         return content

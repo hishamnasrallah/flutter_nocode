@@ -76,42 +76,39 @@ class ScreenBuilder:
         # Get root widgets for this screen - excluding BottomNavigationBar
         root_widgets = self._get_root_widgets_excluding_navigation(screen)
 
+        # Check if any widget uses FutureBuilder
+        has_future_builder = self._check_for_future_builder(root_widgets)
+
         # Build imports
         imports = self._build_imports(screen, context)
 
-        # Build class definition
-        content = f'''{imports}
-
-class {screen_class_name} extends StatefulWidget {{
-  @override
-  _{screen_class_name}State createState() => _{screen_class_name}State();
-}}
-
-class _{screen_class_name}State extends State<{screen_class_name}> {{
-  final ApiService _apiService = ApiService();
-  final Map<String, TextEditingController> _controllers = {{}};
-  final Map<String, dynamic> _stateVariables = {{}};
-  int _selectedIndex = 0;
-
-  @override
-  void dispose() {{
-    _controllers.forEach((key, controller) => controller.dispose());
-    super.dispose();
-  }}
-
-  @override
-  Widget build(BuildContext context) {{
-    return Scaffold(
-'''
+        # Build class definition - AVOIDING F-STRING ISSUES WITH UNDERSCORES
+        content = imports + '\n\n'
+        content += 'class ' + screen_class_name + ' extends StatefulWidget {\n'
+        content += '  @override\n'
+        content += '  _' + screen_class_name + 'State createState() => _' + screen_class_name + 'State();\n'
+        content += '}\n\n'
+        content += 'class _' + screen_class_name + 'State extends State<' + screen_class_name + '> {\n'
+        content += '  final ApiService _apiService = ApiService();\n'
+        content += '  final Map<String, TextEditingController> _controllers = {};\n'
+        content += '  final Map<String, dynamic> _stateVariables = {};\n'
+        content += '  int _selectedIndex = 0;\n\n'
+        content += '  @override\n'
+        content += '  void dispose() {\n'
+        content += '    _controllers.forEach((key, controller) => controller.dispose());\n'
+        content += '    super.dispose();\n'
+        content += '  }\n\n'
+        content += '  @override\n'
+        content += '  Widget build(BuildContext context) {\n'
+        content += '    return Scaffold(\n'
 
         # Add AppBar if needed
         if screen.show_app_bar:
             app_bar_title = DartCodeUtils.escape_dart_string(screen.app_bar_title or screen.name)
-            content += f'''      appBar: AppBar(
-        title: Text('{app_bar_title}'),
-        automaticallyImplyLeading: {str(screen.show_back_button).lower()},
-      ),
-'''
+            content += '      appBar: AppBar(\n'
+            content += f"        title: Text('{app_bar_title}'),\n"
+            content += f"        automaticallyImplyLeading: {str(screen.show_back_button).lower()},\n"
+            content += '      ),\n'
 
         # Add body
         content += '      body: '
@@ -130,10 +127,63 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
             content += ',\n      bottomNavigationBar: '
             content += self.widget_generator.generate_widget(bottom_nav, context, 0)
 
-        content += '''
-    );
-  }
-}'''
+        content += '\n    );\n'
+        content += '  }\n'
+
+        # Add helper methods if FutureBuilder is used
+        if has_future_builder:
+            content += '''
+
+      Widget _buildSingleItemView(Map<String, dynamic> data) {
+        return Container(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: data.entries.map((entry) {
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${entry.key}: ',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '${entry.value}',
+                        softWrap: true,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      }
+
+      Widget _buildListView(List<dynamic> items) {
+        return ListView.builder(
+          shrinkWrap: true,
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            if (item is Map<String, dynamic>) {
+              return Card(
+                margin: EdgeInsets.all(8),
+                child: _buildSingleItemView(item),
+              );
+            } else {
+              return ListTile(
+                title: Text('$item'),
+              );
+            }
+          },
+        );
+      }'''
+
+        content += '\n}'
 
         return content
 
@@ -238,3 +288,24 @@ class _{screen_class_name}State extends State<{screen_class_name}> {{
         ).exclude(
             widget_type__in=['BottomNavigationBar', 'AppBar', 'Drawer']
         ).order_by('order'))
+
+    def _check_for_future_builder(self, widgets: List[Any]) -> bool:
+        """
+        Check if any widget in the tree is a FutureBuilder.
+
+        Args:
+            widgets: List of widgets to check
+
+        Returns:
+            bool: True if FutureBuilder found
+        """
+        from core.models import Widget
+
+        for widget in widgets:
+            if widget.widget_type == 'FutureBuilder':
+                return True
+            # Check children recursively
+            children = Widget.objects.filter(parent_widget=widget)
+            if children and self._check_for_future_builder(list(children)):
+                return True
+        return False

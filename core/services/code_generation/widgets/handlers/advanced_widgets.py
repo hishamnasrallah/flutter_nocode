@@ -93,12 +93,12 @@ class FutureBuilderHandler(BaseWidgetHandler):
 
     def _generate_with_data_source(self, data_source: Any, child_widgets: list,
                                    context: GeneratorContext, indent_level: int) -> str:
-            """Generate FutureBuilder with data source - fully dynamic."""
-            indent = self.get_indent(indent_level)
-            from ...utils import StringUtils
+        """Generate FutureBuilder with data source - fully dynamic."""
+        indent = self.get_indent(indent_level)
+        from ...utils import StringUtils
 
-            # Always use dynamic type and handle both Map and List at runtime
-            code = f'''FutureBuilder<dynamic>(
+        # Always use dynamic type and handle both Map and List at runtime
+        code = f'''FutureBuilder<dynamic>(
     {indent}  future: _apiService.fetch{StringUtils.to_pascal_case(data_source.name)}(),
     {indent}  builder: (context, snapshot) {{
     {indent}    if (snapshot.connectionState == ConnectionState.waiting) {{
@@ -129,59 +129,7 @@ class FutureBuilderHandler(BaseWidgetHandler):
     {indent}  }},
     {indent})'''
 
-            # Add helper methods at class level
-            code += f'''
-    {indent}
-    {indent}Widget _buildSingleItemView(Map<String, dynamic> data) {{
-    {indent}  return Container(
-    {indent}    padding: EdgeInsets.all(16),
-    {indent}    child: Column(
-    {indent}      crossAxisAlignment: CrossAxisAlignment.start,
-    {indent}      children: data.entries.map((entry) {{
-    {indent}        return Padding(
-    {indent}          padding: EdgeInsets.symmetric(vertical: 4),
-    {indent}          child: Row(
-    {indent}            crossAxisAlignment: CrossAxisAlignment.start,
-    {indent}            children: [
-    {indent}              Text(
-    {indent}                '${{entry.key}}: ',
-    {indent}                style: TextStyle(fontWeight: FontWeight.bold),
-    {indent}              ),
-    {indent}              Expanded(
-    {indent}                child: Text(
-    {indent}                  '${{entry.value}}',
-    {indent}                  softWrap: true,
-    {indent}                ),
-    {indent}              ),
-    {indent}            ],
-    {indent}          ),
-    {indent}        );
-    {indent}      }}).toList(),
-    {indent}    ),
-    {indent}  );
-    {indent}}}
-    {indent}
-    {indent}Widget _buildListView(List<dynamic> items) {{
-    {indent}  return ListView.builder(
-    {indent}    shrinkWrap: true,
-    {indent}    itemCount: items.length,
-    {indent}    itemBuilder: (context, index) {{
-    {indent}      final item = items[index];
-    {indent}      if (item is Map<String, dynamic>) {{
-    {indent}        return Card(
-    {indent}          margin: EdgeInsets.all(8),
-    {indent}          child: _buildSingleItemView(item),
-    {indent}        );
-    {indent}      }} else {{
-    {indent}        return ListTile(
-    {indent}          title: Text('${{item}}'),
-    {indent}        );
-    {indent}      }}
-    {indent}    }},
-    {indent}  );
-    {indent}}}'''
-
-            return code
+        return code
 
     def _generate_default(self, child_widgets: list, context: GeneratorContext, indent_level: int) -> str:
         """Generate default FutureBuilder."""
