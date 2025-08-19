@@ -780,13 +780,72 @@ def create_home_screen_widgets(screen, data_sources, actions):
         widget_id="home_column"
     )
 
-    # Current weather section - Custom display widget
+    # Current weather section with better UI
     weather_container = Widget.objects.create(
         screen=screen,
-        widget_type="Container",
+        widget_type="Card",  # Use Card for better UI
         parent_widget=main_column,
         order=0,
         widget_id="weather_container"
+    )
+
+    WidgetProperty.objects.create(
+        widget=weather_container,
+        property_name="elevation",
+        property_type="integer",
+        integer_value=4
+    )
+
+    WidgetProperty.objects.create(
+        widget=weather_container,
+        property_name="margin",
+        property_type="integer",
+        integer_value=16
+    )
+
+    # Add weather icon
+    weather_icon_row = Widget.objects.create(
+        screen=screen,
+        widget_type="Row",
+        parent_widget=weather_container,
+        order=0,
+        widget_id="weather_icon_row"
+    )
+
+    WidgetProperty.objects.create(
+        widget=weather_icon_row,
+        property_name="mainAxisAlignment",
+        property_type="string",
+        string_value="center"
+    )
+
+    weather_icon = Widget.objects.create(
+        screen=screen,
+        widget_type="Icon",
+        parent_widget=weather_icon_row,
+        order=0,
+        widget_id="weather_main_icon"
+    )
+
+    WidgetProperty.objects.create(
+        widget=weather_icon,
+        property_name="icon",
+        property_type="string",
+        string_value="wb_sunny"
+    )
+
+    WidgetProperty.objects.create(
+        widget=weather_icon,
+        property_name="size",
+        property_type="integer",
+        integer_value=64
+    )
+
+    WidgetProperty.objects.create(
+        widget=weather_icon,
+        property_name="color",
+        property_type="color",
+        color_value="#FFC107"
     )
 
     WidgetProperty.objects.create(
@@ -1322,6 +1381,88 @@ def create_profile_screen_widgets(screen, data_sources, actions):
                 action_reference=action
             )
 
+            # Add divider before login/register section
+            divider = Widget.objects.create(
+                screen=screen,
+                widget_type="Divider",
+                parent_widget=column,
+                order=len(settings_items) + 1,
+                widget_id="profile_divider"
+            )
+
+            # Add login option
+            login_tile = Widget.objects.create(
+                screen=screen,
+                widget_type="ListTile",
+                parent_widget=column,
+                order=len(settings_items) + 2,
+                widget_id="profile_login_tile"
+            )
+
+            WidgetProperty.objects.create(
+                widget=login_tile,
+                property_name="leading",
+                property_type="string",
+                string_value="login"
+            )
+
+            WidgetProperty.objects.create(
+                widget=login_tile,
+                property_name="title",
+                property_type="string",
+                string_value="Sign In"
+            )
+
+            WidgetProperty.objects.create(
+                widget=login_tile,
+                property_name="trailing",
+                property_type="string",
+                string_value="arrow_forward_ios"
+            )
+
+            WidgetProperty.objects.create(
+                widget=login_tile,
+                property_name="onTap",
+                property_type="action_reference",
+                action_reference=actions["Navigate to Login"]
+            )
+
+            # Add register option
+            register_tile = Widget.objects.create(
+                screen=screen,
+                widget_type="ListTile",
+                parent_widget=column,
+                order=len(settings_items) + 3,
+                widget_id="profile_register_tile"
+            )
+
+            WidgetProperty.objects.create(
+                widget=register_tile,
+                property_name="leading",
+                property_type="string",
+                string_value="person_add"
+            )
+
+            WidgetProperty.objects.create(
+                widget=register_tile,
+                property_name="title",
+                property_type="string",
+                string_value="Create Account"
+            )
+
+            WidgetProperty.objects.create(
+                widget=register_tile,
+                property_name="trailing",
+                property_type="string",
+                string_value="arrow_forward_ios"
+            )
+
+            WidgetProperty.objects.create(
+                widget=register_tile,
+                property_name="onTap",
+                property_type="action_reference",
+                action_reference=actions["Navigate to Register"]
+            )
 
 def create_settings_screen_widgets(screen, data_sources, actions):
     """Create widgets for settings screen"""

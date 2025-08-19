@@ -112,13 +112,19 @@ class SwitchCheckboxRadioHandler(BaseWidgetHandler):
 
     def _generate_switch(self, prop_dict: dict) -> str:
         """Generate Switch widget."""
-        value = self.get_property_value(prop_dict, 'value', False)
-        action_code = self._generate_action_code(prop_dict.get('onChanged'))
+        value = self.get_property_value(prop_dict, 'value', True)
 
-        value_str = str(value).lower() if isinstance(value, bool) else 'false'
-        on_changed = action_code if action_code != 'null' else '(bool? v) {}'
+        # For stateful widgets, use state variable
+        widget_id = self.get_property_value(prop_dict, 'widget_id', 'switch')
 
-        return f"Switch(value: {value_str}, onChanged: {on_changed})"
+        return f'''Switch(
+          value: _stateVariables['{widget_id}'] ?? false,
+          onChanged: (bool value) {{
+            setState(() {{
+              _stateVariables['{widget_id}'] = value;
+            }});
+          }},
+        )'''
 
     def _generate_checkbox(self, prop_dict: dict) -> str:
         """Generate Checkbox widget."""

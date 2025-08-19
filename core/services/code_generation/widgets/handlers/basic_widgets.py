@@ -52,10 +52,20 @@ class ButtonWidgetHandler(BaseWidgetHandler):
         text = DartCodeUtils.escape_dart_string(text)
         action_code = self._generate_action_code(prop_dict.get('onPressed'))
 
+        # If no action defined, create a default action based on button text
+        if action_code == 'null':
+            # Generic handler for all buttons
+            action_code = '''() {
+              // Button action for: ''' + text + '''
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("''' + text + ''' clicked")),
+              );
+            }'''
+
         return f'''{widget.widget_type}(
-{indent}  onPressed: {action_code},
-{indent}  child: Text('{text}'),
-{indent})'''
+    {indent}  onPressed: {action_code},
+    {indent}  child: Text('{text}'),
+    {indent})'''
 
     def _generate_icon_button(self, widget: Any, prop_dict: dict, indent_level: int) -> str:
         indent = self.get_indent(indent_level)
