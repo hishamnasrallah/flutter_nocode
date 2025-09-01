@@ -571,11 +571,11 @@ class WidgetProperty(models.Model):
         elif self.property_type == 'json':
             return self.json_value
         elif self.property_type == 'action_reference':
-            return self.action_reference
+            return self.action_reference.id if self.action_reference else None
         elif self.property_type == 'data_source_field_reference':
-            return self.data_source_field_reference
+            return self.data_source_field_reference.id if self.data_source_field_reference else None
         elif self.property_type == 'screen_reference':
-            return self.screen_reference
+            return self.screen_reference.id if self.screen_reference else None
         return None
 
 

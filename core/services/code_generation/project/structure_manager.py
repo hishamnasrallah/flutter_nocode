@@ -56,6 +56,9 @@ class ProjectStructureManager(BaseGenerator):
             if not self._create_additional_directories(context):
                 raise ProjectStructureException("Failed to create additional directories")
 
+            # Seed placeholder files and boilerplate structure
+            self._seed_placeholder_files(context)
+
             return True
 
         except Exception as e:
@@ -177,13 +180,21 @@ class ProjectStructureManager(BaseGenerator):
         directories = [
             'lib/screens',
             'lib/widgets',
-            'lib/widgets/handlers',
+            'lib/widgets/common',
             'lib/services',
             'lib/models',
             'lib/theme',
             'lib/routes',
             'lib/utils',
+            'lib/config',
+            'lib/l10n',
+            'lib/generated',
+            'test',
             'assets/images',
+            'assets/images/icons',
+            'assets/images/banners',
+            'assets/animations',
+            'assets/translations',
             'assets/fonts',
         ]
 
@@ -193,6 +204,63 @@ class ProjectStructureManager(BaseGenerator):
                 self.add_warning(f"Could not create directory: {directory}")
 
         return True
+
+    def _seed_placeholder_files(self, context: GeneratorContext) -> None:
+        """Create boilerplate helper files and README placeholders to guide developers."""
+        try:
+            # README placeholders for asset dirs
+            readmes = {
+                'assets/images/README.txt': 'Place general images here.' ,
+                'assets/images/icons/README.txt': 'Place icon PNG/SVG assets here.',
+                'assets/images/banners/README.txt': 'Place banner/hero images here.',
+                'assets/animations/README.txt': 'Place Lottie or animation files here.',
+                'assets/translations/README.txt': 'Place ARB/JSON localization files here.',
+                'assets/fonts/README.txt': 'Place TTF font files here.',
+                'lib/widgets/common/README.txt': 'Reusable shared widgets.',
+                'lib/l10n/README.txt': 'Localization scaffolding.',
+                'lib/generated/README.txt': 'Generated files output (do not edit).',
+            }
+            for rel, text in readmes.items():
+                path = context.project_path / rel
+                self.write_file(path, text, context)
+
+            # Utils boilerplate
+            utils_files = {
+                'lib/utils/constants.dart': (
+                    """class AppConstants {\n  static const String appName = '""" + context.application.name.replace("'", "\\'") + """';\n}\n"""
+                ),
+                'lib/utils/logger.dart': (
+                    """class Log {\n  static void d(String message) {\n    // ignore: avoid_print\n    print('[D] ' + message);\n  }\n}\n"""
+                ),
+                'lib/config/app_config.dart': (
+                    """class AppConfig {\n  static const String baseUrl = '';\n}\n"""
+                ),
+            }
+            for rel, content in utils_files.items():
+                path = context.project_path / rel
+                if not path.exists():
+                    self.write_file(path, content, context)
+
+            # Safer default test file to avoid const issues
+            test_path = context.project_path / 'test' / 'widget_test.dart'
+            pkg = context.application.package_name.split('.')[-1]
+            safe_test = (
+                f"""import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:{pkg}/main.dart';
+
+void main() {{
+  testWidgets('App smoke test', (WidgetTester tester) async {{
+    await tester.pumpWidget(MyApp());
+    expect(find.byType(MaterialApp), findsOneWidget);
+  }});
+}}
+"""
+            )
+            self.write_file(test_path, safe_test, context)
+        except Exception:
+            # Best-effort seeding only; ignore failures
+            pass
 
     def _get_flutter_executable(self) -> str:
         """

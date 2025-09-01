@@ -20,7 +20,8 @@ from .handlers.layout_widgets import (
     ExpandedFlexibleHandler,
     PaddingWidgetHandler,
     CenterWidgetHandler,
-    SizedBoxWidgetHandler
+    SizedBoxWidgetHandler,
+    AlignWidgetHandler
 )
 from .handlers.list_widgets import (
     ListViewHandler,
@@ -45,7 +46,14 @@ from .handlers.advanced_widgets import (
     CardHandler,
     FutureBuilderHandler,
     StreamBuilderHandler,
-    PageViewHandler
+    PageViewHandler,
+    TabBarViewHandler,
+    SafeAreaHandler,
+    TooltipHandler,
+    RichTextHandler,
+    ChipHandler,
+    AvatarHandler,
+    BottomSheetHandler
 )
 
 
@@ -81,6 +89,7 @@ class WidgetFactory:
             PaddingWidgetHandler(),
             CenterWidgetHandler(),
             SizedBoxWidgetHandler(),
+            AlignWidgetHandler(),
 
             # List widgets
             ListViewHandler(),
@@ -106,6 +115,13 @@ class WidgetFactory:
             FutureBuilderHandler(),
             StreamBuilderHandler(),
             PageViewHandler(),
+            TabBarViewHandler(),
+            SafeAreaHandler(),
+            TooltipHandler(),
+            RichTextHandler(),
+            ChipHandler(),
+            AvatarHandler(),
+            BottomSheetHandler(),
         ]
 
     def get_handler(self, widget_type: str) -> Optional[BaseWidgetHandler]:

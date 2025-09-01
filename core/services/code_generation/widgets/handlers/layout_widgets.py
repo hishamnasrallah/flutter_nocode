@@ -43,10 +43,86 @@ class ContainerWidgetHandler(BaseWidgetHandler):
             if margin:
                 code += f"{indent}  margin: EdgeInsets.all({margin}),\n"
 
-        if 'color' in prop_dict:
-            color = self.get_property_value(prop_dict, 'color')
-            if color:
-                code += f"{indent}  decoration: BoxDecoration(color: {DartCodeUtils.generate_color_code(color)}),\n"
+        # Decoration build: color, borderRadius, border, boxShadow, gradient
+        dec_color = self.get_property_value(prop_dict, 'color') or self.get_property_value(prop_dict, 'decoration.color')
+        br = self.get_property_value(prop_dict, 'borderRadius') or self.get_property_value(prop_dict, 'decoration.borderRadius')
+        border_color = self.get_property_value(prop_dict, 'borderColor') or self.get_property_value(prop_dict, 'decoration.border.color')
+        border_width = self.get_property_value(prop_dict, 'borderWidth') or self.get_property_value(prop_dict, 'decoration.border.width')
+        shadow_color = self.get_property_value(prop_dict, 'boxShadowColor') or self.get_property_value(prop_dict, 'decoration.boxShadow.color')
+        shadow_blur = self.get_property_value(prop_dict, 'boxShadowBlur') or self.get_property_value(prop_dict, 'decoration.boxShadow.blurRadius')
+        shadow_spread = self.get_property_value(prop_dict, 'boxShadowSpread') or self.get_property_value(prop_dict, 'decoration.boxShadow.spreadRadius')
+        shadow_offset_x = self.get_property_value(prop_dict, 'boxShadowOffsetX') or self.get_property_value(prop_dict, 'decoration.boxShadow.offsetX')
+        shadow_offset_y = self.get_property_value(prop_dict, 'boxShadowOffsetY') or self.get_property_value(prop_dict, 'decoration.boxShadow.offsetY')
+        grad_value = self.get_property_value(prop_dict, 'gradient') or self.get_property_value(prop_dict, 'decoration.gradient')
+
+        decoration_parts = []
+        if dec_color:
+            decoration_parts.append(f"color: {DartCodeUtils.generate_color_code(dec_color)}")
+        if br:
+            decoration_parts.append(f"borderRadius: BorderRadius.circular({br})")
+        if border_color or border_width:
+            color_expr = DartCodeUtils.generate_color_code(border_color) if border_color else 'Colors.black'
+            width_expr = border_width if border_width else '1.0'
+            decoration_parts.append(f"border: Border.all(color: {color_expr}, width: {width_expr})")
+        # Single shadow support
+        box_shadow_parts = []
+        if shadow_color:
+            box_shadow_parts.append(f"color: {DartCodeUtils.generate_color_code(shadow_color)}")
+        if shadow_blur:
+            box_shadow_parts.append(f"blurRadius: {shadow_blur}")
+        if shadow_spread:
+            box_shadow_parts.append(f"spreadRadius: {shadow_spread}")
+        if shadow_offset_x or shadow_offset_y:
+            ox = shadow_offset_x if shadow_offset_x else '0'
+            oy = shadow_offset_y if shadow_offset_y else '0'
+            box_shadow_parts.append(f"offset: Offset({ox}, {oy})")
+        if box_shadow_parts:
+            decoration_parts.append(f"boxShadow: [BoxShadow({', '.join(box_shadow_parts)})]")
+        # Gradient: accept two colors via 'gradientStart'/'gradientEnd' or comma-separated string or JSON array
+        grad_start = self.get_property_value(prop_dict, 'gradientStart') or self.get_property_value(prop_dict, 'decoration.gradient.startColor')
+        grad_end = self.get_property_value(prop_dict, 'gradientEnd') or self.get_property_value(prop_dict, 'decoration.gradient.endColor')
+        grad_code = None
+        if grad_start and grad_end:
+            c1 = DartCodeUtils.generate_color_code(grad_start)
+            c2 = DartCodeUtils.generate_color_code(grad_end)
+            grad_code = f"LinearGradient(colors: [{c1}, {c2}])"
+        elif grad_value:
+            try:
+                # Try to parse as comma-separated colors
+                colors = [c.strip() for c in str(grad_value).split(',') if c.strip()]
+                if len(colors) >= 2:
+                    c_list = ', '.join([DartCodeUtils.generate_color_code(c) for c in colors[:4]])
+                    grad_code = f"LinearGradient(colors: [{c_list}])"
+            except Exception:
+                pass
+        if grad_code:
+            decoration_parts.append(f"gradient: {grad_code}")
+
+        if decoration_parts:
+            code += f"{indent}  decoration: BoxDecoration({', '.join(decoration_parts)}),\n"
+
+        # Alignment
+        if 'alignment' in prop_dict:
+            alignment = self.get_property_value(prop_dict, 'alignment')
+            if alignment:
+                code += f"{indent}  alignment: Alignment.{alignment},\n"
+
+        # Constraints (min/max)
+        min_w = self.get_property_value(prop_dict, 'minWidth', None)
+        max_w = self.get_property_value(prop_dict, 'maxWidth', None)
+        min_h = self.get_property_value(prop_dict, 'minHeight', None)
+        max_h = self.get_property_value(prop_dict, 'maxHeight', None)
+        constraints_parts = []
+        if any([min_w, max_w, min_h, max_h]):
+            if min_w:
+                constraints_parts.append(f"minWidth: {min_w}")
+            if max_w:
+                constraints_parts.append(f"maxWidth: {max_w}")
+            if min_h:
+                constraints_parts.append(f"minHeight: {min_h}")
+            if max_h:
+                constraints_parts.append(f"maxHeight: {max_h}")
+            code += f"{indent}  constraints: BoxConstraints({', '.join(constraints_parts)}),\n"
 
         # Add child if exists
         if child_widgets:
@@ -94,6 +170,9 @@ class ColumnRowWidgetHandler(BaseWidgetHandler):
         main_axis = self.get_property_value(prop_dict, 'mainAxisAlignment', 'start')
         cross_axis = self.get_property_value(prop_dict, 'crossAxisAlignment', 'center')
 
+        spacing = self.get_property_value(prop_dict, 'spacing', None)
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
+
         code = f'''{widget.widget_type}(
 {indent}  mainAxisAlignment: MainAxisAlignment.{main_axis},
 {indent}  crossAxisAlignment: CrossAxisAlignment.{cross_axis},'''
@@ -114,12 +193,20 @@ class ColumnRowWidgetHandler(BaseWidgetHandler):
                 child_code = widget_gen.generate_widget(child, context, indent_level + 2)
                 code += f'''
 {indent}    {child_code}'''
-                if i < len(child_widgets) - 1:
+                # Insert spacing as SizedBox between children if provided
+                if spacing and i < len(child_widgets) - 1:
+                    code += f''',
+{indent}    SizedBox({ 'height' if widget.widget_type == 'Column' else 'width' }: {spacing}),'''
+                elif i < len(child_widgets) - 1:
                     code += ','
 
         code += f'''
 {indent}  ],
 {indent})'''
+
+        # Optional padding wrapper
+        if padding_val:
+            code = f"Padding(\n{indent}  padding: EdgeInsets.all({padding_val}),\n{indent}  child: {code}\n{indent})"
 
         return code
 
@@ -162,6 +249,8 @@ class StackWidgetHandler(BaseWidgetHandler):
         bottom = self.get_property_value(prop_dict, 'bottom', None)
         left = self.get_property_value(prop_dict, 'left', None)
         right = self.get_property_value(prop_dict, 'right', None)
+        width = self.get_property_value(prop_dict, 'width', None)
+        height = self.get_property_value(prop_dict, 'height', None)
 
         params = []
         if top:
@@ -172,6 +261,10 @@ class StackWidgetHandler(BaseWidgetHandler):
             params.append(f"left: {left}")
         if right:
             params.append(f"right: {right}")
+        if width:
+            params.append(f"width: {width}")
+        if height:
+            params.append(f"height: {height}")
 
         code = "Positioned("
         if params:
@@ -262,9 +355,22 @@ class CenterWidgetHandler(BaseWidgetHandler):
         return widget_type == 'Center'
 
     def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        prop_dict = self.get_widget_properties(widget)
         child_widgets = self.get_child_widgets(widget)
 
-        code = "Center(child: "
+        width_factor = self.get_property_value(prop_dict, 'widthFactor', None)
+        height_factor = self.get_property_value(prop_dict, 'heightFactor', None)
+
+        params = []
+        if width_factor:
+            params.append(f"widthFactor: {width_factor}")
+        if height_factor:
+            params.append(f"heightFactor: {height_factor}")
+
+        code = "Center("
+        if params:
+            code += ", ".join(params) + ", "
+        code += "child: "
 
         if child_widgets:
             from ..widget_generator import WidgetGenerator
@@ -274,6 +380,35 @@ class CenterWidgetHandler(BaseWidgetHandler):
             code += "Container()"
 
         code += ")"
+        return code
+
+
+class AlignWidgetHandler(BaseWidgetHandler):
+    """Handler for Align widget."""
+
+    def can_handle(self, widget_type: str) -> bool:
+        return widget_type == 'Align'
+
+    def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        indent = self.get_indent(indent_level)
+        prop_dict = self.get_widget_properties(widget)
+        child_widgets = self.get_child_widgets(widget)
+
+        alignment = self.get_property_value(prop_dict, 'alignment', 'center')
+
+        code = f"""Align(
+{indent}  alignment: Alignment.{alignment},
+{indent}  child: """
+
+        if child_widgets:
+            from ..widget_generator import WidgetGenerator
+            widget_gen = WidgetGenerator()
+            code += widget_gen.generate_widget(child_widgets[0], context, indent_level + 1)
+        else:
+            code += "Container()"
+
+        code += f",\n{indent})"
+
         return code
 
 

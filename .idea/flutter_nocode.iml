@@ -15,6 +15,39 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_example_news_app/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_example_news_app/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_example_news_app/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_example_qwe3/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_example_qwe3/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_example_qwe3/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_example_qwe4/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_example_qwe4/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_example_qwe4/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart2_pro/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart2_pro/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart2_pro/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart3_pro/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart3_pro/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart3_pro/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart4_pro/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart4_pro/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart4_pro/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart4_prowithsplash/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart4_prowithsplash/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart4_prowithsplash/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart_pro/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart_pro/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_megamart_pro/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_recipe_recipe/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_recipe_recipe/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_recipe_recipe/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_weatherpro_app/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_weatherpro_app/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_weatherpro_app/build" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_weatherpro_weatherpro/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_weatherpro_weatherpro/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/generated_flutter_projects/com_weatherpro_weatherpro/build" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.13 (flutter_nocode)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

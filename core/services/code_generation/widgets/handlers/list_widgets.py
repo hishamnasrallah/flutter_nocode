@@ -37,8 +37,12 @@ class ListViewHandler(BaseWidgetHandler):
                     scroll_direction, physics, context, indent_level
                 )
 
-        # Static ListView
-        return self._generate_static_list(child_widgets, scroll_direction, physics, context, indent_level)
+        # Static ListView with optional padding
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
+        list_code = self._generate_static_list(child_widgets, scroll_direction, physics, context, indent_level)
+        if padding_val:
+            list_code = list_code.replace("children: [", f"padding: EdgeInsets.all({padding_val}),\n{indent}  children: [")
+        return list_code
 
     def _determine_physics(self, widget: Any, is_horizontal: bool) -> str:
         """Determine appropriate scroll physics."""
@@ -283,6 +287,7 @@ class GridViewHandler(BaseWidgetHandler):
         height = self.get_property_value(prop_dict, 'height', None)
         item_limit = self.get_property_value(prop_dict, 'itemLimit', None)
         aspect_ratio = self.get_property_value(prop_dict, 'childAspectRatio', '1.0')
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
 
         # Check if nested
         physics = self._determine_physics(widget)
@@ -300,9 +305,12 @@ class GridViewHandler(BaseWidgetHandler):
                 )
 
         # Static GridView
-        return self._generate_static_grid(
+        grid_code = self._generate_static_grid(
             columns, scroll_direction, aspect_ratio, physics, is_nested, indent_level
         )
+        if padding_val:
+            grid_code = grid_code.replace("children: [],", f"padding: EdgeInsets.all({padding_val}),\n{indent}  children: [],")
+        return grid_code
 
     def _determine_physics(self, widget: Any) -> str:
         """Determine appropriate scroll physics for GridView."""
@@ -509,9 +517,23 @@ class ListTileHandler(BaseWidgetHandler):
             icon = self.get_property_value(prop_dict, 'trailing', 'arrow_forward')
             code += f"\n{indent}  trailing: Icon(Icons.{icon}),"
 
+        # Optional styling
+        if 'contentPadding' in prop_dict:
+            padding = self.get_property_value(prop_dict, 'contentPadding', None)
+            if padding:
+                code += f"\n{indent}  contentPadding: EdgeInsets.all({padding}),"
+        if 'tileColor' in prop_dict:
+            tile_color = self.get_property_value(prop_dict, 'tileColor', None)
+            if tile_color:
+                code += f"\n{indent}  tileColor: {DartCodeUtils.generate_color_code(tile_color)},"
+
         if 'onTap' in prop_dict:
             action_code = self._generate_action_code(prop_dict.get('onTap'))
             code += f"\n{indent}  onTap: {action_code},"
+
+        if 'onLongPress' in prop_dict:
+            action_code = self._generate_action_code(prop_dict.get('onLongPress'))
+            code += f"\n{indent}  onLongPress: {action_code},"
 
         code += f"\n{indent})"
 
@@ -546,6 +568,7 @@ class SingleChildScrollViewHandler(BaseWidgetHandler):
 
         scroll_direction = self.get_property_value(prop_dict, 'scrollDirection', 'vertical')
         physics = self.get_property_value(prop_dict, 'physics', 'AlwaysScrollableScrollPhysics')
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
 
         code = f'''SingleChildScrollView(
 {indent}  scrollDirection: Axis.{scroll_direction},
@@ -559,15 +582,23 @@ class SingleChildScrollViewHandler(BaseWidgetHandler):
             if len(child_widgets) == 1:
                 code += widget_gen.generate_widget(child_widgets[0], context, indent_level + 1)
             else:
-                code += f'''Column(
+                inner = f'''Column(
 {indent}    mainAxisSize: MainAxisSize.min,
 {indent}    children: [
 '''
                 for child in child_widgets:
-                    code += f"{indent}      {widget_gen.generate_widget(child, context, indent_level + 3)},\n"
-                code += f"{indent}    ],\n{indent}  )"
+                    inner += f"{indent}      {widget_gen.generate_widget(child, context, indent_level + 3)},\n"
+                inner += f"{indent}    ],\n{indent}  )"
+                if padding_val:
+                    code += f"Padding(\n{indent}    padding: EdgeInsets.all({padding_val}),\n{indent}    child: {inner}\n{indent}  )"
+                else:
+                    code += inner
         else:
-            code += "Container()"
+            content = "Container()"
+            if padding_val:
+                code += f"Padding(\n{indent}    padding: EdgeInsets.all({padding_val}),\n{indent}    child: {content}\n{indent}  )"
+            else:
+                code += content
 
         code += f",\n{indent})"
 

@@ -17,6 +17,7 @@ class BottomNavigationHandler(BaseWidgetHandler):
 
     def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
         indent = self.get_indent(indent_level)
+        prop_dict = self.get_widget_properties(widget)
         child_widgets = self.get_child_widgets(widget)
 
         # Generate navigation items and actions from child widgets
@@ -50,11 +51,33 @@ class BottomNavigationHandler(BaseWidgetHandler):
                 nav_actions.append("// No action configured")
 
         # Build the navigation bar
+        current_index = self.get_property_value(prop_dict, 'currentIndex', '0')
+        bg = self.get_property_value(prop_dict, 'backgroundColor', None)
+        sel = self.get_property_value(prop_dict, 'selectedItemColor', None)
+        unsel = self.get_property_value(prop_dict, 'unselectedItemColor', None)
+        icon_size = self.get_property_value(prop_dict, 'iconSize', None)
+        elevation = self.get_property_value(prop_dict, 'elevation', None)
+
         code = f'''BottomNavigationBar(
 {indent}  type: BottomNavigationBarType.fixed,
-{indent}  currentIndex: 0,
-{indent}  selectedItemColor: Theme.of(context).primaryColor,
-{indent}  unselectedItemColor: Colors.grey,
+{indent}  currentIndex: {current_index},'''
+
+        if bg:
+            code += f"\n{indent}  backgroundColor: {DartCodeUtils.generate_color_code(bg)},"
+        if sel:
+            code += f"\n{indent}  selectedItemColor: {DartCodeUtils.generate_color_code(sel)},"
+        else:
+            code += f"\n{indent}  selectedItemColor: Theme.of(context).primaryColor,"
+        if unsel:
+            code += f"\n{indent}  unselectedItemColor: {DartCodeUtils.generate_color_code(unsel)},"
+        else:
+            code += f"\n{indent}  unselectedItemColor: Colors.grey,"
+        if icon_size:
+            code += f"\n{indent}  iconSize: {icon_size},"
+        if elevation:
+            code += f"\n{indent}  elevation: {elevation},"
+
+        code += f'''
 {indent}  onTap: (index) {{
 {indent}    switch (index) {{'''
 
@@ -90,12 +113,35 @@ class AppBarHandler(BaseWidgetHandler):
         return widget_type == 'AppBar'
 
     def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        indent = self.get_indent(indent_level)
         prop_dict = self.get_widget_properties(widget)
 
         title = self.get_property_value(prop_dict, 'title', 'App')
         title = DartCodeUtils.escape_dart_string(title)
 
-        return f"AppBar(title: Text('{title}'))"
+        # Optional properties
+        background_color = self.get_property_value(prop_dict, 'backgroundColor', None)
+        foreground_color = self.get_property_value(prop_dict, 'foregroundColor', None)
+        elevation = self.get_property_value(prop_dict, 'elevation', None)
+        toolbar_height = self.get_property_value(prop_dict, 'toolbarHeight', None)
+        icon_theme_color = (
+            self.get_property_value(prop_dict, 'iconTheme.color', None)
+            or self.get_property_value(prop_dict, 'iconColor', None)
+        )
+
+        params = [f"title: Text('{title}')"]
+        if background_color:
+            params.append(f"backgroundColor: {DartCodeUtils.generate_color_code(background_color)}")
+        if foreground_color:
+            params.append(f"foregroundColor: {DartCodeUtils.generate_color_code(foreground_color)}")
+        if elevation:
+            params.append(f"elevation: {elevation}")
+        if toolbar_height:
+            params.append(f"toolbarHeight: {toolbar_height}")
+        if icon_theme_color:
+            params.append(f"iconTheme: IconThemeData(color: {DartCodeUtils.generate_color_code(icon_theme_color)})")
+
+        return 'AppBar(' + ', '.join(params) + ')'
 
 
 class DrawerHandler(BaseWidgetHandler):
@@ -106,10 +152,20 @@ class DrawerHandler(BaseWidgetHandler):
 
     def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
         indent = self.get_indent(indent_level)
+        prop_dict = self.get_widget_properties(widget)
         child_widgets = self.get_child_widgets(widget)
 
-        code = f'''Drawer(
-{indent}  child: '''
+        width = self.get_property_value(prop_dict, 'width', None)
+        bg = self.get_property_value(prop_dict, 'backgroundColor', None)
+
+        code = f'''Drawer('''
+
+        if width:
+            code += f"\n{indent}  width: {width},"
+        if bg:
+            code += f"\n{indent}  backgroundColor: {DartCodeUtils.generate_color_code(bg)},"
+
+        code += f"\n{indent}  child: "
 
         if child_widgets:
             from ..widget_generator import WidgetGenerator
@@ -146,6 +202,7 @@ class TabBarHandler(BaseWidgetHandler):
 
     def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
         indent = self.get_indent(indent_level)
+        prop_dict = self.get_widget_properties(widget)
         child_widgets = self.get_child_widgets(widget)
 
         # Generate tabs from child widgets or use defaults
@@ -160,8 +217,26 @@ class TabBarHandler(BaseWidgetHandler):
         else:
             tabs = ['Tab 1', 'Tab 2']
 
-        code = f'''TabBar(
-{indent}  tabs: ['''
+        label_color = self.get_property_value(prop_dict, 'labelColor', None)
+        unselected_label_color = self.get_property_value(prop_dict, 'unselectedLabelColor', None)
+        indicator_color = self.get_property_value(prop_dict, 'indicatorColor', None)
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
+        indicator_padding_val = self.get_property_value(prop_dict, 'indicatorPadding', None)
+
+        code = f'''TabBar('''
+
+        if label_color:
+            code += f"\n{indent}  labelColor: {DartCodeUtils.generate_color_code(label_color)},"
+        if unselected_label_color:
+            code += f"\n{indent}  unselectedLabelColor: {DartCodeUtils.generate_color_code(unselected_label_color)},"
+        if indicator_color:
+            code += f"\n{indent}  indicatorColor: {DartCodeUtils.generate_color_code(indicator_color)},"
+        if padding_val:
+            code += f"\n{indent}  padding: EdgeInsets.all({padding_val}),"
+        if indicator_padding_val:
+            code += f"\n{indent}  indicatorPadding: EdgeInsets.all({indicator_padding_val}),"
+
+        code += f"\n{indent}  tabs: ["""
 
         for tab_text in tabs:
             code += f'''

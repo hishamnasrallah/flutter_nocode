@@ -404,6 +404,24 @@ class WidgetPropertyUtils:
         if 'fontStyle' in prop_dict:
             style_props['fontStyle'] = prop_dict['fontStyle'].get_value()
 
+        # Additional text style properties
+        if 'fontFamily' in prop_dict:
+            style_props['fontFamily'] = prop_dict['fontFamily'].get_value()
+        if 'letterSpacing' in prop_dict:
+            style_props['letterSpacing'] = prop_dict['letterSpacing'].get_value()
+        if 'wordSpacing' in prop_dict:
+            style_props['wordSpacing'] = prop_dict['wordSpacing'].get_value()
+        if 'height' in prop_dict:
+            style_props['height'] = prop_dict['height'].get_value()
+        if 'decoration' in prop_dict:
+            style_props['decoration'] = prop_dict['decoration'].get_value()
+        if 'decorationColor' in prop_dict:
+            style_props['decorationColor'] = prop_dict['decorationColor'].get_value()
+        if 'decorationStyle' in prop_dict:
+            style_props['decorationStyle'] = prop_dict['decorationStyle'].get_value()
+        if 'decorationThickness' in prop_dict:
+            style_props['decorationThickness'] = prop_dict['decorationThickness'].get_value()
+
         return style_props
 
     @staticmethod
@@ -456,6 +474,24 @@ class WidgetPropertyUtils:
 
         if 'fontStyle' in style_props and style_props['fontStyle']:
             parts.append(f"fontStyle: FontStyle.{style_props['fontStyle']}")
+
+        if 'fontFamily' in style_props and style_props['fontFamily']:
+            ff = DartCodeUtils.escape_dart_string(style_props['fontFamily'])
+            parts.append(f"fontFamily: '{ff}'")
+        if 'letterSpacing' in style_props and style_props['letterSpacing']:
+            parts.append(f"letterSpacing: {style_props['letterSpacing']}")
+        if 'wordSpacing' in style_props and style_props['wordSpacing']:
+            parts.append(f"wordSpacing: {style_props['wordSpacing']}")
+        if 'height' in style_props and style_props['height']:
+            parts.append(f"height: {style_props['height']}")
+        if 'decoration' in style_props and style_props['decoration']:
+            parts.append(f"decoration: TextDecoration.{style_props['decoration']}")
+        if 'decorationColor' in style_props and style_props['decorationColor']:
+            parts.append(f"decorationColor: {DartCodeUtils.generate_color_code(style_props['decorationColor'])}")
+        if 'decorationStyle' in style_props and style_props['decorationStyle']:
+            parts.append(f"decorationStyle: TextDecorationStyle.{style_props['decorationStyle']}")
+        if 'decorationThickness' in style_props and style_props['decorationThickness']:
+            parts.append(f"decorationThickness: {style_props['decorationThickness']}")
 
         if parts:
             return f", style: TextStyle({', '.join(parts)})"

@@ -97,7 +97,15 @@ class ScreenBuilder:
         content += '    "auto_refresh_switch": true,\n'
         content += '    "dark_mode_switch": false,\n'
         content += '  };\n'
-        content += '  int _selectedIndex = 0;\n\n'
+        # Widgets App detection for property editor (scoped feature)
+        is_widgets_app = (context.application.name == 'Widgets App') or \
+                         ('widgets' in (context.application.package_name or '').lower())
+
+        content += '  int _selectedIndex = 0;\n'
+        if is_widgets_app:
+            content += '  final Map<String, dynamic> _propOverrides = {};\n\n'
+        else:
+            content += '\n'
         content += '  @override\n'
         content += '  void dispose() {\n'
         content += '    _controllers.forEach((key, controller) => controller.dispose());\n'
@@ -105,7 +113,21 @@ class ScreenBuilder:
         content += '  }\n\n'
         content += '  @override\n'
         content += '  Widget build(BuildContext context) {\n'
-        content += '    return Scaffold(\n'
+        # Detect TabBar presence to optionally wrap with DefaultTabController
+        from core.models import Widget as WidgetModel
+        has_tabbar = WidgetModel.objects.filter(screen=screen, widget_type='TabBar').exists()
+        tab_count = 0
+        if has_tabbar:
+            tab_widget = WidgetModel.objects.filter(screen=screen, widget_type='TabBar').first()
+            if tab_widget:
+                tab_count = WidgetModel.objects.filter(parent_widget=tab_widget).count()
+        if has_tabbar:
+            content += '    return DefaultTabController(\n'
+            content += f"      length: {tab_count if tab_count else 2},\n"
+            content += '      child: '
+            content += 'Scaffold(\n'
+        else:
+            content += '    return Scaffold(\n'
 
         # Add AppBar if needed
         if screen.show_app_bar:
@@ -131,9 +153,83 @@ class ScreenBuilder:
         if bottom_nav:
             content += ',\n      bottomNavigationBar: '
             content += self.widget_generator.generate_widget(bottom_nav, context, 0)
+        if is_widgets_app:
+            content += ',\n      floatingActionButton: FloatingActionButton(onPressed: _openPropertyEditor, child: Icon(Icons.edit))'
 
-        content += '\n    );\n'
-        content += '  }\n'
+        if has_tabbar:
+            content += '\n    ));\n'
+        else:
+            content += '\n    );\n'
+        content += '  }\n\n'
+
+        # Widgets App only: generic property editor helpers
+        if is_widgets_app:
+            content += '''  void _openPropertyEditor() {
+    showModalBottomSheet(context: context, isScrollControlled: true, builder: (ctx) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Edit Properties', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                SizedBox(height: 12),
+                _buildTextField('text'),
+                _buildNumberField('width'),
+                _buildNumberField('height'),
+                _buildNumberField('padding'),
+                _buildNumberField('margin'),
+                _buildColorField('color'),
+                SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () { setState(() {}); Navigator.pop(ctx); },
+                    child: Text('Save'),
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildTextField(String key) {
+    final controller = TextEditingController(text: (_propOverrides[key] ?? '').toString());
+    return TextField(
+      decoration: InputDecoration(labelText: key),
+      onChanged: (v) { _propOverrides[key] = v; },
+      controller: controller,
+    );
+  }
+
+  Widget _buildNumberField(String key) {
+    final controller = TextEditingController(text: (_propOverrides[key] ?? '').toString());
+    return TextField(
+      decoration: InputDecoration(labelText: key),
+      keyboardType: TextInputType.number,
+      onChanged: (v) {
+        final parsed = double.tryParse(v);
+        if (parsed != null) _propOverrides[key] = parsed;
+      },
+      controller: controller,
+    );
+  }
+
+  Widget _buildColorField(String key) {
+    final controller = TextEditingController(text: (_propOverrides[key] ?? '').toString());
+    return TextField(
+      decoration: InputDecoration(labelText: key + ' (#RRGGBB)'),
+      onChanged: (v) { _propOverrides[key] = v; },
+      controller: controller,
+    );
+  }
+'''
 
         # Add helper methods if FutureBuilder is used
         if has_future_builder:

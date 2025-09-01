@@ -23,6 +23,9 @@ class CardHandler(BaseWidgetHandler):
         elevation = self.get_property_value(prop_dict, 'elevation', '4')
         margin = self.get_property_value(prop_dict, 'margin', None)
         color = self.get_property_value(prop_dict, 'color', None)
+        shadow_color = self.get_property_value(prop_dict, 'shadowColor', None)
+        border_radius = self.get_property_value(prop_dict, 'borderRadius', None)
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
 
         code = f'''Card(
 {indent}  elevation: {elevation},'''
@@ -32,6 +35,10 @@ class CardHandler(BaseWidgetHandler):
 
         if color:
             code += f"\n{indent}  color: {DartCodeUtils.generate_color_code(color)},"
+        if shadow_color:
+            code += f"\n{indent}  shadowColor: {DartCodeUtils.generate_color_code(shadow_color)},"
+        if border_radius:
+            code += f"\n{indent}  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular({border_radius})),"
 
         code += f'''
 {indent}  child: '''
@@ -40,10 +47,16 @@ class CardHandler(BaseWidgetHandler):
             from ..widget_generator import WidgetGenerator
             widget_gen = WidgetGenerator()
 
+            inner = None
             if len(child_widgets) == 1:
-                code += widget_gen.generate_widget(child_widgets[0], context, indent_level + 1)
+                inner = widget_gen.generate_widget(child_widgets[0], context, indent_level + 1)
             else:
-                code += self._generate_children_column(child_widgets, context, indent_level + 1)
+                inner = self._generate_children_column(child_widgets, context, indent_level + 1)
+
+            if padding_val:
+                code += f"Padding(\n{indent}    padding: EdgeInsets.all({padding_val}),\n{indent}    child: {inner}\n{indent}  )"
+            else:
+                code += inner
         else:
             code += "Container()"
 
@@ -212,6 +225,31 @@ class PageViewHandler(BaseWidgetHandler):
         return code
 
 
+class TabBarViewHandler(BaseWidgetHandler):
+    """Handler for TabBarView widget (renders children in pages)."""
+
+    def can_handle(self, widget_type: str) -> bool:
+        return widget_type == 'TabBarView'
+
+    def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        indent = self.get_indent(indent_level)
+        child_widgets = self.get_child_widgets(widget)
+
+        code = f'''TabBarView(
+{indent}  children: [
+'''
+
+        if child_widgets:
+            from ..widget_generator import WidgetGenerator
+            widget_gen = WidgetGenerator()
+
+            for child in child_widgets:
+                code += f"{indent}    {widget_gen.generate_widget(child, context, indent_level + 2)},\n"
+
+        code += f"{indent}  ],\n{indent})"
+        return code
+
+
 class WrapHandler(BaseWidgetHandler):
     """Handler for Wrap widget."""
 
@@ -225,12 +263,26 @@ class WrapHandler(BaseWidgetHandler):
 
         spacing = self.get_property_value(prop_dict, 'spacing', '8.0')
         run_spacing = self.get_property_value(prop_dict, 'runSpacing', '8.0')
+        direction = self.get_property_value(prop_dict, 'direction', None)
+        alignment = self.get_property_value(prop_dict, 'alignment', None)
+        run_alignment = self.get_property_value(prop_dict, 'runAlignment', None)
+        cross_axis_alignment = self.get_property_value(prop_dict, 'crossAxisAlignment', None)
 
         code = f'''Wrap(
 {indent}  spacing: {spacing},
-{indent}  runSpacing: {run_spacing},
-{indent}  children: [
-'''
+{indent}  runSpacing: {run_spacing},'''
+
+        # Optional alignment params
+        if direction:
+            code += f"\n{indent}  direction: Axis.{direction},"
+        if alignment:
+            code += f"\n{indent}  alignment: WrapAlignment.{alignment},"
+        if run_alignment:
+            code += f"\n{indent}  runAlignment: WrapAlignment.{run_alignment},"
+        if cross_axis_alignment:
+            code += f"\n{indent}  crossAxisAlignment: WrapCrossAlignment.{cross_axis_alignment},"
+
+        code += f"\n{indent}  children: [\n"
 
         if child_widgets:
             from ..widget_generator import WidgetGenerator
@@ -307,9 +359,19 @@ class ScaffoldHandler(BaseWidgetHandler):
     def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
         indent = self.get_indent(indent_level)
         child_widgets = self.get_child_widgets(widget)
+        prop_dict = self.get_widget_properties(widget)
 
-        code = f'''Scaffold(
-{indent}  body: '''
+        # Optional properties
+        background_color = self.get_property_value(prop_dict, 'backgroundColor', None)
+
+        # Start building Scaffold
+        code = f'''Scaffold('''
+
+        # backgroundColor if provided
+        if background_color:
+            code += f"\n{indent}  backgroundColor: {DartCodeUtils.generate_color_code(background_color)},"
+
+        code += f"\n{indent}  body: "
 
         if child_widgets:
             from ..widget_generator import WidgetGenerator
@@ -321,3 +383,167 @@ class ScaffoldHandler(BaseWidgetHandler):
         code += f",\n{indent})"
 
         return code
+
+
+class TooltipHandler(BaseWidgetHandler):
+    """Handler for Tooltip widget."""
+
+    def can_handle(self, widget_type: str) -> bool:
+        return widget_type == 'Tooltip'
+
+    def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        indent = self.get_indent(indent_level)
+        prop_dict = self.get_widget_properties(widget)
+        child_widgets = self.get_child_widgets(widget)
+
+        message = self.get_property_value(prop_dict, 'message', 'Info')
+        message = DartCodeUtils.escape_dart_string(message)
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
+        margin_val = self.get_property_value(prop_dict, 'margin', None)
+
+        code = f"""Tooltip(
+{indent}  message: '{message}',"""
+
+        if padding_val:
+            code += f"\n{indent}  padding: EdgeInsets.all({padding_val}),"
+        if margin_val:
+            code += f"\n{indent}  margin: EdgeInsets.all({margin_val}),"
+
+        code += f"\n{indent}  child: "
+
+        if child_widgets:
+            from ..widget_generator import WidgetGenerator
+            widget_gen = WidgetGenerator()
+            code += widget_gen.generate_widget(child_widgets[0], context, indent_level + 1)
+        else:
+            code += "Icon(Icons.info)"
+
+        code += f",\n{indent})"
+        return code
+
+
+class RichTextHandler(BaseWidgetHandler):
+    """Basic handler for RichText using a single TextSpan from 'text'."""
+
+    def can_handle(self, widget_type: str) -> bool:
+        return widget_type == 'RichText'
+
+    def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        prop_dict = self.get_widget_properties(widget)
+
+        text_value = self.get_property_value(prop_dict, 'text', 'Rich Text')
+        text_value = DartCodeUtils.escape_dart_string(text_value)
+
+        return f"RichText(text: TextSpan(text: '{text_value}', style: DefaultTextStyle.of(context).style))"
+
+
+class ChipHandler(BaseWidgetHandler):
+    """Handler for Chip widget."""
+
+    def can_handle(self, widget_type: str) -> bool:
+        return widget_type == 'Chip'
+
+    def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        indent = self.get_indent(indent_level)
+        prop_dict = self.get_widget_properties(widget)
+
+        label = self.get_property_value(prop_dict, 'label', 'Chip')
+        label = DartCodeUtils.escape_dart_string(label)
+        bg = self.get_property_value(prop_dict, 'backgroundColor', None)
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
+        elevation = self.get_property_value(prop_dict, 'elevation', None)
+
+        params = [f"label: Text('{label}')"]
+        if bg:
+            params.append(f"backgroundColor: {DartCodeUtils.generate_color_code(bg)}")
+        if padding_val:
+            params.append(f"labelPadding: EdgeInsets.all({padding_val})")
+        if elevation:
+            params.append(f"elevation: {elevation}")
+
+        return 'Chip(' + ', '.join(params) + ')'
+
+
+class AvatarHandler(BaseWidgetHandler):
+    """Handler for Avatar widget (CircleAvatar)."""
+
+    def can_handle(self, widget_type: str) -> bool:
+        return widget_type == 'Avatar'
+
+    def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        prop_dict = self.get_widget_properties(widget)
+
+        radius = self.get_property_value(prop_dict, 'radius', None)
+        bg = self.get_property_value(prop_dict, 'backgroundColor', None)
+        fg = self.get_property_value(prop_dict, 'foregroundColor', None)
+        image = self.get_property_value(prop_dict, 'backgroundImage', None)
+        text = self.get_property_value(prop_dict, 'text', None)
+
+        params = []
+        if radius:
+            params.append(f"radius: {radius}")
+        if bg:
+            params.append(f"backgroundColor: {DartCodeUtils.generate_color_code(bg)}")
+        if fg:
+            params.append(f"foregroundColor: {DartCodeUtils.generate_color_code(fg)}")
+        if image:
+            img = DartCodeUtils.escape_dart_string(image)
+            # Use NetworkImage if URL-like, else AssetImage
+            if image.startswith('http'):
+                params.append(f"backgroundImage: NetworkImage('{img}')")
+            else:
+                params.append(f"backgroundImage: AssetImage('{img}')")
+
+        if text and not image:
+            t = DartCodeUtils.escape_dart_string(text)
+            params.append(f"child: Text('{t}')")
+
+        return 'CircleAvatar(' + ', '.join(params) + ')'
+
+
+class BottomSheetHandler(BaseWidgetHandler):
+    """Handler for BottomSheet-like container (as a widget snippet)."""
+
+    def can_handle(self, widget_type: str) -> bool:
+        return widget_type == 'BottomSheet'
+
+    def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        indent = self.get_indent(indent_level)
+        prop_dict = self.get_widget_properties(widget)
+        child_widgets = self.get_child_widgets(widget)
+
+        height = self.get_property_value(prop_dict, 'height', None)
+        bg = self.get_property_value(prop_dict, 'backgroundColor', None)
+        handle = self.get_property_value(prop_dict, 'handle', None)
+
+        # Build inner content
+        from ..widget_generator import WidgetGenerator
+        widget_gen = WidgetGenerator()
+        inner = "Container()"
+        if child_widgets:
+            if len(child_widgets) == 1:
+                inner = widget_gen.generate_widget(child_widgets[0], context, indent_level + 2)
+            else:
+                inner_children = []
+                for child in child_widgets:
+                    inner_children.append(widget_gen.generate_widget(child, context, indent_level + 3))
+                inner = f"Column(\n{indent}    mainAxisSize: MainAxisSize.min,\n{indent}    children: [\n{indent}      " + f",\n{indent}      ".join(inner_children) + f"\n{indent}    ],\n{indent}  )"
+
+        # Outer container representing bottom sheet body
+        params = []
+        if height:
+            params.append(f"height: {height}")
+        if bg:
+            params.append(f"color: {DartCodeUtils.generate_color_code(bg)}")
+
+        content = inner
+        if handle and str(handle).lower() == 'true':
+            # Add a small header handle
+            content = f"Column(\n{indent}    mainAxisSize: MainAxisSize.min,\n{indent}    children: [\n{indent}      Container(width: 40, height: 4, margin: EdgeInsets.only(top: 8, bottom: 12), decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(2))),\n{indent}      {inner}\n{indent}    ],\n{indent}  )"
+
+        container = "Container("
+        if params:
+            container += ", ".join(params) + ", "
+        container += f"child: {content})"
+
+        return container

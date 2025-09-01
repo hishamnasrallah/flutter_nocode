@@ -32,9 +32,16 @@ class ConfigurationManager(BaseGenerator):
             if not self._generate_pubspec_yaml(context):
                 raise ConfigurationException("Failed to generate pubspec.yaml")
 
+            # Ensure asset placeholders (images/fonts) exist
+            self._ensure_asset_placeholders(context)
+
             # Update Android configuration
             if not self._update_android_config(context):
                 self.add_warning("Could not fully update Android configuration")
+
+            # Update iOS configuration
+            if not self._update_ios_config(context):
+                self.add_warning("Could not fully update iOS configuration")
 
             return True
 
@@ -116,11 +123,31 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+"""
+
+        # Add fonts section if any font files exist
+        fonts_dir = context.project_path / 'assets' / 'fonts'
+        if fonts_dir.exists():
+            font_files = [p for p in fonts_dir.glob('*.ttf')]
+            if font_files:
+                family = (context.theme.font_family or 'AppFont') if hasattr(context, 'theme') and context.theme else 'AppFont'
+                yaml_content += f"  fonts:\n    - family: {family}\n      fonts:\n"
+                for p in font_files:
+                    rel = p.relative_to(context.project_path).as_posix()
+                    yaml_content += f"        - asset: {rel}\n"
+
+        # Add flutter_launcher_icons config (expects assets/images/app_icon.png by default)
+        yaml_content += """
+flutter_icons:
+  android: true
+  ios: true
+  image_path: assets/images/app_icon.png
 """
 
         return yaml_content
@@ -168,6 +195,12 @@ flutter:
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
+            # Set application label to app name
+            if 'android:label=' not in content and '<application' in content:
+                content = content.replace(
+                    '<application', f"<application android:label=\"{context.application.name}\""
+                )
+
             # Check if internet permission already exists
             if 'android.permission.INTERNET' not in content:
                 # Add internet permission
@@ -186,6 +219,50 @@ flutter:
         except Exception as e:
             self.add_error(f"Failed to update AndroidManifest.xml: {str(e)}")
             return False
+
+    def _update_ios_config(self, context: GeneratorContext) -> bool:
+        """
+        Update iOS Info.plist with app display name if possible.
+
+        Returns True on best-effort success.
+        """
+        try:
+            info_plist = context.project_path / 'ios' / 'Runner' / 'Info.plist'
+            if not info_plist.exists():
+                return False
+            with open(info_plist, 'r', encoding='utf-8') as f:
+                content = f.read()
+            if '<key>CFBundleDisplayName</key>' not in content:
+                insert_after = '<key>CFBundleName</key>'
+                if insert_after in content:
+                    parts = content.split(insert_after, 1)
+                    suffix = parts[1]
+                    # Insert display name key/value right after CFBundleName key
+                    addition = f"{insert_after}\n    <string>{context.application.name}</string>\n    <key>CFBundleDisplayName</key>\n    <string>{context.application.name}</string>"
+                    content = parts[0] + addition + suffix
+                    with open(info_plist, 'w', encoding='utf-8') as f:
+                        f.write(content)
+            return True
+        except Exception:
+            return False
+
+    def _ensure_asset_placeholders(self, context: GeneratorContext) -> None:
+        """Ensure assets directories contain placeholder files to guide users."""
+        try:
+            images_dir = context.project_path / 'assets' / 'images'
+            fonts_dir = context.project_path / 'assets' / 'fonts'
+            images_dir.mkdir(parents=True, exist_ok=True)
+            fonts_dir.mkdir(parents=True, exist_ok=True)
+
+            readme_images = images_dir / 'README.txt'
+            if not readme_images.exists():
+                self.write_file(readme_images, 'Place image assets here. Expected app icon at assets/images/app_icon.png for launcher icons.', context)
+
+            readme_fonts = fonts_dir / 'README.txt'
+            if not readme_fonts.exists():
+                self.write_file(readme_fonts, 'Place TTF font files here. They will be auto-registered in pubspec.yaml.', context)
+        except Exception:
+            pass
 
     def _update_android_gradle(self, context: GeneratorContext) -> bool:
         """
