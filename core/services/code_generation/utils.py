@@ -493,6 +493,29 @@ class WidgetPropertyUtils:
         if 'decorationThickness' in style_props and style_props['decorationThickness']:
             parts.append(f"decorationThickness: {style_props['decorationThickness']}")
 
+        # Shadows support: expect style_props['shadows'] as list of {color, blurRadius, offsetX, offsetY}
+        shadows = style_props.get('shadows') if isinstance(style_props, dict) else None
+        # Parse JSON string if needed
+        if isinstance(shadows, str):
+            try:
+                import json
+                shadows = json.loads(shadows)
+            except Exception:
+                shadows = None
+        if shadows:
+            shadow_parts = []
+            try:
+                for sh in (shadows if isinstance(shadows, list) else []):
+                    sc = DartCodeUtils.generate_color_code(sh.get('color')) if sh.get('color') else 'Colors.black38'
+                    br = sh.get('blurRadius', 2)
+                    ox = sh.get('offsetX', 0)
+                    oy = sh.get('offsetY', 0)
+                    shadow_parts.append(f"Shadow(color: {sc}, blurRadius: {br}, offset: Offset({ox}, {oy}))")
+            except Exception:
+                shadow_parts = []
+            if shadow_parts:
+                parts.append(f"shadows: [{', '.join(shadow_parts)}]")
+
         if parts:
             return f", style: TextStyle({', '.join(parts)})"
 

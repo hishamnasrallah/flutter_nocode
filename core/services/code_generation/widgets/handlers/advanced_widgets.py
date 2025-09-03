@@ -400,6 +400,11 @@ class TooltipHandler(BaseWidgetHandler):
         message = DartCodeUtils.escape_dart_string(message)
         padding_val = self.get_property_value(prop_dict, 'padding', None)
         margin_val = self.get_property_value(prop_dict, 'margin', None)
+        text_style = self.get_property_value(prop_dict, 'textStyle', None)
+        deco_color = self.get_property_value(prop_dict, 'decoration.color', None)
+        deco_radius = self.get_property_value(prop_dict, 'decoration.borderRadius', None)
+        show_duration = self.get_property_value(prop_dict, 'showDurationMs', None)
+        wait_duration = self.get_property_value(prop_dict, 'waitDurationMs', None)
 
         code = f"""Tooltip(
 {indent}  message: '{message}',"""
@@ -408,6 +413,19 @@ class TooltipHandler(BaseWidgetHandler):
             code += f"\n{indent}  padding: EdgeInsets.all({padding_val}),"
         if margin_val:
             code += f"\n{indent}  margin: EdgeInsets.all({margin_val}),"
+        if text_style:
+            code += f"\n{indent}  textStyle: TextStyle(color: Colors.white)"
+        if deco_color or deco_radius:
+            deco_parts = []
+            if deco_color:
+                deco_parts.append(f"color: {DartCodeUtils.generate_color_code(deco_color)}")
+            if deco_radius:
+                deco_parts.append(f"borderRadius: BorderRadius.circular({deco_radius})")
+            code += f"\n{indent}  decoration: BoxDecoration({', '.join(deco_parts)}),"
+        if show_duration:
+            code += f"\n{indent}  showDuration: Duration(milliseconds: {show_duration}),"
+        if wait_duration:
+            code += f"\n{indent}  waitDuration: Duration(milliseconds: {wait_duration}),"
 
         code += f"\n{indent}  child: "
 
@@ -547,3 +565,110 @@ class BottomSheetHandler(BaseWidgetHandler):
         container += f"child: {content})"
 
         return container
+
+
+class DialogHandler(BaseWidgetHandler):
+    """Handler snippet to produce an in-place AlertDialog widget tree."""
+
+    def can_handle(self, widget_type: str) -> bool:
+        return widget_type in ['Dialog', 'AlertDialog']
+
+    def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        indent = self.get_indent(indent_level)
+        prop_dict = self.get_widget_properties(widget)
+        child_widgets = self.get_child_widgets(widget)
+
+        title_text = self.get_property_value(prop_dict, 'title', 'Dialog Title')
+        content_text = self.get_property_value(prop_dict, 'content', 'Dialog content goes here.')
+        bg = self.get_property_value(prop_dict, 'backgroundColor', None)
+        elevation = self.get_property_value(prop_dict, 'elevation', None)
+        border_radius = self.get_property_value(prop_dict, 'borderRadius', None)
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
+
+        params = []
+        if bg:
+            params.append(f"backgroundColor: {DartCodeUtils.generate_color_code(bg)}")
+        if elevation:
+            params.append(f"elevation: {elevation}")
+        if border_radius:
+            params.append(f"shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular({border_radius}))")
+
+        # Title
+        if title_text:
+            tt = DartCodeUtils.escape_dart_string(title_text)
+            params.append(f"title: Text('{tt}')")
+
+        # Content
+        content_code = ""
+        if child_widgets:
+            from ..widget_generator import WidgetGenerator
+            widget_gen = WidgetGenerator()
+            if len(child_widgets) == 1:
+                content_code = widget_gen.generate_widget(child_widgets[0], context, indent_level + 1)
+            else:
+                inner = []
+                for child in child_widgets:
+                    inner.append(widget_gen.generate_widget(child, context, indent_level + 2))
+                content_code = f"Column(\n{indent}    mainAxisSize: MainAxisSize.min,\n{indent}    children: [\n{indent}      " + f",\n{indent}      ".join(inner) + f"\n{indent}    ],\n{indent}  )"
+        else:
+            ct = DartCodeUtils.escape_dart_string(content_text)
+            content_code = f"Text('{ct}')"
+
+        if padding_val:
+            content_code = f"Padding(padding: EdgeInsets.all({padding_val}), child: {content_code})"
+
+        params.append(f"content: {content_code}")
+
+        # Default action
+        params.append(f"actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('OK'))]")
+
+        return 'AlertDialog(' + ', '.join(params) + ')'
+
+
+class BadgeHandler(BaseWidgetHandler):
+    """Simple Badge handler using a Container overlay approach."""
+
+    def can_handle(self, widget_type: str) -> bool:
+        return widget_type == 'Badge'
+
+    def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
+        indent = self.get_indent(indent_level)
+        prop_dict = self.get_widget_properties(widget)
+        child_widgets = self.get_child_widgets(widget)
+
+        count = self.get_property_value(prop_dict, 'count', None)
+        color = self.get_property_value(prop_dict, 'color', '#F44336')
+        text_color = self.get_property_value(prop_dict, 'textColor', '#FFFFFF')
+        visible = self.get_property_value(prop_dict, 'visibility', True)
+
+        if not child_widgets:
+            base = "Icon(Icons.notifications)"
+        else:
+            from ..widget_generator import WidgetGenerator
+            widget_gen = WidgetGenerator()
+            base = widget_gen.generate_widget(child_widgets[0], context, indent_level + 1)
+
+        badge = f"""Positioned(
+{indent}    right: 0,
+{indent}    top: 0,
+{indent}    child: Container(
+{indent}      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+{indent}      decoration: BoxDecoration(
+{indent}        color: {DartCodeUtils.generate_color_code(color)},
+{indent}        borderRadius: BorderRadius.circular(10),
+{indent}      ),
+{indent}      constraints: BoxConstraints(minWidth: 18, minHeight: 18),
+{indent}      child: Text(
+{indent}        '{str(count) if count is not None else ''}',
+{indent}        style: TextStyle(color: {DartCodeUtils.generate_color_code(text_color)}, fontSize: 12),
+{indent}        textAlign: TextAlign.center,
+{indent}      ),
+{indent}    ),
+{indent}  )"""
+
+        if visible and str(visible).lower() != 'false':
+            overlay = badge
+        else:
+            overlay = f"SizedBox.shrink()"
+
+        return f"Stack(children: [{base}, {overlay}])"

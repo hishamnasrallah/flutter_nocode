@@ -60,6 +60,16 @@ class BuildService:
             build_history.log_output = f"Code generation successful: {message}\n"
             build_history.save()
 
+            # If app icon is enabled and present, generate launcher icons
+            try:
+                if getattr(application, 'enable_launcher_icons', False) and hasattr(application, 'app_icon') and application.app_icon and application.app_icon.image:
+                    ok, icon_msg = self._generate_launcher_icons(application, build_history)
+                    build_history.log_output += icon_msg + "\n"
+                    build_history.save()
+            except Exception as e:
+                build_history.log_output += f"Warning: launcher icons step failed: {e}\n"
+                build_history.save()
+
             # For now, simulate APK build since we don't have a real build server
             # In production, this would send the project to a Flutter build server
             success, apk_path = self._simulate_apk_build(application, build_history)
@@ -109,6 +119,21 @@ class BuildService:
 
             return False, f"Build process failed: {str(e)}"
 
+    def _generate_launcher_icons(self, application, build_history):
+        """Run flutter_launcher_icons if configured and icon exists."""
+        import subprocess
+        project_path = settings.GENERATED_CODE_PATH / f"{application.package_name.replace('.', '_')}"
+        flutter_exe = os.path.join(settings.FLUTTER_SDK_PATH, 'bin', 'flutter.bat' if os.name == 'nt' else 'flutter')
+        if not project_path.exists():
+            return False, f"Launcher icons skipped: project path missing ({project_path})"
+        # Ensure pub get before running
+        subprocess.run([flutter_exe, 'pub', 'get'], cwd=project_path, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120, env=os.environ.copy())
+        # Run launcher icons
+        result = subprocess.run([flutter_exe, 'pub', 'run', 'flutter_launcher_icons:main'], cwd=project_path, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=180, env=os.environ.copy())
+        if result.returncode == 0:
+            return True, "Launcher icons generated"
+        return False, f"Launcher icons generation failed: {result.stderr[:300]}"
+
     def _simulate_apk_build(self, application, build_history):
         """Build APK using configured Flutter SDK"""
         import subprocess
@@ -145,10 +170,8 @@ class BuildService:
 
             # On Windows, kill any lingering Java/Gradle processes
             if os.name == 'nt':
-                subprocess.run(['taskkill', '/F', '/IM', 'java.exe'],
-                               capture_output=True, shell=True)
-                subprocess.run(['taskkill', '/F', '/IM', 'gradle.exe'],
-                               capture_output=True, shell=True)
+                subprocess.run(['taskkill', '/F', '/IM', 'java.exe'], capture_output=True, text=True, encoding='utf-8', errors='replace', shell=True)
+                subprocess.run(['taskkill', '/F', '/IM', 'gradle.exe'], capture_output=True, text=True, encoding='utf-8', errors='replace', shell=True)
                 import time
                 time.sleep(1)  # Give time for processes to terminate
 
@@ -167,6 +190,8 @@ class BuildService:
                 cwd=project_path,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=120,
                 env=os.environ.copy()
             )
@@ -184,6 +209,8 @@ class BuildService:
                 cwd=project_path,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=300,
                 env=os.environ.copy()
             )
@@ -206,6 +233,8 @@ class BuildService:
                 cwd=project_path,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=60,
                 env=os.environ.copy()
             )
@@ -222,6 +251,8 @@ class BuildService:
                 cwd=project_path,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=120,
                 env=os.environ.copy()
             )
@@ -243,6 +274,8 @@ class BuildService:
                 cwd=project_path,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=60,
                 env=os.environ.copy()
             )
@@ -257,6 +290,8 @@ class BuildService:
                 cwd=project_path,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=timeout,
                 env=os.environ.copy()
             )

@@ -12,7 +12,8 @@ from django.utils.safestring import mark_safe
 from flutter_nocode import settings
 from .models import (
     Theme, Application, DataSource, DataSourceField, Screen,
-    Widget, WidgetProperty, Action, BuildHistory, CustomPubDevWidget
+    Widget, WidgetProperty, Action, BuildHistory, CustomPubDevWidget,
+    AppIcon, Asset, PubspecDependency
 )
 # from .services.code_generator import FlutterCodeGenerator
 from .services.build_service import BuildService
@@ -108,6 +109,25 @@ class CustomPubDevWidgetInline(admin.TabularInline):
     fields = ('package_name', 'package_version', 'widget_class_name', 'import_statement', 'is_active')
 
 
+class AppIconInline(admin.StackedInline):
+    model = AppIcon
+    extra = 0
+    max_num = 1
+    fields = ('image', 'background_color', 'adaptive')
+
+
+class AssetInline(admin.TabularInline):
+    model = Asset
+    extra = 0
+    fields = ('file', 'asset_type', 'logical_path', 'is_app_icon', 'tags')
+
+
+class PubspecDependencyInline(admin.TabularInline):
+    model = PubspecDependency
+    extra = 0
+    fields = ('name', 'version_or_config', 'dev_dependency')
+
+
 @admin.register(Theme)
 class ThemeAdmin(admin.ModelAdmin):
     list_display = ('name', 'primary_color', 'accent_color', 'is_dark_mode', 'created_at')
@@ -157,7 +177,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         }),
     )
 
-    inlines = [ScreenInline, ActionInline, CustomPubDevWidgetInline, BuildHistoryInline]
+    inlines = [AppIconInline, AssetInline, PubspecDependencyInline, ScreenInline, ActionInline, CustomPubDevWidgetInline, BuildHistoryInline]
 
     actions = ['generate_flutter_code', 'build_apk', 'clean_project_directory', 'create_sample_ecommerce',
                'create_sample_social_media', 'create_sample_news', 'create_full_marketplace',

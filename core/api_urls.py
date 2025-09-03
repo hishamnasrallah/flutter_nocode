@@ -13,5 +13,8 @@ router.register(r'data-sources', viewsets.DataSourceViewSet, basename='datasourc
 router.register(r'data-source-fields', viewsets.DataSourceFieldViewSet, basename='datasourcefield')
 router.register(r'build-history', viewsets.BuildHistoryViewSet, basename='buildhistory')
 router.register(r'custom-widgets', viewsets.CustomPubDevWidgetViewSet, basename='custompubdevwidget')
+router.register(r'app-icons', viewsets.AppIconViewSet, basename='appicon')
+router.register(r'assets', viewsets.AssetViewSet, basename='asset')
+router.register(r'pubspec-dependencies', viewsets.PubspecDependencyViewSet, basename='pubspecdependency')
 
 urlpatterns = router.urls

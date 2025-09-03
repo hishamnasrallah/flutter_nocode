@@ -91,6 +91,11 @@ class Application(models.Model):
         verbose_name="App Version",
         help_text="Version number of your app (e.g., '1.0.0', '2.1.3')"
     )
+    enable_launcher_icons = models.BooleanField(
+        default=True,
+        verbose_name="Generate Launcher Icons",
+        help_text="If an app icon is provided, generate platform launcher icons automatically"
+    )
     theme = models.ForeignKey(
         Theme,
         on_delete=models.CASCADE,
@@ -377,10 +382,9 @@ class Widget(models.Model):
         verbose_name="Screen"
     )
     widget_type = models.CharField(
-        max_length=50,
-        choices=WIDGET_TYPES,
+        max_length=100,
         verbose_name="Widget Type",
-        help_text="What type of element do you want to add?"
+        help_text="Widget class/type (e.g., Text, Container, CarouselSlider, Custom_package)"
     )
     parent_widget = models.ForeignKey(
         'self',
@@ -824,3 +828,107 @@ class CustomPubDevWidget(models.Model):
 
     def __str__(self):
         return f"{self.application.name} - {self.widget_class_name}"
+
+
+class AppIcon(models.Model):
+    """Launcher icon configuration and source image."""
+
+    application = models.OneToOneField(
+        Application,
+        on_delete=models.CASCADE,
+        related_name='app_icon',
+        verbose_name="Application"
+    )
+    image = models.ImageField(
+        upload_to='app_icons/',
+        blank=True,
+        null=True,
+        verbose_name="Icon Image",
+        help_text="Provide a square PNG (1024x1024 recommended)"
+    )
+    background_color = ColorField(
+        default='#FFFFFF',
+        verbose_name="Background Color"
+    )
+    adaptive = models.BooleanField(
+        default=True,
+        verbose_name="Adaptive Icon"
+    )
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.image and not self.image.name.lower().endswith('.png'):
+            raise ValidationError({'image': 'Icon image must be a PNG file.'})
+
+    def __str__(self):
+        return f"{self.application.name} Icon"
+
+
+class Asset(models.Model):
+    """Generic asset managed in DB."""
+
+    ASSET_TYPES = [
+        ('image', 'Image'),
+        ('font', 'Font'),
+        ('animation', 'Animation'),
+        ('translation', 'Translation'),
+        ('other', 'Other'),
+    ]
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name='assets',
+        verbose_name='Application'
+    )
+    file = models.FileField(upload_to='assets_uploads/', verbose_name='File')
+    asset_type = models.CharField(max_length=20, choices=ASSET_TYPES, default='image')
+    logical_path = models.CharField(
+        max_length=255,
+        verbose_name='Logical Path',
+        help_text="Target path inside project (e.g., assets/images/icons/)"
+    )
+    is_app_icon = models.BooleanField(default=False)
+    tags = models.JSONField(blank=True, null=True, default=dict)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.asset_type == 'font' and not (self.file and self.file.name.lower().endswith('.ttf')):
+            raise ValidationError({'file': 'Font assets must be TTF files.'})
+        if not self.logical_path.endswith('/'):
+            raise ValidationError({'logical_path': "Logical path should end with a '/' (e.g., assets/images/)."})
+
+    class Meta:
+        verbose_name = 'Asset'
+        verbose_name_plural = 'Assets'
+
+    def __str__(self):
+        return f"{self.application.name} - {self.logical_path} ({self.asset_type})"
+
+
+class PubspecDependency(models.Model):
+    """Dependency entry for pubspec."""
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name='pubspec_dependencies',
+        verbose_name='Application'
+    )
+    name = models.CharField(max_length=100)
+    version_or_config = models.TextField(
+        help_text="Version string (e.g., ^1.2.3) or YAML snippet for complex configs"
+    )
+    dev_dependency = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ['application', 'name', 'dev_dependency']
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not self.name or not self.name.strip():
+            raise ValidationError({'name': 'Dependency name is required.'})
+
+    def __str__(self):
+        return f"{self.application.name} - {self.name} ({'dev' if self.dev_dependency else 'prod'})"

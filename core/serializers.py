@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import (
     Theme, Application, DataSource, DataSourceField,
     Screen, Widget, WidgetProperty, Action, BuildHistory,
-    CustomPubDevWidget
+    CustomPubDevWidget, AppIcon, Asset, PubspecDependency
 )
 from django.contrib.auth.models import User
 import json
@@ -204,13 +204,17 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     actions = ActionSerializer(many=True, read_only=True)
     custom_widgets = serializers.SerializerMethodField()
     statistics = serializers.SerializerMethodField()
+    app_icon = serializers.SerializerMethodField()
+    dependencies = serializers.SerializerMethodField()
+    assets = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
         fields = ('id', 'name', 'description', 'package_name', 'version', 'theme',
                   'theme_id', 'build_status', 'apk_file', 'source_code_zip',
                   'screens', 'data_sources', 'actions', 'custom_widgets',
-                  'statistics', 'created_at', 'updated_at')
+                  'statistics', 'app_icon', 'dependencies', 'assets',
+                  'created_at', 'updated_at')
         read_only_fields = ('id', 'created_at', 'updated_at', 'build_status',
                             'apk_file', 'source_code_zip')
 
@@ -227,6 +231,37 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             'builds_count': obj.build_history.count(),
             'successful_builds': obj.build_history.filter(status='success').count()
         }
+
+    def get_app_icon(self, obj):
+        if hasattr(obj, 'app_icon') and obj.app_icon and obj.app_icon.image:
+            return {
+                'image': obj.app_icon.image.url,
+                'background_color': obj.app_icon.background_color,
+                'adaptive': obj.app_icon.adaptive
+            }
+        return None
+
+    def get_dependencies(self, obj):
+        return [
+            {
+                'name': dep.name,
+                'version_or_config': dep.version_or_config,
+                'dev': dep.dev_dependency
+            }
+            for dep in obj.pubspec_dependencies.all()
+        ]
+
+    def get_assets(self, obj):
+        return [
+            {
+                'file': a.file.url if a.file else None,
+                'type': a.asset_type,
+                'logical_path': a.logical_path,
+                'is_app_icon': a.is_app_icon,
+                'tags': a.tags or {}
+            }
+            for a in obj.assets.all()
+        ]
 
 
 class BuildHistorySerializer(serializers.ModelSerializer):

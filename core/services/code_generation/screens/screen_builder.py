@@ -316,7 +316,39 @@ class ScreenBuilder:
             # Add any additional imports needed for grid views
             pass
 
-        return '\n'.join(imports)
+        # Auto-import custom pub.dev widgets used on this screen
+        try:
+            from core.models import CustomPubDevWidget, Widget as WidgetModel
+            custom_widgets = CustomPubDevWidget.objects.filter(application=screen.application, is_active=True)
+            used_imports = set()
+            # Collect all widget types on this screen
+            screen_widget_types = set(
+                WidgetModel.objects.filter(screen=screen).values_list('widget_type', flat=True)
+            )
+            for cw in custom_widgets:
+                class_name = (cw.widget_class_name or '').strip()
+                pkg = (cw.package_name or '').strip().lower()
+                imp = (cw.import_statement or '').strip()
+                if not class_name or not imp:
+                    continue
+                # Consider both exact class usage and generic Custom_<package>
+                uses_widget = (class_name in screen_widget_types) or (f"Custom_{pkg}" in { 'screen_widget_types' })
+                if uses_widget and imp not in used_imports:
+                    imports.append(f"import '{imp}';")
+                    used_imports.add(imp)
+        except Exception:
+            # Best-effort; missing relations/imports should not break generation
+            pass
+
+        # Ensure uniqueness and stable order
+        seen = set()
+        unique_imports = []
+        for line in imports:
+            if line not in seen:
+                unique_imports.append(line)
+                seen.add(line)
+
+        return '\n'.join(unique_imports)
 
     def _get_root_widgets(self, screen: Any) -> List[Any]:
         """

@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -13,7 +13,7 @@ from datetime import datetime
 from .models import (
     Theme, Application, DataSource, DataSourceField,
     Screen, Widget, WidgetProperty, Action, BuildHistory,
-    CustomPubDevWidget
+    CustomPubDevWidget, AppIcon, Asset, PubspecDependency
 )
 from .serializers import (
     ThemeSerializer, ApplicationListSerializer, ApplicationDetailSerializer,
@@ -176,6 +176,42 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return ApplicationListSerializer
         return ApplicationDetailSerializer
+
+
+class AppIconViewSet(viewsets.ModelViewSet):
+    queryset = AppIcon.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    class Serializer(serializers.ModelSerializer):
+        class Meta:
+            model = AppIcon
+            fields = ('id', 'application', 'image', 'background_color', 'adaptive')
+
+    serializer_class = Serializer
+
+
+class AssetViewSet(viewsets.ModelViewSet):
+    queryset = Asset.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    class Serializer(serializers.ModelSerializer):
+        class Meta:
+            model = Asset
+            fields = ('id', 'application', 'file', 'asset_type', 'logical_path', 'is_app_icon', 'tags', 'uploaded_at')
+
+    serializer_class = Serializer
+
+
+class PubspecDependencyViewSet(viewsets.ModelViewSet):
+    queryset = PubspecDependency.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    class Serializer(serializers.ModelSerializer):
+        class Meta:
+            model = PubspecDependency
+            fields = ('id', 'application', 'name', 'version_or_config', 'dev_dependency')
+
+    serializer_class = Serializer
 
     @action(detail=True, methods=['post'])
     def clone(self, request, pk=None):

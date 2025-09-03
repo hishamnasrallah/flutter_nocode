@@ -192,21 +192,41 @@ class ButtonWidgetHandler(BaseWidgetHandler):
             elif action.action_type == 'show_dialog':
                 title = DartCodeUtils.escape_dart_string(action.dialog_title or 'Alert')
                 message = DartCodeUtils.escape_dart_string(action.dialog_message or 'Message')
-                return f'''() {{
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text('{title}'),
-              content: Text('{message}'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('OK'),
-                ),
-              ],
-            ),
-          );
-        }}'''
+                # Parse styling parameters
+                try:
+                    import json
+                    params = json.loads(action.parameters) if action.parameters else {}
+                except Exception:
+                    params = {}
+                bg = params.get('backgroundColor')
+                elevation = params.get('elevation')
+                border_radius = params.get('borderRadius')
+                padding = params.get('padding')
+                title_color = params.get('titleColor')
+                content_color = params.get('contentColor')
+                ok_text = params.get('okText', 'OK')
+
+                style_parts = []
+                if bg:
+                    style_parts.append(f"backgroundColor: {DartCodeUtils.generate_color_code(bg)}")
+                if elevation:
+                    style_parts.append(f"elevation: {elevation}")
+                if border_radius:
+                    style_parts.append(f"shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular({border_radius}))")
+
+                title_widget = f"Text('{title}'" + (f", style: TextStyle(color: {DartCodeUtils.generate_color_code(title_color)})" if title_color else '') + ")"
+                content_widget = f"Text('{message}'" + (f", style: TextStyle(color: {DartCodeUtils.generate_color_code(content_color)})" if content_color else '') + ")"
+                if padding:
+                    content_widget = f"Padding(padding: EdgeInsets.all({padding}), child: {content_widget})"
+
+                alert_params = []
+                if style_parts:
+                    alert_params.append(', '.join(style_parts))
+                alert_params.append(f"title: {title_widget}")
+                alert_params.append(f"content: {content_widget}")
+                alert_params.append(f"actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('{DartCodeUtils.escape_dart_string(ok_text)}'))]")
+
+                return f"() {{ showDialog(context: context, builder: (context) => AlertDialog(" + ', '.join(alert_params) + ")); }}"
             elif action.action_type == 'show_snackbar':
                 message = DartCodeUtils.escape_dart_string(action.dialog_message or 'Done')
                 # Try to parse parameters as JSON for styling

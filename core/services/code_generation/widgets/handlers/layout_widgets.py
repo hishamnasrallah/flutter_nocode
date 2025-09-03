@@ -101,6 +101,26 @@ class ContainerWidgetHandler(BaseWidgetHandler):
         if decoration_parts:
             code += f"{indent}  decoration: BoxDecoration({', '.join(decoration_parts)}),\n"
 
+        # Transform and clipBehavior
+        transform = self.get_property_value(prop_dict, 'transform', None)
+        if transform:
+            # Support simple transforms: rotate, scale, translate as dict
+            try:
+                if isinstance(transform, dict):
+                    if 'rotate' in transform:
+                        code += f"{indent}  transform: Matrix4.rotationZ({transform['rotate']}),\n"
+                    elif 'scale' in transform:
+                        code += f"{indent}  transform: Matrix4.identity()..scale({transform['scale']}),\n"
+                    elif 'translateX' in transform or 'translateY' in transform:
+                        tx = transform.get('translateX', 0)
+                        ty = transform.get('translateY', 0)
+                        code += f"{indent}  transform: Matrix4.translationValues({tx}, {ty}, 0),\n"
+            except Exception:
+                pass
+        clip_behavior = self.get_property_value(prop_dict, 'clipBehavior', None)
+        if clip_behavior:
+            code += f"{indent}  clipBehavior: Clip.{clip_behavior},\n"
+
         # Alignment
         if 'alignment' in prop_dict:
             alignment = self.get_property_value(prop_dict, 'alignment')
@@ -172,8 +192,11 @@ class ColumnRowWidgetHandler(BaseWidgetHandler):
 
         spacing = self.get_property_value(prop_dict, 'spacing', None)
         padding_val = self.get_property_value(prop_dict, 'padding', None)
+        bg_color = self.get_property_value(prop_dict, 'backgroundColor', None)
+        radius = self.get_property_value(prop_dict, 'borderRadius', None)
+        elevation = self.get_property_value(prop_dict, 'elevation', None)
 
-        code = f'''{widget.widget_type}(
+        inner = f'''{widget.widget_type}(
 {indent}  mainAxisAlignment: MainAxisAlignment.{main_axis},
 {indent}  crossAxisAlignment: CrossAxisAlignment.{cross_axis},'''
 
@@ -182,7 +205,7 @@ class ColumnRowWidgetHandler(BaseWidgetHandler):
             code += f'''
 {indent}  mainAxisSize: MainAxisSize.min,'''
 
-        code += f'''
+        inner += f'''
 {indent}  children: ['''
 
         if child_widgets:
@@ -191,24 +214,34 @@ class ColumnRowWidgetHandler(BaseWidgetHandler):
 
             for i, child in enumerate(child_widgets):
                 child_code = widget_gen.generate_widget(child, context, indent_level + 2)
-                code += f'''
+                inner += f'''
 {indent}    {child_code}'''
                 # Insert spacing as SizedBox between children if provided
                 if spacing and i < len(child_widgets) - 1:
-                    code += f''',
+                    inner += f''',
 {indent}    SizedBox({ 'height' if widget.widget_type == 'Column' else 'width' }: {spacing}),'''
                 elif i < len(child_widgets) - 1:
-                    code += ','
+                    inner += ','
 
-        code += f'''
+        inner += f'''
 {indent}  ],
 {indent})'''
 
-        # Optional padding wrapper
+        # Optional visual wrappers: padding, background with radius/elevation
+        widget_code = inner
+        if bg_color or radius or elevation:
+            deco_parts = []
+            if bg_color:
+                deco_parts.append(f"color: {DartCodeUtils.generate_color_code(bg_color)}")
+            if radius:
+                deco_parts.append(f"borderRadius: BorderRadius.circular({radius})")
+            if elevation:
+                deco_parts.append(f"boxShadow: [BoxShadow(color: Colors.black26, blurRadius: {elevation})]")
+            widget_code = f"Container(\n{indent}  decoration: BoxDecoration({', '.join(deco_parts)}),\n{indent}  child: {inner}\n{indent})"
         if padding_val:
-            code = f"Padding(\n{indent}  padding: EdgeInsets.all({padding_val}),\n{indent}  child: {code}\n{indent})"
+            widget_code = f"Padding(\n{indent}  padding: EdgeInsets.all({padding_val}),\n{indent}  child: {widget_code}\n{indent})"
 
-        return code
+        return widget_code
 
 
 class StackWidgetHandler(BaseWidgetHandler):
@@ -229,19 +262,15 @@ class StackWidgetHandler(BaseWidgetHandler):
 
     def _generate_stack(self, children: list, context: GeneratorContext, indent_level: int) -> str:
         indent = self.get_indent(indent_level)
-
+        # Try to read visuals from a pseudo property on parent child (not provided here). Keep simple.
         from ..widget_generator import WidgetGenerator
         widget_gen = WidgetGenerator()
-
-        code = f'''Stack(
-{indent}  children: [
-'''
+        body = f"""[
+"""
         for child in children:
-            code += f"{indent}    {widget_gen.generate_widget(child, context, indent_level + 2)},\n"
-
-        code += f"{indent}  ],\n{indent})"
-
-        return code
+            body += f"{indent}    {widget_gen.generate_widget(child, context, indent_level + 2)},\n"
+        body += f"{indent}  ]"
+        return f"Stack(\n{indent}  children: {body},\n{indent})"
 
     def _generate_positioned(self, prop_dict: dict, children: list, context: GeneratorContext,
                              indent_level: int) -> str:

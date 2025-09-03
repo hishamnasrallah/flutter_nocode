@@ -53,6 +53,7 @@ class CustomPubDevWidgetHandler(BaseWidgetHandler):
         """Generate generic custom widget code."""
         indent = self.get_indent(indent_level)
         prop_dict = self.get_widget_properties(widget)
+        child_widgets = self.get_child_widgets(widget)
 
         # Try to determine the widget class name
         widget_class = widget.widget_type
@@ -65,6 +66,29 @@ class CustomPubDevWidgetHandler(BaseWidgetHandler):
             value = prop.get_value()
             if value is not None and value != '':
                 props.append(f"{prop_name}: {self._format_value(value)}")
+
+        # Handle children/child mapping dynamically via property or heuristic
+        if child_widgets:
+            children_param = None
+            # If user provided an explicit param name via a special property
+            if 'childrenParam' in prop_dict:
+                children_param = prop_dict['childrenParam'].get_value()
+            # Heuristic: if more than one child, prefer 'children', else 'child'
+            if not children_param:
+                children_param = 'children' if len(child_widgets) > 1 else 'child'
+
+            from ..widget_generator import WidgetGenerator
+            widget_gen = WidgetGenerator()
+
+            if children_param == 'children' or children_param == 'items':
+                items = []
+                for ch in child_widgets:
+                    items.append(widget_gen.generate_widget(ch, context, indent_level + 2))
+                list_str = ',\n' + indent + '  ' + (',\n' + indent + '  ').join(items) + '\n' + indent
+                props.append(f"{children_param}: [{list_str}]")
+            elif children_param == 'child':
+                child_code = widget_gen.generate_widget(child_widgets[0], context, indent_level + 1)
+                props.append(f"child: {child_code}")
 
         code = f"{widget_class}("
         if props:
@@ -97,11 +121,24 @@ class CarouselSliderHandler(BaseWidgetHandler):
     def generate(self, widget: Any, context: GeneratorContext, indent_level: int) -> str:
         indent = self.get_indent(indent_level)
         prop_dict = self.get_widget_properties(widget)
+        child_widgets = self.get_child_widgets(widget)
 
         # Get carousel properties
         auto_play = self.get_property_value(prop_dict, 'autoPlay', True)
         height = self.get_property_value(prop_dict, 'height', 200)
         enlarge = self.get_property_value(prop_dict, 'enlargeCenterPage', True)
+
+        # Build items from children if present; else leave placeholder
+        items_code = ''
+        if child_widgets:
+            from ..widget_generator import WidgetGenerator
+            widget_gen = WidgetGenerator()
+            items = []
+            for ch in child_widgets:
+                items.append(widget_gen.generate_widget(ch, context, indent_level + 2))
+            items_code = f"\n{indent}  items: [\n" + f"{indent}    " + f",\n{indent}    ".join(items) + f"\n{indent}  ],"
+        else:
+            items_code = f"\n{indent}  items: [\n{indent}    // TODO: Add slides here\n{indent}  ],"
 
         code = f'''CarouselSlider(
 {indent}  options: CarouselOptions(
@@ -110,10 +147,7 @@ class CarouselSliderHandler(BaseWidgetHandler):
 {indent}    enlargeCenterPage: {str(enlarge).lower()},
 {indent}    autoPlayInterval: Duration(seconds: 3),
 {indent}    autoPlayAnimationDuration: Duration(milliseconds: 800),
-{indent}  ),
-{indent}  items: [
-{indent}    // Add carousel items here
-{indent}  ],
+{indent}  ),{items_code}
 {indent})'''
 
         return code

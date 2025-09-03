@@ -69,27 +69,38 @@ class DropdownHandler(BaseWidgetHandler):
 
         items = self.get_property_value(prop_dict, 'items', 'Option 1,Option 2,Option 3')
         value = self.get_property_value(prop_dict, 'value', None)
+        icon = self.get_property_value(prop_dict, 'icon', None)
+        item_height = self.get_property_value(prop_dict, 'itemHeight', None)
+        is_dense = self.get_property_value(prop_dict, 'isDense', None)
+        is_expanded = self.get_property_value(prop_dict, 'isExpanded', None)
+        padding_val = self.get_property_value(prop_dict, 'padding', None)
 
         items_list = items.split(',')
 
-        code = f'''DropdownButton<String>(
-{indent}  value: {f'"{value}"' if value else 'null'},
-{indent}  items: ['''
+        params = [f"value: {'\"' + value + '\"' if value else 'null'}"]
 
+        # Build items
+        items_code = f"{indent}  items: ["
         for item in items_list:
             item_text = DartCodeUtils.escape_dart_string(item.strip())
-            code += f'''
-{indent}    DropdownMenuItem(
-{indent}      value: '{item_text}',
-{indent}      child: Text('{item_text}'),
-{indent}    ),'''
+            items_code += f"\n{indent}    DropdownMenuItem(value: '{item_text}', child: Text('{item_text}')),"
+        items_code += f"\n{indent}  ]"
 
-        code += f'''
-{indent}  ],
-{indent}  onChanged: (String? newValue) {{}},
-{indent})'''
+        extras = []
+        if icon:
+            extras.append(f"icon: Icon(Icons.{icon})")
+        if item_height:
+            extras.append(f"itemHeight: {item_height}")
+        if is_dense is not None and str(is_dense) != '':
+            extras.append(f"isDense: {str(is_dense).lower()}")
+        if is_expanded is not None and str(is_expanded) != '':
+            extras.append(f"isExpanded: {str(is_expanded).lower()}")
 
-        return code
+        base = f"DropdownButton<String>(\n{indent}  " + ",\n{indent}  ".join([params[0], items_code, "onChanged: (String? newValue) {}"] + extras) + f"\n{indent})"
+
+        if padding_val:
+            return f"Padding(\n{indent}  padding: EdgeInsets.all({padding_val}),\n{indent}  child: {base}\n{indent})"
+        return base
 
 
 class SwitchCheckboxRadioHandler(BaseWidgetHandler):
@@ -113,38 +124,55 @@ class SwitchCheckboxRadioHandler(BaseWidgetHandler):
     def _generate_switch(self, prop_dict: dict) -> str:
         """Generate Switch widget."""
         value = self.get_property_value(prop_dict, 'value', True)
+        active_color = self.get_property_value(prop_dict, 'activeColor', None)
+        inactive_thumb_color = self.get_property_value(prop_dict, 'inactiveColor', None)
+        inactive_track_color = self.get_property_value(prop_dict, 'inactiveTrackColor', None)
 
         # For stateful widgets, use state variable
         widget_id = self.get_property_value(prop_dict, 'widget_id', 'switch')
-
-        return f'''Switch(
-          value: _stateVariables['{widget_id}'] ?? false,
-          onChanged: (bool value) {{
-            setState(() {{
-              _stateVariables['{widget_id}'] = value;
-            }});
-          }},
-        )'''
+        parts = [
+            f"value: _stateVariables['{widget_id}'] ?? {str(value).lower()}",
+            "onChanged: (bool value) { setState(() { _stateVariables['" + widget_id + "'] = value; }); }"
+        ]
+        if active_color:
+            parts.append(f"activeColor: {DartCodeUtils.generate_color_code(active_color)}")
+        if inactive_thumb_color:
+            parts.append(f"inactiveThumbColor: {DartCodeUtils.generate_color_code(inactive_thumb_color)}")
+        if inactive_track_color:
+            parts.append(f"inactiveTrackColor: {DartCodeUtils.generate_color_code(inactive_track_color)}")
+        return "Switch(" + ', '.join(parts) + ")"
 
     def _generate_checkbox(self, prop_dict: dict) -> str:
         """Generate Checkbox widget."""
         value = self.get_property_value(prop_dict, 'value', False)
         action_code = self._generate_action_code(prop_dict.get('onChanged'))
+        active_color = self.get_property_value(prop_dict, 'activeColor', None)
+        check_color = self.get_property_value(prop_dict, 'checkColor', None)
+        shape = self.get_property_value(prop_dict, 'shape', None)
 
         value_str = str(value).lower() if isinstance(value, bool) else 'false'
         on_changed = action_code if action_code != 'null' else '(bool? v) {}'
-
-        return f"Checkbox(value: {value_str}, onChanged: {on_changed})"
+        parts = [f"value: {value_str}", f"onChanged: {on_changed}"]
+        if active_color:
+            parts.append(f"activeColor: {DartCodeUtils.generate_color_code(active_color)}")
+        if check_color:
+            parts.append(f"checkColor: {DartCodeUtils.generate_color_code(check_color)}")
+        if shape:
+            parts.append("shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(" + str(shape) + "))")
+        return "Checkbox(" + ', '.join(parts) + ")"
 
     def _generate_radio(self, prop_dict: dict) -> str:
         """Generate Radio widget."""
         value = self.get_property_value(prop_dict, 'value', '1')
         group_value = self.get_property_value(prop_dict, 'groupValue', '1')
         action_code = self._generate_action_code(prop_dict.get('onChanged'))
+        active_color = self.get_property_value(prop_dict, 'activeColor', None)
 
         on_changed = action_code if action_code != 'null' else '(v) {}'
-
-        return f"Radio(value: '{value}', groupValue: '{group_value}', onChanged: {on_changed})"
+        parts = [f"value: '{value}'", f"groupValue: '{group_value}'", f"onChanged: {on_changed}"]
+        if active_color:
+            parts.append(f"activeColor: {DartCodeUtils.generate_color_code(active_color)}")
+        return "Radio(" + ', '.join(parts) + ")"
 
     def _generate_action_code(self, prop: Any) -> str:
         """Generate action code for change events."""
@@ -164,8 +192,18 @@ class SliderHandler(BaseWidgetHandler):
         value = self.get_property_value(prop_dict, 'value', '0.5')
         min_val = self.get_property_value(prop_dict, 'min', '0.0')
         max_val = self.get_property_value(prop_dict, 'max', '1.0')
+        active_color = self.get_property_value(prop_dict, 'activeColor', None)
+        inactive_color = self.get_property_value(prop_dict, 'inactiveColor', None)
+        thumb_color = self.get_property_value(prop_dict, 'thumbColor', None)
 
-        return f"Slider(value: {value}, min: {min_val}, max: {max_val}, onChanged: (double v) {{}})"
+        parts = [f"value: {value}", f"min: {min_val}", f"max: {max_val}", "onChanged: (double v) {}"]
+        if active_color:
+            parts.append(f"activeColor: {DartCodeUtils.generate_color_code(active_color)}")
+        if inactive_color:
+            parts.append(f"inactiveColor: {DartCodeUtils.generate_color_code(inactive_color)}")
+        if thumb_color:
+            parts.append(f"thumbColor: {DartCodeUtils.generate_color_code(thumb_color)}")
+        return "Slider(" + ', '.join(parts) + ")"
 
 
 class DateTimePickerHandler(BaseWidgetHandler):

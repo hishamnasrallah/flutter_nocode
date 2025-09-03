@@ -526,6 +526,15 @@ class ListTileHandler(BaseWidgetHandler):
             tile_color = self.get_property_value(prop_dict, 'tileColor', None)
             if tile_color:
                 code += f"\n{indent}  tileColor: {DartCodeUtils.generate_color_code(tile_color)},"
+        icon_color = self.get_property_value(prop_dict, 'iconColor', None)
+        text_color = self.get_property_value(prop_dict, 'textColor', None)
+        subtitle_text_color = self.get_property_value(prop_dict, 'subtitleTextColor', None)
+        if icon_color:
+            code += f"\n{indent}  iconColor: {DartCodeUtils.generate_color_code(icon_color)},"
+        if text_color:
+            code += f"\n{indent}  textColor: {DartCodeUtils.generate_color_code(text_color)},"
+        if subtitle_text_color:
+            code += f"\n{indent}  subtitleTextColor: {DartCodeUtils.generate_color_code(subtitle_text_color)},"
 
         if 'onTap' in prop_dict:
             action_code = self._generate_action_code(prop_dict.get('onTap'))

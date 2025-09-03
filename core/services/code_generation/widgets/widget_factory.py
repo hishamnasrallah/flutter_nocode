@@ -48,13 +48,17 @@ from .handlers.advanced_widgets import (
     StreamBuilderHandler,
     PageViewHandler,
     TabBarViewHandler,
+    ScaffoldHandler,
     SafeAreaHandler,
     TooltipHandler,
     RichTextHandler,
     ChipHandler,
     AvatarHandler,
-    BottomSheetHandler
+    BottomSheetHandler,
+    DialogHandler,
+    BadgeHandler
 )
+from .handlers.custom_widgets import CustomPubDevWidgetHandler
 
 
 class WidgetFactory:
@@ -116,12 +120,17 @@ class WidgetFactory:
             StreamBuilderHandler(),
             PageViewHandler(),
             TabBarViewHandler(),
+            ScaffoldHandler(),
             SafeAreaHandler(),
             TooltipHandler(),
             RichTextHandler(),
             ChipHandler(),
             AvatarHandler(),
             BottomSheetHandler(),
+            DialogHandler(),
+            BadgeHandler(),
+            # Custom pub.dev widgets
+            CustomPubDevWidgetHandler(),
         ]
 
     def get_handler(self, widget_type: str) -> Optional[BaseWidgetHandler]:
